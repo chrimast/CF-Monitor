@@ -79,6 +79,7 @@ test('已是标准形式时幂等，不再改写地址栏', () => {
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin' }), null)
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin?apiIndex=1' }), null)
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin?foo=1' }), null)
+  assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin/term/abc' }), null)
 })
 
 test('归一化结果一律解析为 /admin 路由，且不再残留裸 query', () => {

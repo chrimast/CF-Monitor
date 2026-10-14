@@ -4,6 +4,7 @@ import { updateDatabase } from './database/updateDatabase.js';
 import { handleAdminAPI } from './handlers/admin.js';
 import { serveFrontend } from './handlers/frontend.js';
 import { handleUpdate, handleWebSocketUpgrade, handleUpdateWebSocketUpgrade } from './handlers/update.js';
+import { handleAgentTerminalUpgrade, handleBrowserTerminalUpgrade, handleToggleTerminal } from './handlers/terminal.js';
 import { handleServerAPI, handleServersAPI } from './handlers/dashboard.js';
 import { handleTheme } from './handlers/theme.js';
 import { isValidThemeOptions, loadSettings, loadSiteSettings, loadAppearanceOptions, normalizeFrontendWsTimeoutMinutes, normalizeLongHistoryPoints, saveThemeOptions, setDebug, debug } from './utils/settings.js';
@@ -26,8 +27,11 @@ import {
 // 显式 import + extends，确保 wrangler 静态分析器能在入口文件直接识别此 DO 类
 import { MetricsBroadcaster as _MetricsBroadcaster }
   from './durable/MetricsBroadcaster.js';
+import { TerminalHub as _TerminalHub }
+  from './durable/TerminalHub.js';
 
 export class MetricsBroadcaster extends _MetricsBroadcaster {}
+export class TerminalHub extends _TerminalHub {}
 
 function cleanThemeAssetResponse(response) {
   const headers = new Headers(response.headers);
@@ -399,6 +403,12 @@ export default {
         return handleServersAPI(request, env, sys);
       }},
       { method: 'GET', path: '/api/ws', handler: async () => handleWebSocketUpgrade(request, env) },
+      { method: 'GET', path: '/api/term', handler: async () => handleBrowserTerminalUpgrade(request, env) },
+      { method: 'GET', path: '/agent/term', handler: async () => handleAgentTerminalUpgrade(request, env) },
+      { method: 'POST', path: '/admin/api/terminal', handler: async () => {
+        await ensureSiteSettings();
+        return handleToggleTerminal(request, env, sys);
+      }},
 
       { method: 'GET', path: '/api/history/all', handler: async () => {
         await ensureSiteSettings();

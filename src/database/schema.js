@@ -109,7 +109,8 @@ export async function initDatabase(db) {
           is_hidden TEXT DEFAULT '0',
           sort_order INTEGER DEFAULT 0,
           history_partition_id INTEGER DEFAULT 0,
-          timestamp INTEGER DEFAULT 0
+          timestamp INTEGER DEFAULT 0,
+          terminal_enabled TEXT DEFAULT '0'
         )
       `).run();
     } else {

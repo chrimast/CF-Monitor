@@ -130,6 +130,8 @@
           @copy-cmd="copyCmd"
           @edit="openEditModal"
           @delete="openDeleteModal"
+          @open-terminal="openTerminal"
+          @toggle-terminal="toggleTerminal"
         />
 
         <SettingsPanel
@@ -587,6 +589,7 @@ import BatchEditServersModal from './components/BatchEditServersModal.vue'
 import DeleteServerModal from './components/DeleteServerModal.vue'
 import CopyCommandModal from './components/CopyCommandModal.vue'
 import { adminApi, login, logout as apiLogout, upgradeDatabase, clearHistory, fetchConfig } from '../../utils/api'
+import { http } from '../../utils/http'
 import { hasMultipleApiBases, getApiBases } from '../../utils/config.js'
 import { copyTextToClipboard } from '../../utils/clipboard.js'
 import { t, useTranslation } from '../../utils/i18n'
@@ -603,7 +606,7 @@ const route = useRoute()
 const router = useRouter()
 const appConfig = inject('appConfig', {})
 let startupConfigConsumed = false
-const AGENT_RELEASE_URL = 'https://api.github.com/repos/huilang-me/cfsm-agent/releases/latest'
+const AGENT_RELEASE_URL = 'https://api.github.com/repos/chrimast/cfm-agent/releases/latest'
 const AGENT_RELEASE_FAILURE_TTL = 30 * 1000
 
 let cachedAgentReleaseVersion = ''
@@ -1705,12 +1708,12 @@ const getUninstallCommand = () => {
   const proxy = isGo ? deleteGhProxy.value.trim() : ''
   if (isGo) {
     if (deleteTargetOs.value === 'windows') {
-      const ghUrl = buildGhRawUrl(proxy, '/huilang-me/cfsm-agent/main/install.ps1')
+      const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.ps1')
       const proxyParam = proxy ? ` ${quotePowerShellArg(`--install-ghproxy=${proxy}`)}` : ''
       return `$script = "$env:TEMP\\install-cf-probe.ps1"; Invoke-WebRequest -Uri ${quotePowerShellArg(ghUrl)} -OutFile $script -UseBasicParsing; PowerShell -ExecutionPolicy Bypass -File $script uninstall${proxyParam}`
     }
     const sudoPrefix = deleteTargetOs.value === 'mac' ? 'sudo ' : ''
-    const ghUrl = buildGhRawUrl(proxy, '/huilang-me/cfsm-agent/main/install.sh')
+    const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
     const proxyParam = proxy ? ` ${quotePosixShellArg(`--install-ghproxy=${proxy}`)}` : ''
     const uninstallCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- uninstall${proxyParam}`
     if (deleteTargetOs.value === 'linux' && deleteInstallMode.value === 'cfsm-user') {
@@ -1722,6 +1725,20 @@ const getUninstallCommand = () => {
     return `$script = Join-Path (Get-Location) 'uninstall-cf-probe.ps1'; Invoke-WebRequest -Uri '${HOST}/uninstall.ps1' -OutFile $script -UseBasicParsing; PowerShell -ExecutionPolicy Bypass -File $script`
   }
   return `curl -fsSL '${HOST}/uninstall.sh' | sh -s`
+}
+
+const openTerminal = (serverId) => {
+  window.location.assign(`/admin#/admin/term/${encodeURIComponent(serverId)}`)
+}
+
+const toggleTerminal = async (server) => {
+  const enabled = server?.terminal_enabled !== '1'
+  const result = await http.post('/admin/api/terminal', { id: server.id, enabled }, { baseUrl: selectedApiBase.value })
+  if (result.error) {
+    alertMessage.value = result.error
+    return
+  }
+  server.terminal_enabled = enabled ? '1' : '0'
 }
 
 const copyCmd = (serverId) => {
@@ -1871,12 +1888,12 @@ const getCustomInstallCommand = () => {
     if (networkInterface.value) params.push(`-interface='${networkInterface.value}'`)
     if (hasCorrectionValue(rxCorrection.value)) params.push(`-rx_correction='${rxCorrection.value}'`)
     if (hasCorrectionValue(txCorrection.value)) params.push(`-tx_correction='${txCorrection.value}'`)
-    const ghUrl = buildGhRawUrl(proxy, '/huilang-me/cfsm-agent/main/install.ps1')
+    const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.ps1')
     return `$script = "$env:TEMP\\install-cf-probe.ps1"; Invoke-WebRequest -Uri ${quotePowerShellArg(ghUrl)} -OutFile $script -UseBasicParsing; PowerShell -ExecutionPolicy Bypass -File $script ${params.join(' ')}`
   }
   if (targetOs.value === 'docker') {
     const safeTag = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/.test(version) ? version : 'latest'
-    const image = `ghcr.io/huilang-me/cfsm-agent:${safeTag}`
+    const image = `ghcr.io/chrimast/cfm-agent:${safeTag}`
     return [
       'docker run -d --name cf-probe --restart=unless-stopped --network=host \\',
       '  -v cf-probe-data:/data \\',
@@ -1906,7 +1923,7 @@ const getCustomInstallCommand = () => {
   if (networkInterface.value) params.push(`-interface=${networkInterface.value}`)
   if (hasCorrectionValue(rxCorrection.value)) params.push(`-rx_correction=${rxCorrection.value}`)
   if (hasCorrectionValue(txCorrection.value)) params.push(`-tx_correction=${txCorrection.value}`)
-  const ghUrl = buildGhRawUrl(proxy, '/huilang-me/cfsm-agent/main/install.sh')
+  const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
   const installCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | sh -s -- ${params.join(' ')}`
   if (!isDedicatedUserInstall) return installCommand
 

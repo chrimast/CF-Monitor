@@ -90,7 +90,8 @@ export async function addServerColumns(db) {
       traffic_alert_state: "TEXT",
       interface: "TEXT DEFAULT ''",
       history_partition_id: "INTEGER DEFAULT 0",
-      timestamp: "INTEGER DEFAULT 0"
+      timestamp: "INTEGER DEFAULT 0",
+      terminal_enabled: "TEXT DEFAULT '0'"
     };
     
     let added = 0;

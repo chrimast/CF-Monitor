@@ -2,8 +2,8 @@
   <div id="login-overlay" class="login-overlay">
     <div class="login-container">
       <div class="login-header">
-        <div class="login-icon">🔐</div>
-        <h2 class="login-title">{{ trans.adminLogin }}</h2>
+        <div class="login-icon brand-mark" aria-hidden="true">&gt;_</div>
+        <h2 class="login-title">CF-Monitor</h2>
         <p class="login-subtitle">{{ trans.enterCredentials }}</p>
       </div>
       <form @submit.prevent="$emit('login')">
@@ -28,7 +28,7 @@
           <div class="password-input-wrapper">
             <input :type="passwordVisible.login ? 'text' : 'password'" name="password" autocomplete="current-password" v-model="loginForm.password" required class="login-input" placeholder="••••••••">
             <button type="button" class="password-toggle" @click="$emit('toggle-password', 'login')">
-              {{ passwordVisible.login ? '🙈' : '👁️' }}
+              {{ passwordVisible.login ? 'Hide' : 'Show' }}
             </button>
           </div>
         </div>
@@ -36,7 +36,7 @@
           <div id="admin-turnstile-container"></div>
         </div>
         <div v-if="loginError" id="login-error" class="login-error">{{ loginError }}</div>
-        <button type="submit" class="login-btn">{{ loginLoading ? '⏳' : trans.login }}</button>
+        <button type="submit" class="login-btn">{{ loginLoading ? '...' : trans.login }}</button>
       </form>
     </div>
     <Footer />

@@ -17,7 +17,7 @@ const ADMIN_PATH = '/admin'
 const ADMIN_HASH = '#/admin'
 // 后台 hash 的新旧两种写法，query 原样保留。
 // $ 边界是必需的：否则 #/administrator、#adminx 这类前缀误匹配会拼出不存在的路由，渲染成空白页
-const ADMIN_HASH_QUERY = /^#\/?admin(\?.*)?$/
+const ADMIN_HASH_QUERY = /^#\/?admin(\/term\/[^?#]+)?(\?.*)?$/
 
 // 私有站跳转、主题入口共用的标准后台地址
 export const ADMIN_ENTRY_URL = `${ADMIN_PATH}${ADMIN_HASH}`
@@ -38,7 +38,8 @@ export const resolveAdminEntryUrl = ({ pathname = '', search = '', hash = '' } =
   // 而它之后只用 '#'+path 写地址栏，留在 search 里的 ?foo=1 永远清不掉。
   // 无 hash、以及 pathname 是 /admin 时的其它 hash 都留空后缀，一律按后台入口处理：
   // 看板只有域名根路径入口（/#/），详情页只有 /#/server/:id，都不挂在 /admin 下
-  const suffix = ADMIN_HASH_QUERY.exec(hash)?.[1] || search
+  const match = ADMIN_HASH_QUERY.exec(hash)
+  const suffix = (match && (match[1] || '') + (match[2] || '')) || search
   const target = `${ADMIN_PATH}${ADMIN_HASH}${suffix}`
   return target === `${pathname}${search}${hash}` ? null : target
 }

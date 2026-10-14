@@ -1,7 +1,7 @@
 {
-  "name": "cf-server-monitor",
-  "version": "2.8.6",
-  "description": "Cloudflare Workers Server Monitor - 多服务器监控探针",
+  "name": "cf-monitor",
+  "version": "0.1.0",
+  "description": "CF-Monitor - 监控面板 + 管理员反向终端",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
@@ -38,7 +38,9 @@
     "cloudflare-smtp": "^0.1.2",
     "leaflet": "^1.9.4",
     "vue": "^3.4.0",
-    "vue-router": "^4.4.0"
+    "vue-router": "^4.4.0",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0"
   },
   "engines": {
     "node": ">=18.0.0"

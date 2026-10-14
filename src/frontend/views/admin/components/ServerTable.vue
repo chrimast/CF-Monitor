@@ -156,9 +156,16 @@
             <td>
               <div class="action-group">
                 <div class="action-btns">
-                  <button @click="$emit('copy-cmd', server.id)" class="btn btn-icon btn-green" :aria-label="trans.copy">{{ copiedServerId === server.id ? '✅' : '📋' }}</button>
-                  <button @click="$emit('edit', server)" class="btn btn-icon btn-blue" :aria-label="trans.edit">✏️</button>
-                  <button @click="$emit('delete', server.id)" class="btn btn-icon btn-red" :aria-label="trans.delete">🗑️</button>
+                  <button @click="$emit('copy-cmd', server.id)" class="btn btn-icon btn-green" :aria-label="trans.copy">{{ copiedServerId === server.id ? 'OK' : 'CMD' }}</button>
+                  <button
+                    v-if="server.terminal_enabled === '1'"
+                    @click="$emit('open-terminal', server.id)"
+                    class="btn btn-icon btn-blue"
+                    :aria-label="trans.openTerminal"
+                  >&gt;_</button>
+                  <button @click="$emit('toggle-terminal', server)" class="btn btn-icon" :aria-label="trans.enableTerminal">{{ server.terminal_enabled === '1' ? 'TERM ON' : 'TERM' }}</button>
+                  <button @click="$emit('edit', server)" class="btn btn-icon btn-blue" :aria-label="trans.edit">EDIT</button>
+                  <button @click="$emit('delete', server.id)" class="btn btn-icon btn-red" :aria-label="trans.delete">DEL</button>
                 </div>
               </div>
             </td>
@@ -197,7 +204,7 @@ const newServerGroup = defineModel('newServerGroup', { type: String, default: ''
 const emit = defineEmits([
   'add-server', 'batch-edit', 'batch-delete', 'toggle-select-all', 'select-all',
   'drag-start', 'drop', 'toggle-server', 'copy-note',
-  'copy-spec', 'copy-cmd', 'edit', 'delete'
+  'copy-spec', 'copy-cmd', 'edit', 'delete', 'open-terminal', 'toggle-terminal'
 ])
 
 const POINTER_DRAG_THRESHOLD = 6
