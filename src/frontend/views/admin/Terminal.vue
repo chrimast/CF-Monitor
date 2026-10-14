@@ -20,7 +20,7 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { STORAGE } from '../../utils/constants'
-import { getApiBases } from '../../utils/config'
+import { getWsBase } from '../../utils/config'
 
 const route = useRoute()
 const termEl = ref(null)
@@ -36,12 +36,10 @@ const statusText = computed(() => {
 let term
 let fit
 let socket
-let resizeObserver
 
 const wsUrl = () => {
   const token = localStorage.getItem(STORAGE.JWT_TOKEN) || ''
-  const base = getApiBases()[0] || window.location.origin
-  const url = new URL('/api/term', base.replace(/^http/, 'ws'))
+  const url = new URL('/api/term', getWsBase() || window.location.origin.replace(/^http/, 'ws'))
   url.searchParams.set('id', String(route.params.id || ''))
   if (token) url.searchParams.set('token', token)
   return url.toString()
@@ -49,6 +47,12 @@ const wsUrl = () => {
 
 const send = (payload) => {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload))
+}
+
+const sendResize = () => {
+  if (!term) return
+  fit?.fit()
+  send({ type: 'resize', cols: term.cols, rows: term.rows })
 }
 
 onMounted(() => {
@@ -68,10 +72,7 @@ onMounted(() => {
   term.open(termEl.value)
   fit.fit()
   term.onData((data) => send({ type: 'input', data }))
-  window.addEventListener('resize', () => {
-    fit?.fit()
-    send({ type: 'resize', cols: term.cols, rows: term.rows })
-  })
+  window.addEventListener('resize', sendResize)
   socket = new WebSocket(wsUrl())
   socket.onopen = () => {
     status.value = 'waiting'
@@ -91,15 +92,15 @@ onMounted(() => {
       term.write('\r\n[waiting for agent]\r\n')
     } else if (msg.type === 'exit' || msg.type === 'error') {
       status.value = 'closed'
-      term.write(`\r\n[${msg.message || msg.type}]\r\n`)
+      term.write(`\r\n[${msg.data || msg.message || msg.type}]\r\n`)
     }
   }
   socket.onclose = () => { status.value = 'closed' }
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', sendResize)
   try { socket?.close() } catch (_) {}
   try { term?.dispose() } catch (_) {}
-  window.removeEventListener('resize', () => {})
 })
 </script>

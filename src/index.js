@@ -227,6 +227,7 @@ export default {
     const bypassTurnstilePaths = [
       '/admin/api',
       '/api/ws',
+      '/api/term',
     ];
 
     const isApiRequest = path.startsWith('/api/') || path.startsWith('/admin/api');
@@ -407,7 +408,7 @@ export default {
       { method: 'GET', path: '/agent/term', handler: async () => handleAgentTerminalUpgrade(request, env) },
       { method: 'POST', path: '/admin/api/terminal', handler: async () => {
         await ensureSiteSettings();
-        return handleToggleTerminal(request, env, sys);
+        return handleToggleTerminal(request, env, sys, ctx);
       }},
 
       { method: 'GET', path: '/api/history/all', handler: async () => {

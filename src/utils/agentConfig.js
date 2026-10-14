@@ -1,12 +1,13 @@
 import { md5Hash } from './common.js';
 import { isWssReportConfigured } from './settings.js';
 
-export const AGENT_CONFIG_SCHEMA_VERSION = 7;
+export const AGENT_CONFIG_SCHEMA_VERSION = 8;
 export const AGENT_CONFIG_LEGACY_SCHEMA_VERSION = 3;
 export const AGENT_CONFIG_CONNECTION_MODE_SCHEMA_VERSION = 4;
 export const AGENT_CONFIG_WSS_REPORT_INTERVAL_SCHEMA_VERSION = 5;
 export const AGENT_CONFIG_PING_MODE_SCHEMA_VERSION = 6;
 export const AGENT_CONFIG_EXTRA_NODES_SCHEMA_VERSION = 7;
+export const AGENT_CONFIG_TERMINAL_SCHEMA_VERSION = 8;
 export const AGENT_CONFIG_SCHEMA_HEADER = 'X-Agent-Config-Schema';
 export const AGENT_CONFIG_MD5_HEADER = 'X-Agent-Config-Md5';
 export const MAX_TRAFFIC_CORRECTION_GB = 1000000;
@@ -336,6 +337,10 @@ export function buildAgentConfig(server, settings = null, schemaVersion = AGENT_
     config.ping_mode = normalizePingMode(server?.ping_mode) || PING_MODE_TCP;
   }
 
+  if (version >= AGENT_CONFIG_TERMINAL_SCHEMA_VERSION) {
+    config.terminal_enabled = String(server?.terminal_enabled || '0') === '1' ? '1' : '0';
+  }
+
   return config;
 }
 
@@ -363,6 +368,9 @@ export function serializeAgentConfig(config) {
   }
   if (Object.prototype.hasOwnProperty.call(config, 'ping_mode')) {
     serialized += `&ping_mode=${config.ping_mode}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(config, 'terminal_enabled')) {
+    serialized += `&terminal_enabled=${config.terminal_enabled}`;
   }
   return serialized;
 }

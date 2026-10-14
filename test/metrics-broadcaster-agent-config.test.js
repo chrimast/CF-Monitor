@@ -507,7 +507,7 @@ test('WSS agent config push uses string body and structured payload', () => {
         kind: 'agent-report',
         authenticated: true,
         serverId: 'server-1',
-        configSchema: '7',
+        configSchema: '8',
         configMd5: 'none'
       };
     },

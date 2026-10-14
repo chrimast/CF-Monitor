@@ -452,8 +452,8 @@ body::before {
 .site-title {
     font-size: 16px;
     font-weight: 700;
-    color: var(--accent-green);
-    text-shadow: 0 0 10px rgba(0, 212, 170, 0.3);
+    color: var(--text-primary);
+    text-shadow: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -3815,21 +3815,21 @@ body.server-row-drag-active * {
 .login-btn {
     width: 100%;
     padding: 12px;
-    background: var(--accent-green);
-    border: 1px solid var(--accent-green);
+    background: var(--home-accent);
+    border: 1px solid var(--home-accent);
     border-radius: 4px;
-    color: var(--color-inherit);
+    color: #fff;
     font-family: var(--terminal-font);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    text-transform: none;
+    letter-spacing: 0.4px;
     transition: all 0.2s;
 }
 
 .login-btn:hover {
-    background: #00bf99;
+    background: #d53b0a;
 }
 
 /* --------------------------------------------------------------------------

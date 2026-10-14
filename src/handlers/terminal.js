@@ -1,5 +1,6 @@
 import { checkAuth, checkWebSocketAuth, simpleAuthResponse } from '../middleware/auth.js';
 import { loadSiteSettings } from '../utils/settings.js';
+import { scheduleAgentConfigChanged } from '../utils/agentConfigNotify.js';
 
 function jsonError(message, status) {
   return new Response(JSON.stringify({ error: message, code: status }), {
@@ -52,7 +53,7 @@ export async function handleAgentTerminalUpgrade(request, env) {
   return forwardTerminal(request, env, id, '/agent');
 }
 
-export async function handleToggleTerminal(request, env, sys) {
+export async function handleToggleTerminal(request, env, sys, ctx) {
   if (!await checkAuth(request, env, sys)) return simpleAuthResponse();
   let data;
   try {
@@ -68,6 +69,7 @@ export async function handleToggleTerminal(request, env, sys) {
   await env.DB.prepare('UPDATE servers SET terminal_enabled = ? WHERE id = ?')
     .bind(enabled ? '1' : '0', id)
     .run();
+  scheduleAgentConfigChanged(env, ctx, id);
   return Response.json({ success: true, id, terminal_enabled: enabled ? '1' : '0' });
 }
 
@@ -77,11 +79,7 @@ async function forwardTerminal(request, env, serverId, path) {
   }
   const id = env.TERMINAL_HUB.idFromName(serverId);
   const stub = env.TERMINAL_HUB.get(id);
-  const headers = new Headers(request.headers);
-  return stub.fetch(new Request(`https://terminal.internal${path}?id=${encodeURIComponent(serverId)}`, {
-    method: request.method,
-    headers
-  }));
+  return stub.fetch(new Request(`https://terminal.internal${path}?id=${encodeURIComponent(serverId)}`, request));
 }
 
 export function terminalEnabledHeader(server) {

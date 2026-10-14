@@ -163,7 +163,7 @@
                     class="btn btn-icon btn-blue"
                     :aria-label="trans.openTerminal"
                   >&gt;_</button>
-                  <button @click="$emit('toggle-terminal', server)" class="btn btn-icon" :aria-label="trans.enableTerminal">{{ server.terminal_enabled === '1' ? 'TERM ON' : 'TERM' }}</button>
+                  <button @click="$emit('toggle-terminal', server)" class="btn btn-icon" :class="{ 'btn-primary': server.terminal_enabled === '1' }" :aria-label="trans.enableTerminal">{{ server.terminal_enabled === '1' ? 'TERM ON' : 'TERM' }}</button>
                   <button @click="$emit('edit', server)" class="btn btn-icon btn-blue" :aria-label="trans.edit">EDIT</button>
                   <button @click="$emit('delete', server.id)" class="btn btn-icon btn-red" :aria-label="trans.delete">DEL</button>
                 </div>
