@@ -1812,7 +1812,7 @@ const buildUninstallAsCfmCommand = (command) => {
     `if ! command -v runuser >/dev/null 2>&1; then echo ${quotePosixDoubleShellArg(trans.value.dedicatedUserUninstallUnsupported)} >&2; exit 1; fi`,
     `id cfm >/dev/null 2>&1 || { echo ${quotePosixDoubleShellArg(trans.value.nonRootUninstallUserMissing)} >&2; exit 1; }`,
     'CFM_UID=$(id -u cfm)',
-    'CFM_HOME=$(getent passwd cfm | cut -d: -f6); [ -n "${CFM_HOME}" ] || CFM_HOME=/home/cfm',
+    'CFM_HOME=/opt/cfm',
     'if [ "$(id -u)" -eq 0 ]; then',
     `  ${runuserCommand}`,
     'elif command -v sudo >/dev/null 2>&1; then',
@@ -1839,14 +1839,17 @@ const buildInstallAsCfmCommand = (command, runStep) => {
   ]
 
   lines.push(
-    'id cfm >/dev/null 2>&1 || as_root useradd -m -s /bin/sh cfm',
+    'as_root mkdir -p /opt/cfm',
+    'id cfm >/dev/null 2>&1 || as_root useradd -m -d /opt/cfm -s /bin/sh cfm',
+    'as_root usermod -d /opt/cfm cfm >/dev/null 2>&1 || true',
+    'as_root chown cfm:cfm /opt/cfm',
     'as_root loginctl enable-linger cfm'
   )
 
   lines.push(
     'CFM_UID=$(id -u cfm)',
+    'CFM_HOME=/opt/cfm',
     'as_root systemctl start user@${CFM_UID}.service',
-    'if command -v getent >/dev/null 2>&1; then CFM_HOME=$(getent passwd cfm | cut -d: -f6); else CFM_HOME=/home/cfm; fi; [ -n "${CFM_HOME}" ] || CFM_HOME=/home/cfm',
     '',
     `# ${runStep}`,
     `as_root runuser -u cfm -- env HOME="\${CFM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`,
