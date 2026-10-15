@@ -2694,6 +2694,18 @@ body::before {
     white-space: nowrap;
 }
 
+.form-static {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--terminal-font);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 .form-input,
 .form-select,
 .form-textarea {

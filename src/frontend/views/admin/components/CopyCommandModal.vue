@@ -39,10 +39,7 @@
             {{ trans.installMode }}
             <HelpTooltip :text="trans.nonRootInstallTip" />
           </label>
-          <select :value="installMode" class="form-select" @change="$emit('update:install-mode', $event.target.value)">
-            <option value="current-user">{{ trans.installModeCurrentUser }}</option>
-            <option value="cfsm-user">{{ trans.installModeCfsmUser }}</option>
-          </select>
+          <div class="form-static">{{ trans.installModeCfmUser }}</div>
         </div>
 
         <div class="form-group flex-1">
@@ -159,7 +156,7 @@ const props = defineProps({
   show: { type: Boolean, default: false },
   currentServerName: { type: String, default: '' },
   targetOs: { type: String, default: 'linux' },
-  installMode: { type: String, default: 'current-user' },
+  installMode: { type: String, default: 'cfm-user' },
   installGhProxy: { type: String, default: '' },
   installVersion: { type: String, default: '' },
   collectInterval: { type: [Number, String], default: 0 },
@@ -226,7 +223,7 @@ const selectedGhProxy = computed({
 
 const showCustomGhProxy = computed(() => selectedGhProxy.value === CUSTOM_GH_PROXY_VALUE)
 const effectivePingMode = computed(() => (
-  props.targetOs === 'linux' && props.installMode === 'cfsm-user'
+  props.targetOs === 'linux'
     ? 'tcp'
     : (props.pingMode === 'icmp' ? 'icmp' : 'tcp')
 ))

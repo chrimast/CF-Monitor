@@ -1089,7 +1089,7 @@ const copiedNoteServerId = ref(null)
 const copiedSpecKey = ref(null)
 const deleteTargetOs = ref('linux')
 const deleteVersion = ref('go')
-const deleteInstallMode = ref('current-user')
+const deleteInstallMode = ref('cfm-user')
 const deleteGhProxy = ref('')
 const uninstallCopied = ref(false)
 const saving = ref(false)
@@ -1116,7 +1116,7 @@ const showCopyModal = ref(false)
 const copyServerId = ref('')
 const currentServerName = ref('')
 const targetOs = ref('linux')
-const installMode = ref('current-user')
+const installMode = ref('cfm-user')
 const installGhProxy = ref('')
 const installVersion = ref('')
 const collectInterval = ref(0)
@@ -1716,8 +1716,8 @@ const getUninstallCommand = () => {
     const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
     const proxyParam = proxy ? ` ${quotePosixShellArg(`--install-ghproxy=${proxy}`)}` : ''
     const uninstallCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- uninstall${proxyParam}`
-    if (deleteTargetOs.value === 'linux' && deleteInstallMode.value === 'cfsm-user') {
-      return buildUninstallAsCfsmCommand(uninstallCommand)
+    if (deleteTargetOs.value === 'linux' && deleteInstallMode.value === 'cfm-user') {
+      return buildUninstallAsCfmCommand(uninstallCommand)
     }
     return uninstallCommand
   }
@@ -1746,7 +1746,7 @@ const copyCmd = (serverId) => {
   copyServerId.value = serverId
   currentServerName.value = server?.name || ''
   targetOs.value = 'linux'
-  installMode.value = 'current-user'
+  installMode.value = 'cfm-user'
   installGhProxy.value = ''
   installVersion.value = ''
   collectInterval.value = server?.collect_interval ?? 0
@@ -1804,15 +1804,15 @@ const quotePosixDoubleShellArg = (value) => `"${String(value)
   .replaceAll('$', '\\$')
   .replaceAll('`', '\\`')}"`
 
-const buildUninstallAsCfsmCommand = (command) => {
-  const runuserCommand = `runuser -u cfsm -- env HOME="\${CFSM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFSM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFSM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`
+const buildUninstallAsCfmCommand = (command) => {
+  const runuserCommand = `runuser -u cfm -- env HOME="\${CFM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`
   return [
     '(',
     'set -e',
     `if ! command -v runuser >/dev/null 2>&1; then echo ${quotePosixDoubleShellArg(trans.value.dedicatedUserUninstallUnsupported)} >&2; exit 1; fi`,
-    `id cfsm >/dev/null 2>&1 || { echo ${quotePosixDoubleShellArg(trans.value.nonRootUninstallUserMissing)} >&2; exit 1; }`,
-    'CFSM_UID=$(id -u cfsm)',
-    'CFSM_HOME=$(getent passwd cfsm | cut -d: -f6); [ -n "${CFSM_HOME}" ] || CFSM_HOME=/home/cfsm',
+    `id cfm >/dev/null 2>&1 || { echo ${quotePosixDoubleShellArg(trans.value.nonRootUninstallUserMissing)} >&2; exit 1; }`,
+    'CFM_UID=$(id -u cfm)',
+    'CFM_HOME=$(getent passwd cfm | cut -d: -f6); [ -n "${CFM_HOME}" ] || CFM_HOME=/home/cfm',
     'if [ "$(id -u)" -eq 0 ]; then',
     `  ${runuserCommand}`,
     'elif command -v sudo >/dev/null 2>&1; then',
@@ -1824,7 +1824,7 @@ const buildUninstallAsCfsmCommand = (command) => {
   ].join('\n')
 }
 
-const buildInstallAsCfsmCommand = (command, runStep) => {
+const buildInstallAsCfmCommand = (command, runStep) => {
   const lines = [
     '(',
     'set -e',
@@ -1839,17 +1839,17 @@ const buildInstallAsCfsmCommand = (command, runStep) => {
   ]
 
   lines.push(
-    'id cfsm >/dev/null 2>&1 || as_root useradd -m -s /bin/sh cfsm',
-    'as_root loginctl enable-linger cfsm'
+    'id cfm >/dev/null 2>&1 || as_root useradd -m -s /bin/sh cfm',
+    'as_root loginctl enable-linger cfm'
   )
 
   lines.push(
-    'CFSM_UID=$(id -u cfsm)',
-    'as_root systemctl start user@${CFSM_UID}.service',
-    'if command -v getent >/dev/null 2>&1; then CFSM_HOME=$(getent passwd cfsm | cut -d: -f6); else CFSM_HOME=/home/cfsm; fi; [ -n "${CFSM_HOME}" ] || CFSM_HOME=/home/cfsm',
+    'CFM_UID=$(id -u cfm)',
+    'as_root systemctl start user@${CFM_UID}.service',
+    'if command -v getent >/dev/null 2>&1; then CFM_HOME=$(getent passwd cfm | cut -d: -f6); else CFM_HOME=/home/cfm; fi; [ -n "${CFM_HOME}" ] || CFM_HOME=/home/cfm',
     '',
     `# ${runStep}`,
-    `as_root runuser -u cfsm -- env HOME="\${CFSM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFSM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFSM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`,
+    `as_root runuser -u cfm -- env HOME="\${CFM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`,
     ')'
   )
   return lines.join('\n')
@@ -1861,7 +1861,7 @@ const getCustomInstallCommand = () => {
   const proxy = installGhProxy.value.trim()
   const version = installVersion.value.trim()
   const effectiveConnectionMode = getEffectiveConnectionMode(connectionMode.value)
-  const isDedicatedUserInstall = targetOs.value === 'linux' && installMode.value === 'cfsm-user'
+  const isDedicatedUserInstall = targetOs.value === 'linux'
   const effectivePingMode = getEffectivePingMode(isDedicatedUserInstall ? 'tcp' : pingMode.value)
   if (targetOs.value === 'windows') {
     const params = [
@@ -1927,7 +1927,7 @@ const getCustomInstallCommand = () => {
   const installCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | sh -s -- ${params.join(' ')}`
   if (!isDedicatedUserInstall) return installCommand
 
-  return buildInstallAsCfsmCommand(installCommand, trans.value.nonRootInstallRunStep)
+  return buildInstallAsCfmCommand(installCommand, trans.value.nonRootInstallRunStep)
 }
 
 const copyCustomCmd = async () => {
@@ -2186,7 +2186,7 @@ const openDeleteModal = (id) => {
   currentServerName.value = server?.name || ''
   deleteTargetOs.value = 'linux'
   deleteVersion.value = 'go'
-  deleteInstallMode.value = 'current-user'
+  deleteInstallMode.value = 'cfm-user'
   deleteGhProxy.value = ''
   uninstallCopied.value = false
   showDeleteModal.value = true

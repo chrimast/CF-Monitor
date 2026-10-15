@@ -44,10 +44,7 @@
           <label class="form-label">
             {{ trans.uninstallMode }}
           </label>
-          <select :value="deleteInstallMode" class="form-select" @change="$emit('update:delete-install-mode', $event.target.value)">
-            <option value="current-user">{{ trans.uninstallModeCurrentUser }}</option>
-            <option value="cfsm-user">{{ trans.uninstallModeCfsmUser }}</option>
-          </select>
+          <div class="form-static">{{ trans.uninstallModeCfmUser }}</div>
         </div>
 
         <div class="form-group flex-1 mb-3">
@@ -73,7 +70,7 @@
       <div class="cmd-input-wrapper mb-3" :class="{ copied: uninstallCopied }">
         <span class="cmd-prompt">{{ deleteTargetOs === 'windows' ? 'PS' : '$' }}</span>
         <textarea
-          v-if="deleteTargetOs === 'linux' && deleteVersion === 'go' && deleteInstallMode === 'cfsm-user'"
+          v-if="deleteTargetOs === 'linux' && deleteVersion === 'go'"
           readonly
           :value="uninstallCommand"
           class="cmd-input flex-1"
@@ -102,7 +99,7 @@ const props = defineProps({
   currentServerName: { type: String, default: '' },
   deleteTargetOs: { type: String, default: 'linux' },
   deleteVersion: { type: String, default: 'go' },
-  deleteInstallMode: { type: String, default: 'current-user' },
+  deleteInstallMode: { type: String, default: 'cfm-user' },
   deleteGhProxy: { type: String, default: '' },
   uninstallCommand: { type: String, default: '' },
   uninstallCopied: { type: Boolean, default: false }
