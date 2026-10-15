@@ -111,10 +111,12 @@ onMounted(() => {
       status.value = 'ready'
       send({ type: 'open', cols: term.cols, rows: term.rows })
     } else if (msg.type === 'waiting' || msg.type === 'agent_offline') {
-      status.value = 'waiting'
-      term.write('\r\n[waiting for agent]\r\n')
+      if (status.value !== 'waiting') {
+        status.value = 'waiting'
+        term.write('\r\n[waiting for agent]\r\n')
+      }
     } else if (msg.type === 'exit' || msg.type === 'error') {
-      status.value = 'closed'
+      status.value = 'waiting'
       term.write(`\r\n[${msg.data || msg.message || msg.type}]\r\n`)
     }
   }
