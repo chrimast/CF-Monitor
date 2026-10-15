@@ -5,7 +5,31 @@
 const AGENT_KIND = 'agent-term';
 const BROWSER_KIND = 'browser-term';
 const IDLE_MS = 10 * 60 * 1000;
-const MAX_FRAME = 64 * 1024;
+const MAX_FRAME = 96 * 1024;
+
+export const AGENT_FORWARD_TYPES = new Set([
+  'data',
+  'exit',
+  'error',
+  'ready',
+  'fs_list_result',
+  'fs_data',
+  'fs_ok',
+  'fs_error'
+]);
+
+export const BROWSER_FORWARD_TYPES = new Set([
+  'input',
+  'resize',
+  'open',
+  'ping',
+  'fs_list',
+  'fs_read',
+  'fs_write',
+  'fs_mkdir',
+  'fs_rm',
+  'fs_rename'
+]);
 
 function jsonMessage(type, extra = {}) {
   return JSON.stringify({ type, ...extra });
@@ -93,7 +117,7 @@ export class TerminalHub {
   webSocketError() {}
 
   _fromAgent(_ws, msg) {
-    if (msg.type === 'data' || msg.type === 'exit' || msg.type === 'error' || msg.type === 'ready') {
+    if (AGENT_FORWARD_TYPES.has(msg.type)) {
       this._notifyBrowsers(msg);
     }
   }
@@ -104,7 +128,7 @@ export class TerminalHub {
       try { ws.send(jsonMessage('waiting', { message: 'waiting for agent' })); } catch (_) {}
       return;
     }
-    if (msg.type === 'input' || msg.type === 'resize' || msg.type === 'open' || msg.type === 'ping') {
+    if (BROWSER_FORWARD_TYPES.has(msg.type)) {
       try { agent.send(JSON.stringify(msg)); } catch (_) {}
     }
   }

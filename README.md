@@ -87,8 +87,8 @@ Workers 免费套餐全账号最多 5 条 Cron。本账号已满，所以当前�
 2. 用户名 `admin`，密码等于刚设置的 `API_SECRET`
 3. 登录后立刻改后台用户名和密码。改密码不会改探针用的 `API_SECRET`
 4. 添加服务器 → 复制安装命令 → 在目标机器执行（脚本仓库是 `chrimast/cfm-agent`）
-5. Linux (systemd) 复制的是一行 `curl | sh`，脚本会建专用 `cfm` 用户并装到 `/opt/cfm/.cf-probe/`。反向终端是 cfm 的壳，不是 root。需要 sudo。OpenWrt/Alpine/群晖/FreeBSD/macOS/Windows 仍按所选系统安装。
-6. 需要终端时：对该机点 **TERM** 进入工作台；关掉窗口后自动关闭
+5. Linux (systemd) 复制的是一行 `curl | sudo sh`，以 root 安装系统服务（`/usr/local/bin/cf-probe`）。反向终端和文件管理以 root 运行。OpenWrt/Alpine/群晖/FreeBSD/macOS/Windows 仍按所选系统安装。
+6. 需要终端时：对该机点 **TERM** 进入工作台；右侧是文件管理。关掉窗口后自动关闭
 
 探针上报地址是 Worker 的 `/update`，例如 `https://cf-monitor.<子域>.workers.dev/update`。
 

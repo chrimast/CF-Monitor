@@ -40,13 +40,6 @@
       </div>
 
       <div v-if="deleteVersion === 'go'" class="form-row">
-        <div v-if="deleteTargetOs === 'linux' && deleteVersion === 'go'" class="form-group flex-1 mb-3">
-          <label class="form-label">
-            {{ trans.uninstallMode }}
-          </label>
-          <div class="form-static">{{ trans.uninstallModeCfmUser }}</div>
-        </div>
-
         <div class="form-group flex-1 mb-3">
           <label class="form-label">
             {{ trans.ghProxy }}

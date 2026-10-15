@@ -1088,7 +1088,7 @@ const copiedNoteServerId = ref(null)
 const copiedSpecKey = ref(null)
 const deleteTargetOs = ref('linux')
 const deleteVersion = ref('go')
-const deleteInstallMode = ref('cfm-user')
+const deleteInstallMode = ref('system')
 const deleteGhProxy = ref('')
 const uninstallCopied = ref(false)
 const saving = ref(false)
@@ -1115,7 +1115,7 @@ const showCopyModal = ref(false)
 const copyServerId = ref('')
 const currentServerName = ref('')
 const targetOs = ref('linux')
-const installMode = ref('cfm-user')
+const installMode = ref('system')
 const installGhProxy = ref('')
 const installVersion = ref('')
 const collectInterval = ref(0)
@@ -1711,10 +1711,10 @@ const getUninstallCommand = () => {
       const proxyParam = proxy ? ` ${quotePowerShellArg(`--install-ghproxy=${proxy}`)}` : ''
       return `$script = "$env:TEMP\\install-cf-probe.ps1"; Invoke-WebRequest -Uri ${quotePowerShellArg(ghUrl)} -OutFile $script -UseBasicParsing; PowerShell -ExecutionPolicy Bypass -File $script uninstall${proxyParam}`
     }
-    const sudoPrefix = deleteTargetOs.value === 'mac' ? 'sudo ' : ''
+    const sudoPrefix = deleteTargetOs.value === 'unix' ? '' : 'sudo '
     const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
     const proxyParam = proxy ? ` ${quotePosixShellArg(`--install-ghproxy=${proxy}`)}` : ''
-    const uninstallCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- uninstall${proxyParam}${deleteTargetOs.value === 'linux' ? ' --install-user=cfm' : ''}`
+    const uninstallCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- uninstall${proxyParam}`
     return uninstallCommand
   }
   if (deleteTargetOs.value === 'windows') {
@@ -1741,7 +1741,7 @@ const copyCmd = (serverId) => {
   copyServerId.value = serverId
   currentServerName.value = server?.name || ''
   targetOs.value = 'linux'
-  installMode.value = 'cfm-user'
+  installMode.value = 'system'
   installGhProxy.value = ''
   installVersion.value = ''
   collectInterval.value = server?.collect_interval ?? 0
@@ -1799,8 +1799,7 @@ const getCustomInstallCommand = () => {
   const proxy = installGhProxy.value.trim()
   const version = installVersion.value.trim()
   const effectiveConnectionMode = getEffectiveConnectionMode(connectionMode.value)
-  const isDedicatedUserInstall = targetOs.value === 'linux'
-  const effectivePingMode = getEffectivePingMode(isDedicatedUserInstall ? 'tcp' : pingMode.value)
+  const effectivePingMode = getEffectivePingMode(pingMode.value)
   if (targetOs.value === 'windows') {
     const params = [
       'install'
@@ -1840,7 +1839,6 @@ const getCustomInstallCommand = () => {
     ].join('\n')
   }
   const params = ['install']
-  if (targetOs.value === 'linux') params.push('--install-user=cfm')
   if (proxy) params.push(quotePosixShellArg(`--install-ghproxy=${proxy}`))
   if (version) params.push(quotePosixShellArg(`--install-version=${version}`))
   params.push(
@@ -1863,7 +1861,8 @@ const getCustomInstallCommand = () => {
   if (hasCorrectionValue(rxCorrection.value)) params.push(`-rx_correction=${rxCorrection.value}`)
   if (hasCorrectionValue(txCorrection.value)) params.push(`-tx_correction=${txCorrection.value}`)
   const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
-  return `curl -fsSL ${quotePosixShellArg(ghUrl)} | sh -s -- ${params.join(' ')}`
+  const sudoPrefix = targetOs.value === 'unix' ? '' : 'sudo '
+  return `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- ${params.join(' ')}`
 }
 
 const copyCustomCmd = async () => {

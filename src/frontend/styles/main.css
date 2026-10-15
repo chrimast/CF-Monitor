@@ -5239,6 +5239,105 @@ body.mikus-theme .mikus-stats-mascot-img {
     padding: 8px;
 }
 
+.workspace-term-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.workspace-files {
+    width: min(360px, 38vw);
+    min-width: 240px;
+    border-left: 1px solid #243044;
+    background: #0f141c;
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-files-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+}
+
+.workspace-files-btn {
+    border: 1px solid #243044;
+    background: #121821;
+    color: #e8edf5;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.workspace-files-path,
+.workspace-files-error {
+    padding: 0 10px 8px;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.workspace-files-error { color: #b42318; }
+
+.workspace-files-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 8px 12px;
+    overflow: auto;
+    flex: 1;
+}
+
+.workspace-files-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a2230;
+}
+
+.workspace-files-name {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: none;
+    border: 0;
+    color: #e8edf5;
+    cursor: pointer;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-files-meta {
+    color: #8b98ab;
+    font-size: 11px;
+}
+
+.workspace-files-mini {
+    border: 0;
+    background: #1a2230;
+    color: #e8edf5;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.workspace-files-mini.danger { color: #ff8a80; }
+
+@media (max-width: 800px) {
+    .workspace-term-body { flex-direction: column; }
+    .workspace-files {
+        width: 100%;
+        min-width: 0;
+        height: 42vh;
+        border-left: 0;
+        border-top: 1px solid #243044;
+    }
+}
+
 body.admin-workspace .admin-container {
     max-width: 1450px;
 }

@@ -34,14 +34,6 @@
       </div>
 
       <div v-if="targetOs !== 'docker'" class="form-row">
-        <div v-if="targetOs === 'linux'" class="form-group flex-1">
-          <label class="form-label">
-            {{ trans.installMode }}
-            <HelpTooltip :text="trans.nonRootInstallTip" />
-          </label>
-          <div class="form-static">{{ trans.installModeCfmUser }}</div>
-        </div>
-
         <div class="form-group flex-1">
           <label class="form-label">
             {{ trans.ghProxy }}
