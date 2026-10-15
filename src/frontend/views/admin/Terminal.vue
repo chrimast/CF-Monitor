@@ -55,7 +55,7 @@ import { getWsBase, getApiBases } from '../../utils/config'
 const route = useRoute()
 const termEl = ref(null)
 const status = ref('connecting')
-const cwd = ref('/')
+const cwd = ref('/root')
 const entries = ref([])
 const fileError = ref('')
 const busy = ref(false)
