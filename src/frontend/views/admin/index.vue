@@ -1714,10 +1714,7 @@ const getUninstallCommand = () => {
     const sudoPrefix = deleteTargetOs.value === 'mac' ? 'sudo ' : ''
     const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
     const proxyParam = proxy ? ` ${quotePosixShellArg(`--install-ghproxy=${proxy}`)}` : ''
-    const uninstallCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- uninstall${proxyParam}`
-    if (deleteTargetOs.value === 'linux' && deleteInstallMode.value === 'cfm-user') {
-      return buildUninstallAsCfmCommand(uninstallCommand)
-    }
+    const uninstallCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | ${sudoPrefix}sh -s -- uninstall${proxyParam}${deleteTargetOs.value === 'linux' ? ' --install-user=cfm' : ''}`
     return uninstallCommand
   }
   if (deleteTargetOs.value === 'windows') {
@@ -1796,66 +1793,6 @@ const quotePosixShellArg = (value) => `'${String(value).replaceAll("'", `'"'"'`)
 
 const quotePowerShellArg = (value) => `'${String(value).replaceAll("'", "''")}'`
 
-const quotePosixDoubleShellArg = (value) => `"${String(value)
-  .replaceAll('\\', '\\\\')
-  .replaceAll('"', '\\"')
-  .replaceAll('$', '\\$')
-  .replaceAll('`', '\\`')}"`
-
-const buildUninstallAsCfmCommand = (command) => {
-  const runuserCommand = `runuser -u cfm -- env HOME="\${CFM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`
-  return [
-    '(',
-    'set -e',
-    `if ! command -v runuser >/dev/null 2>&1; then echo ${quotePosixDoubleShellArg(trans.value.dedicatedUserUninstallUnsupported)} >&2; exit 1; fi`,
-    `id cfm >/dev/null 2>&1 || { echo ${quotePosixDoubleShellArg(trans.value.nonRootUninstallUserMissing)} >&2; exit 1; }`,
-    'CFM_UID=$(id -u cfm)',
-    'CFM_HOME=/opt/cfm',
-    'if [ "$(id -u)" -eq 0 ]; then',
-    `  ${runuserCommand}`,
-    'elif command -v sudo >/dev/null 2>&1; then',
-    `  sudo ${runuserCommand}`,
-    'else',
-    `  echo ${quotePosixDoubleShellArg(trans.value.nonRootInstallSudoRequired)} >&2; exit 1`,
-    'fi',
-    ')'
-  ].join('\n')
-}
-
-const buildInstallAsCfmCommand = (command, runStep) => {
-  const lines = [
-    '(',
-    'set -e',
-    `if [ ! -d /run/systemd/system ] || ! command -v systemctl >/dev/null 2>&1 || ! command -v loginctl >/dev/null 2>&1 || ! command -v useradd >/dev/null 2>&1 || ! command -v runuser >/dev/null 2>&1; then echo ${quotePosixDoubleShellArg(trans.value.dedicatedUserSystemdRequired)} >&2; exit 1; fi`,
-    'if [ "$(id -u)" -eq 0 ]; then',
-    '  as_root() { "$@"; }',
-    'elif command -v sudo >/dev/null 2>&1; then',
-    '  as_root() { sudo "$@"; }',
-    'else',
-    `  echo ${quotePosixDoubleShellArg(trans.value.nonRootInstallSudoRequired)} >&2; exit 1`,
-    'fi'
-  ]
-
-  lines.push(
-    'as_root mkdir -p /opt/cfm',
-    'id cfm >/dev/null 2>&1 || as_root useradd -m -d /opt/cfm -s /bin/sh cfm',
-    'as_root usermod -d /opt/cfm cfm >/dev/null 2>&1 || true',
-    'as_root chown cfm:cfm /opt/cfm',
-    'as_root loginctl enable-linger cfm'
-  )
-
-  lines.push(
-    'CFM_UID=$(id -u cfm)',
-    'CFM_HOME=/opt/cfm',
-    'as_root systemctl start user@${CFM_UID}.service',
-    '',
-    `# ${runStep}`,
-    `as_root runuser -u cfm -- env HOME="\${CFM_HOME}" XDG_RUNTIME_DIR="/run/user/\${CFM_UID}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\${CFM_UID}/bus" sh -c ${quotePosixDoubleShellArg(command)}`,
-    ')'
-  )
-  return lines.join('\n')
-}
-
 const getCustomInstallCommand = () => {
   const HOST = selectedApiBase.value
   const autoUpdateFlag = autoUpdate.value ? 1 : 0
@@ -1903,6 +1840,7 @@ const getCustomInstallCommand = () => {
     ].join('\n')
   }
   const params = ['install']
+  if (targetOs.value === 'linux') params.push('--install-user=cfm')
   if (proxy) params.push(quotePosixShellArg(`--install-ghproxy=${proxy}`))
   if (version) params.push(quotePosixShellArg(`--install-version=${version}`))
   params.push(
@@ -1925,10 +1863,7 @@ const getCustomInstallCommand = () => {
   if (hasCorrectionValue(rxCorrection.value)) params.push(`-rx_correction=${rxCorrection.value}`)
   if (hasCorrectionValue(txCorrection.value)) params.push(`-tx_correction=${txCorrection.value}`)
   const ghUrl = buildGhRawUrl(proxy, '/chrimast/cfm-agent/main/install.sh')
-  const installCommand = `curl -fsSL ${quotePosixShellArg(ghUrl)} | sh -s -- ${params.join(' ')}`
-  if (!isDedicatedUserInstall) return installCommand
-
-  return buildInstallAsCfmCommand(installCommand, trans.value.nonRootInstallRunStep)
+  return `curl -fsSL ${quotePosixShellArg(ghUrl)} | sh -s -- ${params.join(' ')}`
 }
 
 const copyCustomCmd = async () => {
