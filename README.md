@@ -51,14 +51,16 @@ Token 只放在 GitHub Secrets 或本机环境变量，不要提交进仓库，�
 | `API_SECRET` | 是 | 探针密钥 + 后台初始密码 |
 
 5. 推送 `main`，或 Actions → `Deploy to Cloudflare Workers` → Run workflow。
-6. 部署成功后，Workers 地址类似：
+6. 当前线上地址：
 
 ```text
-https://cf-monitor.<你的子域>.workers.dev
-后台：https://cf-monitor.<你的子域>.workers.dev/admin#/admin
+https://cf-monitor.chrimast.workers.dev
+后台：https://cf-monitor.chrimast.workers.dev/admin#/admin
 ```
 
 工作流会在 CI 里生成带真实 `database_id` 的 `wrangler.toml` 再 `wrangler deploy`，并写入 Worker Secret `API_SECRET`。仓库里的 `wrangler.toml` 没有真实 D1 UUID，只给本地测试用。
+
+Workers 免费套餐全账号最多 5 条 Cron。本账号已满，所以当前部署**不挂定时任务**；离线检测、资源告警、到期提醒不会自动跑，面板和反向终端仍可用。腾出 Cron 额度或升级 Paid 后，再把 `wrangler.toml` / `deploy.yml` 里的 `[triggers]` 打开。
 
 未配置 `CF_ACCOUNT_ID` 时，push 不会部署（工作流 `check` 会跳过），避免空跑失败。
 

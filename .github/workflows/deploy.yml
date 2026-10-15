@@ -54,9 +54,7 @@ jobs:
           main = "src/index.js"
           compatibility_date = "2024-12-01"
           compatibility_flags = ["nodejs_compat"]
-
-          [triggers]
-          crons = ["*/1 * * * *", "0 * * * *"]
+          workers_dev = true
 
           [assets]
           directory = "./dist"

@@ -6,12 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 
 keep_vars = true
 
-# 定时任务配置（UTC）
-# - 每分钟：执行离线节点、资源告警
-# - 每小时：合并执行其他定时任务（表轮换、旧表清理、按配置时区/小时触发服务器到期检测）
-# - 注意同步修改deploy和index.js scheduled函数里面的值
-[triggers]
-crons = ["*/1 * * * *", "0 * * * *"]
+# 定时任务：Workers 免费套餐全账号最多 5 条 Cron。
+# 当前账号已满，GitHub Actions 部署不挂 Cron；代码里的 scheduled() 仍保留。
+# 腾出额度或升级 Paid 后，取消下面注释并同步改 deploy.yml。
+# [triggers]
+# crons = ["*/1 * * * *", "0 * * * *"]
 
 [assets]
 directory = "./dist"
