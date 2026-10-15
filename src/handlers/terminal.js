@@ -21,6 +21,10 @@ export function isTerminalEnabled(server) {
   return String(server?.terminal_enabled || '0') === '1';
 }
 
+export function parseTerminalToggleEnabled(value) {
+  return value === true || value === '1' || value === 1;
+}
+
 export async function handleBrowserTerminalUpgrade(request, env) {
   const settings = await loadSiteSettings(env.DB);
   if (!await checkWebSocketAuth(request, env, settings)) {
@@ -62,7 +66,7 @@ export async function handleToggleTerminal(request, env, sys, ctx) {
     return jsonError('invalidJson', 400);
   }
   const id = String(data?.id || '').trim();
-  const enabled = data?.enabled === true || data?.enabled === '1' || data?.enabled === 1;
+  const enabled = parseTerminalToggleEnabled(data?.enabled);
   if (!id) return jsonError('Missing server id', 400);
   const server = await getServer(env, id);
   if (!server) return jsonError('Server not found', 404);

@@ -131,7 +131,6 @@
           @edit="openEditModal"
           @delete="openDeleteModal"
           @open-terminal="openTerminal"
-          @toggle-terminal="toggleTerminal"
         />
 
         <SettingsPanel
@@ -1727,18 +1726,17 @@ const getUninstallCommand = () => {
   return `curl -fsSL '${HOST}/uninstall.sh' | sh -s`
 }
 
-const openTerminal = (serverId) => {
-  window.location.assign(`/admin#/admin/term/${encodeURIComponent(serverId)}`)
-}
-
-const toggleTerminal = async (server) => {
-  const enabled = server?.terminal_enabled !== '1'
-  const result = await http.post('/admin/api/terminal', { id: server.id, enabled }, { baseUrl: selectedApiBase.value })
-  if (result.error) {
-    alertMessage.value = result.error
-    return
+const openTerminal = async (server) => {
+  if (!server?.id) return
+  if (server.terminal_enabled !== '1') {
+    const result = await http.post('/admin/api/terminal', { id: server.id, enabled: true }, { baseUrl: selectedApiBase.value })
+    if (result.error) {
+      alertMessage.value = result.error
+      return
+    }
+    server.terminal_enabled = '1'
   }
-  server.terminal_enabled = enabled ? '1' : '0'
+  window.location.assign(`/admin#/admin/term/${encodeURIComponent(server.id)}`)
 }
 
 const copyCmd = (serverId) => {

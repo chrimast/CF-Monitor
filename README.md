@@ -14,7 +14,7 @@
 
 ## 安全
 
-终端默认关闭。后台按服务器点 **TERM** 才会启用，探针收到 `terminal_enabled=1` 后才会连 `/agent/term`。启用后，拿到 `API_SECRET` 的人可以打开该机当前 Agent 用户的壳。这与原版「单向探针、无主控通道」不同，只适合自用。
+终端默认关闭。后台点 **TERM** 会临时打开该机终端并进入工作台；关掉终端窗口后自动关闭。探针只有收到 `terminal_enabled=1` 才会连 `/agent/term`。拿到 `API_SECRET` 的人可以打开该机当前 Agent 用户的壳。这与原版「单向探针、无主控通道」不同，只适合自用。
 
 Windows 终端本 MVP 未实现。
 
@@ -88,7 +88,7 @@ Workers 免费套餐全账号最多 5 条 Cron。本账号已满，所以当前�
 3. 登录后立刻改后台用户名和密码。改密码不会改探针用的 `API_SECRET`
 4. 添加服务器 → 复制安装命令 → 在目标机器执行（脚本仓库是 `chrimast/cfm-agent`）
 5. Linux (systemd) 安装固定为专用 `cfm` 用户，家目录 `/opt/cfm`，探针在 `/opt/cfm/.cf-probe/`。反向终端是 cfm 的壳，不是 root。需要 sudo。OpenWrt/Alpine/群晖/FreeBSD/macOS/Windows 仍按所选系统安装。
-6. 需要终端时：对该机点 **TERM** 打开开关，再点 `>_`
+6. 需要终端时：对该机点 **TERM** 进入工作台；关掉窗口后自动关闭
 
 探针上报地址是 Worker 的 `/update`，例如 `https://cf-monitor.<子域>.workers.dev/update`。
 

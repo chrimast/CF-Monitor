@@ -79,9 +79,15 @@ export class TerminalHub {
     }
   }
 
-  webSocketClose() {
-    const agent = this._find(AGENT_KIND);
-    if (!agent) this._notifyBrowsers({ type: 'agent_offline' });
+  webSocketClose(ws) {
+    const attachment = ws?.deserializeAttachment?.() || {};
+    if (attachment.kind === BROWSER_KIND && !this._find(BROWSER_KIND, ws)) {
+      this._closeKind(AGENT_KIND, 'browser closed');
+      return;
+    }
+    if (attachment.kind === AGENT_KIND && !this._find(AGENT_KIND, ws)) {
+      this._notifyBrowsers({ type: 'agent_offline' });
+    }
   }
 
   webSocketError() {}
@@ -103,12 +109,21 @@ export class TerminalHub {
     }
   }
 
-  _find(kind) {
+  _find(kind, except = null) {
     for (const socket of this.state.getWebSockets()) {
+      if (except && socket === except) continue;
       const attachment = socket.deserializeAttachment() || {};
       if (attachment.kind === kind) return socket;
     }
     return null;
+  }
+
+  _closeKind(kind, reason) {
+    for (const socket of this.state.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() || {};
+      if (attachment.kind !== kind) continue;
+      try { socket.close(1000, reason); } catch (_) {}
+    }
   }
 
   _notifyBrowsers(msg) {

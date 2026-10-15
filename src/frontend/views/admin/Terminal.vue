@@ -20,7 +20,7 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { STORAGE } from '../../utils/constants'
-import { getWsBase } from '../../utils/config'
+import { getWsBase, getApiBases } from '../../utils/config'
 
 const route = useRoute()
 const termEl = ref(null)
@@ -36,6 +36,7 @@ const statusText = computed(() => {
 let term
 let fit
 let socket
+let terminalDisabled = false
 
 const wsUrl = () => {
   const token = localStorage.getItem(STORAGE.JWT_TOKEN) || ''
@@ -55,7 +56,29 @@ const sendResize = () => {
   send({ type: 'resize', cols: term.cols, rows: term.rows })
 }
 
+const disableTerminal = () => {
+  if (terminalDisabled) return
+  const id = String(route.params.id || '').trim()
+  if (!id) return
+  terminalDisabled = true
+  const token = localStorage.getItem(STORAGE.JWT_TOKEN) || ''
+  const base = getApiBases()[0] || window.location.origin
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  try {
+    fetch(`${base}/admin/api/terminal`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ id, enabled: false }),
+      keepalive: true,
+      credentials: 'include'
+    })
+  } catch (_) {}
+}
+
 onMounted(() => {
+  window.addEventListener('pagehide', disableTerminal)
+  window.addEventListener('beforeunload', disableTerminal)
   term = new Terminal({
     cursorBlink: true,
     fontFamily: '"Cascadia Code", Consolas, "JetBrains Mono", monospace',
@@ -100,6 +123,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', sendResize)
+  window.removeEventListener('pagehide', disableTerminal)
+  window.removeEventListener('beforeunload', disableTerminal)
+  disableTerminal()
   try { socket?.close() } catch (_) {}
   try { term?.dispose() } catch (_) {}
 })

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { isTerminalEnabled, terminalEnabledHeader } from '../src/handlers/terminal.js';
+import { isTerminalEnabled, parseTerminalToggleEnabled, terminalEnabledHeader } from '../src/handlers/terminal.js';
 import { buildAgentConfig, serializeAgentConfig } from '../src/utils/agentConfig.js';
 
 describe('terminal gate', () => {
@@ -23,5 +23,13 @@ describe('terminal gate', () => {
       terminal_enabled: '1'
     }));
     assert.match(on, /terminal_enabled=1/);
+  });
+
+  it('toggle payload treats enabled true as on and false as off', () => {
+    assert.equal(parseTerminalToggleEnabled(true), true);
+    assert.equal(parseTerminalToggleEnabled(false), false);
+    assert.equal(parseTerminalToggleEnabled('1'), true);
+    assert.equal(parseTerminalToggleEnabled('0'), false);
+    assert.equal(parseTerminalToggleEnabled(1), true);
   });
 });
