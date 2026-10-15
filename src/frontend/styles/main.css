@@ -189,22 +189,6 @@ body::before {
     color: var(--text-secondary);
 }
 
-.terminal-dots {
-    display: flex;
-    gap: 8px;
-    width: 278px;
-}
-
-.terminal-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-}
-
-.terminal-dot.red { background: #ff5f56; }
-.terminal-dot.yellow { background: #ffbd2e; }
-.terminal-dot.green { background: #27c93f; }
-
 .terminal-title {
     color: var(--text-primary);
     font-weight: 600;
@@ -4984,16 +4968,6 @@ body.mikus-theme .mikus-stats-mascot-img {
     
     .tab-btn::before{
         margin-right: 4px;
-    }
-
-    .terminal-dots{
-        gap: 3px;
-        width: auto;
-    }
-
-    .terminal-dot{
-        width: 6px;
-        height: 6px;
     }
 
     .terminal-title{

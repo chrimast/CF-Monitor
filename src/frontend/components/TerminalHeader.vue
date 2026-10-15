@@ -1,10 +1,5 @@
 <template>
   <div class="terminal-header">
-    <div class="terminal-dots">
-      <span class="terminal-dot red"></span>
-      <span class="terminal-dot yellow"></span>
-      <span class="terminal-dot green"></span>
-    </div>
     <div class="terminal-title">{{ title }}</div>
     <div class="terminal-header-controls">
       <div class="lang-toggle">

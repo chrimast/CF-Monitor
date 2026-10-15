@@ -569,6 +569,7 @@ const previewThemeUrl = async (themeUrl, previewingId) => {
 
   if (previewingThemeId.value) return
   previewingThemeId.value = previewingId
+  const previewWindow = window.open('about:blank', '_blank')
   try {
     const result = await adminApi({
       action: 'start_theme_preview',
@@ -576,18 +577,25 @@ const previewThemeUrl = async (themeUrl, previewingId) => {
     }, props.selectedApiIndex)
 
     if (result.error) {
+      previewWindow?.close()
       showThemeMessage(props.trans[result.error] || result.error || props.trans.themeApplyFailed)
       return
     }
 
     const previewUrl = result.data?.preview_url
     if (!previewUrl) {
+      previewWindow?.close()
       showThemeMessage(props.trans.themeApplyFailed)
       return
     }
 
-    window.open(previewUrl, '_blank', 'noopener,noreferrer')
+    if (previewWindow) {
+      previewWindow.location.replace(previewUrl)
+    } else {
+      window.location.assign(previewUrl)
+    }
   } catch (e) {
+    previewWindow?.close()
     showThemeMessage(e.message || props.trans.themeApplyFailed)
   } finally {
     previewingThemeId.value = ''
