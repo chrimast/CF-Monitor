@@ -99,6 +99,33 @@ const env = { DB: makeMemoryDb() };
 }
 
 {
+  const listed = await readJson(await handleDnshubRequest(jsonRequest('GET', '/api/dnshub/accounts'), env, true));
+  const accountId = listed.body.data[0].id;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = function workersFetch() {
+    if (this !== globalThis) {
+      throw new TypeError('Illegal invocation: function called with incorrect this reference.');
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      result: [{ id: 'zone-bound', name: 'bound.example.com' }],
+      result_info: { total_count: 1 }
+    }));
+  };
+  try {
+    const domains = await readJson(await handleDnshubRequest(
+      jsonRequest('GET', `/api/dnshub/accounts/${accountId}/domains`),
+      env,
+      true
+    ));
+    assert.equal(domains.status, 200);
+    assert.equal(domains.body.data.list[0].Domain, 'bound.example.com');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+{
   const preview = await readJson(await handleDnshubRequest(
     jsonRequest('GET', '/api/dnshub/optimize/preview?cdnType=1&ipType=v4'),
     { ...env, fetchImpl: async () => new Response(JSON.stringify({

@@ -3,6 +3,14 @@ import { createProvider } from "./providers/factory.js";
 import { PROVIDER_META } from "./providers/types.js";
 import { D1Store } from "./store/d1.js";
 const PROVIDERS = new Set(Object.keys(PROVIDER_META));
+
+function boundFetch(fetchImpl) {
+  if (!fetchImpl || fetchImpl === fetch) {
+    return (...args) => globalThis.fetch(...args);
+  }
+  return fetchImpl;
+}
+
 function publicAccount(account) {
   return { id: account.id, name: account.name, provider: account.provider, createdAt: account.createdAt };
 }
@@ -48,7 +56,7 @@ async function loadProvider(store, accountId, domain, domainId, fetchImpl) {
     credentials: account.credentials,
     domain,
     domainId,
-    fetchImpl: fetchImpl ?? fetch
+    fetchImpl: boundFetch(fetchImpl)
   });
 }
 async function handleDnshubRequest(request, env, authenticated) {
@@ -56,7 +64,7 @@ async function handleDnshubRequest(request, env, authenticated) {
   if (!env.DB) return jsonError("D1 \u672A\u7ED1\u5B9A", 500);
   await ensureDnshubSchema(env.DB);
   const store = new D1Store(env.DB);
-  const fetchImpl = env.fetchImpl ?? fetch;
+  const fetchImpl = boundFetch(env.fetchImpl);
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method.toUpperCase();

@@ -5,8 +5,15 @@ import { DnspodProvider } from "./dnspod.js";
 import { HuaweiProvider } from "./huawei.js";
 import { NamesiloProvider } from "./namesilo.js";
 import { WestProvider } from "./west.js";
+function boundFetch(fetchImpl) {
+  if (!fetchImpl || fetchImpl === fetch) {
+    return (...args) => globalThis.fetch(...args);
+  }
+  return fetchImpl;
+}
+
 function createProvider(opts) {
-  const fetchImpl = opts.fetchImpl ?? fetch;
+  const fetchImpl = boundFetch(opts.fetchImpl);
   switch (opts.provider) {
     case "cloudflare":
       return new CloudflareProvider(opts.credentials, fetchImpl, opts.domain, opts.domainId);
