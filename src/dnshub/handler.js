@@ -96,6 +96,24 @@ async function handleDnshubRequest(request, env, authenticated) {
     await store.saveAccount(account);
     return json({ success: true, data: publicAccount(account) }, 201);
   }
+  const oneAccount = match(path, "/api/dnshub/accounts/:id");
+  if (method === "PATCH" && oneAccount) {
+    const existing = await store.getAccount(oneAccount.id);
+    if (!existing) return jsonError("账号不存在", 404);
+    const body = await readBody(request);
+    const name = typeof body.name === "string" ? body.name.trim() : existing.name;
+    const provider = typeof body.provider === "string" ? body.provider : existing.provider;
+    const incoming = body.credentials && typeof body.credentials === "object" ? body.credentials : {};
+    if (!name) return jsonError("请填写账号名称", 422);
+    if (!PROVIDERS.has(provider)) return jsonError("不支持的厂商", 422);
+    const credentials = { ...existing.credentials };
+    for (const [key, value] of Object.entries(incoming)) {
+      if (typeof value === "string" && value.trim()) credentials[key] = value.trim();
+    }
+    const account = { ...existing, name, provider, credentials };
+    await store.updateAccount(account);
+    return json({ success: true, data: publicAccount(account) });
+  }
   const deleteAccount = match(path, "/api/dnshub/accounts/:id");
   if (method === "DELETE" && deleteAccount) {
     await store.deleteAccount(deleteAccount.id);

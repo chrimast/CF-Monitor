@@ -26,6 +26,9 @@ class D1Store {
   async saveAccount(account) {
     await this.db.prepare("INSERT INTO dnshub_accounts (id, name, provider, credentials, created_at) VALUES (?, ?, ?, ?, ?)").bind(account.id, account.name, account.provider, JSON.stringify(account.credentials), account.createdAt).run();
   }
+  async updateAccount(account) {
+    await this.db.prepare("UPDATE dnshub_accounts SET name = ?, provider = ?, credentials = ? WHERE id = ?").bind(account.name, account.provider, JSON.stringify(account.credentials), account.id).run();
+  }
   async deleteAccount(id) {
     await this.db.prepare("DELETE FROM dnshub_accounts WHERE id = ?").bind(id).run();
   }

@@ -9,6 +9,9 @@ class MemoryStore {
   async saveAccount(account) {
     this.accounts.set(account.id, account);
   }
+  async updateAccount(account) {
+    this.accounts.set(account.id, account);
+  }
   async deleteAccount(id) {
     this.accounts.delete(id);
   }

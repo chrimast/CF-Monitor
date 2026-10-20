@@ -34,6 +34,12 @@ function makeMemoryDb() {
             accounts.set(id, { id, name, provider, credentials, created_at });
             return { success: true };
           }
+          if (/UPDATE dnshub_accounts/.test(sql)) {
+            const [name, provider, credentials, id] = statement.params;
+            const existing = accounts.get(id);
+            if (existing) accounts.set(id, { ...existing, name, provider, credentials });
+            return { success: true };
+          }
           if (/DELETE FROM dnshub_accounts/.test(sql)) {
             accounts.delete(statement.params[0]);
             return { success: true };
@@ -96,6 +102,25 @@ const env = { DB: makeMemoryDb() };
   assert.equal(listed.body.data.length, 1);
   assert.equal(listed.body.data[0].name, 'cf-demo');
   assert.equal(listed.body.data[0].credentials, undefined);
+
+  const renamed = await readJson(await handleDnshubRequest(jsonRequest('PATCH', `/api/dnshub/accounts/${listed.body.data[0].id}`, {
+    name: 'cf-renamed'
+  }), env, true));
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.body.data.name, 'cf-renamed');
+  assert.equal(renamed.body.data.credentials, undefined);
+
+  const secretKept = await env.DB.prepare('SELECT credentials FROM dnshub_accounts WHERE id = ?').bind(listed.body.data[0].id).first();
+  assert.equal(JSON.parse(secretKept.credentials).apikey, 'token-demo');
+
+  const rotated = await readJson(await handleDnshubRequest(jsonRequest('PATCH', `/api/dnshub/accounts/${listed.body.data[0].id}`, {
+    credentials: { apikey: 'token-new' }
+  }), env, true));
+  assert.equal(rotated.status, 200);
+  assert.equal(rotated.body.data.credentials, undefined);
+  const secretRotated = await env.DB.prepare('SELECT credentials FROM dnshub_accounts WHERE id = ?').bind(listed.body.data[0].id).first();
+  assert.equal(JSON.parse(secretRotated.credentials).apikey, 'token-new');
+  assert.equal(JSON.parse(secretRotated.credentials).auth, '1');
 }
 
 {
@@ -304,6 +329,8 @@ const env = { DB: makeMemoryDb() };
   const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/DnsHubPanel.vue', import.meta.url), 'utf8'));
   assert.match(panel, /\/api\/dnshub\/providers/);
   assert.match(panel, /\/api\/dnshub\/optimize\/apply/);
+  assert.match(panel, /startEditAccount/);
+  assert.match(panel, /dnshubSaveAccount/);
   assert.match(panel, /dnshub-split/);
   assert.match(panel, /page === 'home'/);
   assert.doesNotMatch(panel, /page === 'accounts'/);

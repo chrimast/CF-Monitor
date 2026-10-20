@@ -5,7 +5,7 @@
       <div class="dnshub-split">
         <div class="settings-section">
           <div class="section-title"><span>▸</span> {{ trans.dnshubAccounts }}</div>
-          <form class="dnshub-compact-grid" @submit.prevent="addAccount">
+          <form class="dnshub-compact-grid" @submit.prevent="saveAccount">
             <div class="form-group">
               <label class="form-label">{{ trans.dnshubAccountName }}</label>
               <input v-model="accountForm.name" class="form-input" required>
@@ -22,11 +22,12 @@
                 v-model="accountForm.credentials[field.id]"
                 class="form-input"
                 :type="field.type || 'text'"
-                :placeholder="field.placeholder || ''"
+                :placeholder="editingAccountId ? trans.dnshubKeepCredential : (field.placeholder || '')"
               >
             </div>
             <div class="form-group dnshub-actions">
-              <button class="btn btn-primary" type="submit" :disabled="loading">{{ trans.dnshubAddAccount }}</button>
+              <button class="btn btn-primary" type="submit" :disabled="loading">{{ editingAccountId ? trans.dnshubSaveAccount : trans.dnshubAddAccount }}</button>
+              <button v-if="editingAccountId" class="btn" type="button" @click="cancelEditAccount">{{ trans.dnshubCancelEdit }}</button>
             </div>
           </form>
 
@@ -39,6 +40,7 @@
               </button>
               <div class="header-actions">
                 <button class="btn" type="button" @click="openDomains(item)">{{ trans.dnshubOpenDomains }}</button>
+                <button class="btn" type="button" @click="startEditAccount(item)">{{ trans.edit || '编辑' }}</button>
                 <button class="btn btn-red" type="button" @click="removeAccount(item)">{{ trans.delete || '删除' }}</button>
               </div>
             </div>
@@ -241,6 +243,7 @@ const lines = ref([{ id: '0', name: '默认' }])
 const domainNew = ref('')
 const domainQuery = ref('')
 const editingId = ref('')
+const editingAccountId = ref('')
 const optimizeResult = ref('')
 
 const accountForm = reactive({
@@ -288,6 +291,52 @@ const resetCredentials = () => {
   accountForm.credentials = {}
 }
 
+const cancelEditAccount = () => {
+  editingAccountId.value = ''
+  accountForm.name = ''
+  accountForm.provider = providers.value[0]?.id || 'cloudflare'
+  resetCredentials()
+}
+
+const startEditAccount = (item) => {
+  editingAccountId.value = item.id
+  accountForm.name = item.name
+  accountForm.provider = item.provider
+  resetCredentials()
+}
+
+const saveAccount = async () => {
+  error.value = ''
+  loading.value = true
+  const credentials = {}
+  for (const [key, value] of Object.entries(accountForm.credentials)) {
+    if (String(value || '').trim()) credentials[key] = String(value).trim()
+  }
+  try {
+    if (editingAccountId.value) {
+      unwrap(await requestPatch(`/api/dnshub/accounts/${editingAccountId.value}`, {
+        name: accountForm.name,
+        provider: accountForm.provider,
+        credentials
+      }))
+      cancelEditAccount()
+    } else {
+      unwrap(await requestPost('/api/dnshub/accounts', {
+        name: accountForm.name,
+        provider: accountForm.provider,
+        credentials
+      }))
+      accountForm.name = ''
+      resetCredentials()
+    }
+    await loadAccounts()
+  } catch (err) {
+    error.value = err.message || String(err)
+  } finally {
+    loading.value = false
+  }
+}
+
 const resetRecordForm = () => {
   editingId.value = ''
   recordForm.Name = ''
@@ -324,25 +373,6 @@ const bootstrap = async () => {
 watch(() => props.activeTab, (value) => {
   if (value === 'dnshub') bootstrap()
 })
-
-const addAccount = async () => {
-  error.value = ''
-  loading.value = true
-  try {
-    unwrap(await requestPost('/api/dnshub/accounts', {
-      name: accountForm.name,
-      provider: accountForm.provider,
-      credentials: { ...accountForm.credentials }
-    }))
-    accountForm.name = ''
-    resetCredentials()
-    await loadAccounts()
-  } catch (err) {
-    error.value = err.message || String(err)
-  } finally {
-    loading.value = false
-  }
-}
 
 const removeAccount = async (item) => {
   error.value = ''
