@@ -143,40 +143,40 @@
         <button class="btn" type="button" @click="page = 'domains'">{{ trans.dnshubBack }}</button>
         {{ domain?.Domain }}
       </div>
-      <form class="settings-grid" @submit.prevent="saveRecord">
-        <div class="form-group">
+      <form class="dnshub-record-form" @submit.prevent="saveRecord">
+        <div class="form-group dnshub-field-host">
           <label class="form-label">{{ trans.dnshubHost }}</label>
           <input v-model="recordForm.Name" class="form-input" required>
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-field-type">
           <label class="form-label">{{ trans.dnshubType }}</label>
           <select v-model="recordForm.Type" class="form-select">
             <option>A</option><option>AAAA</option><option>CNAME</option><option>MX</option><option>TXT</option><option>NS</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-field-ttl">
           <label class="form-label">TTL</label>
           <input v-model.number="recordForm.TTL" class="form-input" type="number" min="1">
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-field-value">
           <label class="form-label">{{ trans.dnshubValue }}</label>
           <input v-model="recordForm.Value" class="form-input" required>
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-field-line">
           <label class="form-label">{{ trans.dnshubLine }}</label>
           <select v-model="recordForm.Line" class="form-select">
             <option v-for="line in lines" :key="line.id" :value="line.id">{{ line.name }}</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-field-remark">
           <label class="form-label">{{ trans.dnshubRemark }}</label>
           <input v-model="recordForm.Remark" class="form-input">
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-field-mx">
           <label class="form-label">MX</label>
           <input v-model.number="recordForm.MX" class="form-input" type="number" min="0">
         </div>
-        <div class="form-group">
+        <div class="form-group dnshub-actions">
           <button class="btn btn-primary" type="submit">{{ editingId ? trans.dnshubSaveRecord : trans.dnshubAddRecord }}</button>
           <button v-if="editingId" class="btn" type="button" @click="resetRecordForm">{{ trans.dnshubCancelEdit }}</button>
         </div>

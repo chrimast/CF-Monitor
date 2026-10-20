@@ -336,8 +336,10 @@ const env = { DB: makeMemoryDb() };
   assert.doesNotMatch(panel, /page === 'accounts'/);
   assert.doesNotMatch(panel, /page === 'optimize'/);
   assert.doesNotMatch(panel, /return result\?\.data$/m);
+  assert.match(panel, /dnshub-record-form/);
   const css = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/styles/main.css', import.meta.url), 'utf8'));
   assert.match(css, /\.dnshub-split \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
+  assert.match(css, /\.dnshub-record-form \{[\s\S]*grid-template-columns:/);
 }
 
 console.log('dnshub tests passed');

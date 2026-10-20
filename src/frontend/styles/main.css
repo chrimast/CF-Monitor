@@ -5435,9 +5435,52 @@ body.admin-workspace .admin-container {
     word-break: break-word;
 }
 
+.dnshub-record-form {
+    display: grid;
+    grid-template-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px auto;
+    gap: 8px 8px;
+    align-items: end;
+}
+
+.dnshub-record-form .form-group {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+.dnshub-record-form .form-label {
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.dnshub-record-form .form-input,
+.dnshub-record-form .form-select {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 8px;
+}
+
+.dnshub-record-form .dnshub-actions {
+    grid-column: auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+    .dnshub-record-form {
+        grid-template-columns: minmax(0, 1.1fr) 88px 72px minmax(0, 1.4fr);
+    }
+
+    .dnshub-record-form .dnshub-field-line,
+    .dnshub-record-form .dnshub-field-remark,
+    .dnshub-record-form .dnshub-field-mx,
+    .dnshub-record-form .dnshub-actions {
+        grid-column: auto;
+    }
+}
+
 @media (max-width: 900px) {
     .dnshub-split,
-    .dnshub-compact-grid {
+    .dnshub-compact-grid,
+    .dnshub-record-form {
         grid-template-columns: 1fr;
     }
 }
