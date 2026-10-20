@@ -2,6 +2,7 @@ import { initDatabase, weeklyCleanup, getMetricsHistory, clearHistory } from './
 import { checkOfflineNodes, checkExpiringServers, checkResourceAlerts } from './services/notification.js';
 import { updateDatabase } from './database/updateDatabase.js';
 import { handleAdminAPI } from './handlers/admin.js';
+import { handleDnshubRequest } from './dnshub/handler.js';
 import { serveFrontend } from './handlers/frontend.js';
 import { handleUpdate, handleWebSocketUpgrade, handleUpdateWebSocketUpgrade } from './handlers/update.js';
 import { handleAgentTerminalUpgrade, handleBrowserTerminalUpgrade, handleToggleTerminal } from './handlers/terminal.js';
@@ -231,6 +232,7 @@ export default {
     ];
 
     const isApiRequest = path.startsWith('/api/') || path.startsWith('/admin/api');
+    const isDnshubRequest = path.startsWith('/api/dnshub');
     if (path === '/api/config' || path === '/api/theme_options' || path === '/clearHistory') {
       await initDatabase(env.DB);
     }
@@ -280,6 +282,17 @@ export default {
     async function ensureFullSettings() {
       sys = await loadSettings(env.DB);
       return sys;
+    }
+
+    if (isDnshubRequest) {
+      await ensureSiteSettings();
+      const authenticated = await checkAuth(request, env, sys);
+      try {
+        const response = await handleDnshubRequest(request, env, authenticated);
+        return applyCors(response, request, corsAllowedOrigins);
+      } catch (e) {
+        return applyCors(createErrorResponse(e), request, corsAllowedOrigins);
+      }
     }
 
     const routes = [

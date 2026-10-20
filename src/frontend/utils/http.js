@@ -187,6 +187,10 @@ export const http = {
     return request('PUT', url, body, options)
   },
 
+  patch(url, body = {}, options = {}) {
+    return request('PATCH', url, body, options)
+  },
+
   delete(url, options = {}) {
     return request('DELETE', url, null, options)
   },
@@ -253,6 +257,18 @@ export const http = {
     const bases = getApiBases()
     const base = (bases.length > 0 && bases[index] !== undefined) ? bases[index] : getApiBases()[0]
     return this.post(url, body, { ...options, baseUrl: base })
+  },
+
+  patchByIndex(url, body = {}, index = 0, options = {}) {
+    const bases = getApiBases()
+    const base = (bases.length > 0 && bases[index] !== undefined) ? bases[index] : getApiBases()[0]
+    return this.patch(url, body, { ...options, baseUrl: base })
+  },
+
+  deleteByIndex(url, index = 0, options = {}) {
+    const bases = getApiBases()
+    const base = (bases.length > 0 && bases[index] !== undefined) ? bases[index] : getApiBases()[0]
+    return this.delete(url, { ...options, baseUrl: base })
   }
 }
 
