@@ -5453,6 +5453,55 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
+.dnshub-domain-table {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+}
+
+.dnshub-domain-head,
+.dnshub-domain-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) 88px minmax(0, 1.2fr) 88px;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dnshub-domain-head {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dnshub-domain-row {
+    font-size: 12px;
+}
+
+.dnshub-domain-head > *,
+.dnshub-domain-row > * {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.dnshub-domain-head span,
+.dnshub-domain-row > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dnshub-domain-empty {
+    padding: 12px 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
 .dnshub-record-form,
 .dnshub-record-head,
 .dnshub-record-row {

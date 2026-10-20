@@ -116,13 +116,22 @@
         <input v-model="domainQuery" class="form-input" :placeholder="trans.dnshubSearchDomain" @keydown.enter.prevent="loadDomains">
         <button class="btn" type="button" @click="loadDomains">{{ trans.refresh }}</button>
       </form>
-      <div v-if="!domains.length" class="text-muted mt-2">{{ trans.dnshubNoDomains }}</div>
-      <div v-for="item in domains" :key="item.DomainId" class="flex-justify-between mb-2 mt-2">
-        <div>
-          <strong>{{ item.Domain }}</strong>
-          <span class="text-muted text-sm ml-3">{{ item.RecordCount || 0 }} · {{ item.DomainId }}</span>
+      <div class="dnshub-domain-table mt-3">
+        <div class="dnshub-domain-head">
+          <span>{{ trans.dnshubDomains }}</span>
+          <span>{{ trans.dnshubRecords }}</span>
+          <span>ID</span>
+          <span></span>
         </div>
-        <button class="btn" type="button" @click="openRecords(item)">{{ trans.dnshubRecords }}</button>
+        <div v-if="!domains.length" class="dnshub-domain-empty">{{ trans.dnshubNoDomains }}</div>
+        <div v-for="item in domains" :key="item.DomainId" class="dnshub-domain-row">
+          <span :title="item.Domain">{{ item.Domain }}</span>
+          <span>{{ item.RecordCount || 0 }}</span>
+          <span :title="item.DomainId">{{ item.DomainId }}</span>
+          <div class="dnshub-record-ops">
+            <button class="btn" type="button" @click="openRecords(item)">{{ trans.dnshubRecords }}</button>
+          </div>
+        </div>
       </div>
     </div>
 
