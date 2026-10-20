@@ -110,22 +110,12 @@
         <button class="btn" type="button" @click="page = 'home'">{{ trans.dnshubBack }}</button>
         {{ account?.name }} · {{ trans.dnshubDomains }}
       </div>
-      <form class="settings-grid" @submit.prevent="addDomain">
-        <div class="form-group">
-          <input v-model="domainNew" class="form-input" :placeholder="trans.dnshubAddDomain">
-        </div>
-        <div class="form-group">
-          <button class="btn btn-primary" type="submit">{{ trans.dnshubAddDomain }}</button>
-        </div>
+      <form class="dnshub-domain-toolbar" @submit.prevent="addDomain">
+        <input v-model="domainNew" class="form-input" :placeholder="trans.dnshubAddDomain">
+        <button class="btn btn-primary" type="submit">{{ trans.dnshubAddDomain }}</button>
+        <input v-model="domainQuery" class="form-input" :placeholder="trans.dnshubSearchDomain" @keydown.enter.prevent="loadDomains">
+        <button class="btn" type="button" @click="loadDomains">{{ trans.refresh }}</button>
       </form>
-      <div class="settings-grid mt-2">
-        <div class="form-group">
-          <input v-model="domainQuery" class="form-input" :placeholder="trans.dnshubSearchDomain" @keydown.enter.prevent="loadDomains">
-        </div>
-        <div class="form-group">
-          <button class="btn" type="button" @click="loadDomains">{{ trans.refresh }}</button>
-        </div>
-      </div>
       <div v-if="!domains.length" class="text-muted mt-2">{{ trans.dnshubNoDomains }}</div>
       <div v-for="item in domains" :key="item.DomainId" class="flex-justify-between mb-2 mt-2">
         <div>
@@ -181,40 +171,33 @@
           <button v-if="editingId" class="btn" type="button" @click="resetRecordForm">{{ trans.dnshubCancelEdit }}</button>
         </div>
       </form>
-      <div class="table-wrap mt-3">
-        <table>
-          <thead>
-            <tr>
-              <th>{{ trans.dnshubHost }}</th>
-              <th>{{ trans.dnshubType }}</th>
-              <th>{{ trans.dnshubValue }}</th>
-              <th>TTL</th>
-              <th>{{ trans.dnshubLine }}</th>
-              <th>{{ trans.dnshubStatus }}</th>
-              <th>{{ trans.dnshubRemark }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!records.length">
-              <td colspan="8" class="text-muted">{{ trans.dnshubNoRecords }}</td>
-            </tr>
-            <tr v-for="row in records" :key="row.RecordId">
-              <td><code>{{ row.Name }}</code></td>
-              <td>{{ row.Type }}</td>
-              <td><code>{{ row.Value }}</code></td>
-              <td>{{ row.TTL }}</td>
-              <td>{{ row.Line }}</td>
-              <td>{{ row.Status === '0' ? trans.dnshubPaused : trans.dnshubEnabled }}</td>
-              <td>{{ row.Remark || '' }}</td>
-              <td>
-                <button class="btn" type="button" @click="editRecord(row)">{{ trans.edit || '编辑' }}</button>
-                <button class="btn" type="button" @click="toggleRecord(row)">{{ row.Status === '0' ? trans.dnshubEnable : trans.dnshubPause }}</button>
-                <button class="btn btn-red" type="button" @click="deleteRecord(row)">{{ trans.delete || '删除' }}</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="dnshub-record-table mt-3">
+        <div class="dnshub-record-head">
+          <span>{{ trans.dnshubHost }}</span>
+          <span>{{ trans.dnshubType }}</span>
+          <span>TTL</span>
+          <span>{{ trans.dnshubValue }}</span>
+          <span>{{ trans.dnshubLine }}</span>
+          <span>{{ trans.dnshubRemark }}</span>
+          <span>MX</span>
+          <span>{{ trans.dnshubStatus }}</span>
+        </div>
+        <div v-if="!records.length" class="dnshub-record-empty">{{ trans.dnshubNoRecords }}</div>
+        <div v-for="row in records" :key="row.RecordId" class="dnshub-record-row">
+          <code>{{ row.Name }}</code>
+          <span>{{ row.Type }}</span>
+          <span>{{ row.TTL }}</span>
+          <code>{{ row.Value }}</code>
+          <span>{{ row.Line }}</span>
+          <span>{{ row.Remark || '' }}</span>
+          <span>{{ row.MX ?? '' }}</span>
+          <div class="dnshub-record-ops">
+            <span>{{ row.Status === '0' ? trans.dnshubPaused : trans.dnshubEnabled }}</span>
+            <button class="btn" type="button" @click="editRecord(row)">{{ trans.edit || '编辑' }}</button>
+            <button class="btn" type="button" @click="toggleRecord(row)">{{ row.Status === '0' ? trans.dnshubEnable : trans.dnshubPause }}</button>
+            <button class="btn btn-red" type="button" @click="deleteRecord(row)">{{ trans.delete || '删除' }}</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

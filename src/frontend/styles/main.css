@@ -5435,11 +5435,30 @@ body.admin-workspace .admin-container {
     word-break: break-word;
 }
 
+.dnshub-domain-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.dnshub-domain-toolbar .form-input {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 8px;
+}
+
+.dnshub-domain-toolbar .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .dnshub-record-form {
     display: grid;
-    grid-template-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px auto;
-    gap: 8px 8px;
+    grid-template-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px minmax(168px, auto);
+    gap: 8px;
     align-items: end;
+    width: 100%;
 }
 
 .dnshub-record-form .form-group {
@@ -5464,23 +5483,83 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
-@media (max-width: 1100px) {
-    .dnshub-record-form {
-        grid-template-columns: minmax(0, 1.1fr) 88px 72px minmax(0, 1.4fr);
-    }
+.dnshub-record-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+}
 
-    .dnshub-record-form .dnshub-field-line,
-    .dnshub-record-form .dnshub-field-remark,
-    .dnshub-record-form .dnshub-field-mx,
-    .dnshub-record-form .dnshub-actions {
-        grid-column: auto;
+.dnshub-record-head,
+.dnshub-record-row {
+    display: grid;
+    grid-template-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px minmax(168px, auto);
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+}
+
+.dnshub-record-head {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dnshub-record-row {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+}
+
+.dnshub-record-head span,
+.dnshub-record-row span,
+.dnshub-record-row code {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dnshub-record-ops {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.dnshub-record-empty {
+    padding: 12px 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+    .dnshub-record-form,
+    .dnshub-record-head,
+    .dnshub-record-row {
+        grid-template-columns: minmax(0, 1.1fr) 88px 72px minmax(0, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px minmax(168px, auto);
+        min-width: 920px;
     }
 }
 
 @media (max-width: 900px) {
     .dnshub-split,
-    .dnshub-compact-grid,
-    .dnshub-record-form {
+    .dnshub-compact-grid {
         grid-template-columns: 1fr;
+    }
+
+    .dnshub-domain-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .dnshub-domain-toolbar .form-input,
+    .dnshub-domain-toolbar .btn {
+        flex: 1 1 calc(50% - 4px);
     }
 }
