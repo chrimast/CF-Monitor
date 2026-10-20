@@ -173,25 +173,25 @@
       </form>
       <div class="dnshub-record-table mt-3">
         <div class="dnshub-record-head">
-          <span>{{ trans.dnshubHost }}</span>
-          <span>{{ trans.dnshubType }}</span>
-          <span>TTL</span>
-          <span>{{ trans.dnshubValue }}</span>
-          <span>{{ trans.dnshubLine }}</span>
-          <span>{{ trans.dnshubRemark }}</span>
-          <span>MX</span>
-          <span>{{ trans.dnshubStatus }}</span>
+          <span class="dnshub-field-host">{{ trans.dnshubHost }}</span>
+          <span class="dnshub-field-type">{{ trans.dnshubType }}</span>
+          <span class="dnshub-field-ttl">TTL</span>
+          <span class="dnshub-field-value">{{ trans.dnshubValue }}</span>
+          <span class="dnshub-field-line">{{ trans.dnshubLine }}</span>
+          <span class="dnshub-field-remark">{{ trans.dnshubRemark }}</span>
+          <span class="dnshub-field-mx">MX</span>
+          <span class="dnshub-field-status">{{ trans.dnshubStatus }}</span>
         </div>
         <div v-if="!records.length" class="dnshub-record-empty">{{ trans.dnshubNoRecords }}</div>
         <div v-for="row in records" :key="row.RecordId" class="dnshub-record-row">
-          <code>{{ row.Name }}</code>
-          <span>{{ row.Type }}</span>
-          <span>{{ row.TTL }}</span>
-          <code>{{ row.Value }}</code>
-          <span>{{ row.Line }}</span>
-          <span>{{ row.Remark || '' }}</span>
-          <span>{{ row.MX ?? '' }}</span>
-          <div class="dnshub-record-ops">
+          <span class="dnshub-field-host" :title="row.Name">{{ row.Name }}</span>
+          <span class="dnshub-field-type">{{ row.Type }}</span>
+          <span class="dnshub-field-ttl">{{ row.TTL }}</span>
+          <span class="dnshub-field-value" :title="row.Value">{{ row.Value }}</span>
+          <span class="dnshub-field-line" :title="String(row.Line || '')">{{ row.Line }}</span>
+          <span class="dnshub-field-remark" :title="row.Remark || ''">{{ row.Remark || '' }}</span>
+          <span class="dnshub-field-mx">{{ row.MX ?? '' }}</span>
+          <div class="dnshub-field-status dnshub-record-ops">
             <span>{{ row.Status === '0' ? trans.dnshubPaused : trans.dnshubEnabled }}</span>
             <button class="btn" type="button" @click="editRecord(row)">{{ trans.edit || '编辑' }}</button>
             <button class="btn" type="button" @click="toggleRecord(row)">{{ row.Status === '0' ? trans.dnshubEnable : trans.dnshubPause }}</button>

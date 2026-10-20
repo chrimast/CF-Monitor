@@ -5453,12 +5453,19 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
-.dnshub-record-form {
+.dnshub-record-form,
+.dnshub-record-head,
+.dnshub-record-row {
+    --dnshub-record-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px minmax(168px, auto);
     display: grid;
-    grid-template-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px minmax(168px, auto);
+    grid-template-columns: var(--dnshub-record-columns);
     gap: 8px;
-    align-items: end;
     width: 100%;
+    min-width: 0;
+}
+
+.dnshub-record-form {
+    align-items: end;
 }
 
 .dnshub-record-form .form-group {
@@ -5494,16 +5501,11 @@ body.admin-workspace .admin-container {
 
 .dnshub-record-head,
 .dnshub-record-row {
-    display: grid;
-    grid-template-columns: minmax(72px, 0.9fr) 88px 72px minmax(120px, 1.4fr) minmax(88px, 0.9fr) minmax(88px, 0.9fr) 64px minmax(168px, auto);
-    gap: 8px;
     align-items: center;
-    width: 100%;
-    min-width: 0;
 }
 
 .dnshub-record-head {
-    padding: 6px 0;
+    padding: 8px 8px;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-secondary);
     font-size: 12px;
@@ -5511,15 +5513,19 @@ body.admin-workspace .admin-container {
 }
 
 .dnshub-record-row {
-    padding: 8px 0;
+    padding: 8px 8px;
     border-bottom: 1px solid var(--border-color);
     font-size: 12px;
 }
 
-.dnshub-record-head span,
-.dnshub-record-row span,
-.dnshub-record-row code {
+.dnshub-record-head > *,
+.dnshub-record-row > * {
     min-width: 0;
+    box-sizing: border-box;
+}
+
+.dnshub-record-head span,
+.dnshub-record-row > span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

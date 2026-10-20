@@ -343,7 +343,9 @@ const env = { DB: makeMemoryDb() };
   assert.match(css, /\.dnshub-split \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
   assert.match(css, /\.dnshub-record-form \{[\s\S]*grid-template-columns:/);
   assert.match(css, /\.dnshub-domain-toolbar \{[\s\S]*display: flex/);
-  assert.match(css, /\.dnshub-record-row \{[\s\S]*grid-template-columns:/);
+  assert.match(panel, /dnshub-field-host/);
+  assert.match(css, /\.dnshub-record-row \{[\s\S]*padding: 8px 8px/);
+  assert.match(css, /--dnshub-record-columns:/);
 }
 
 console.log('dnshub tests passed');
