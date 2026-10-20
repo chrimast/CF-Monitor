@@ -277,7 +277,13 @@ const env = { DB: makeMemoryDb() };
   const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/DnsHubPanel.vue', import.meta.url), 'utf8'));
   assert.match(panel, /\/api\/dnshub\/providers/);
   assert.match(panel, /\/api\/dnshub\/optimize\/apply/);
+  assert.match(panel, /dnshub-split/);
+  assert.match(panel, /page === 'home'/);
+  assert.doesNotMatch(panel, /page === 'accounts'/);
+  assert.doesNotMatch(panel, /page === 'optimize'/);
   assert.doesNotMatch(panel, /return result\?\.data$/m);
+  const css = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/styles/main.css', import.meta.url), 'utf8'));
+  assert.match(css, /\.dnshub-split \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
 }
 
 console.log('dnshub tests passed');

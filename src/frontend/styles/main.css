@@ -5341,3 +5341,103 @@ body.mikus-theme .mikus-stats-mascot-img {
 body.admin-workspace .admin-container {
     max-width: 1450px;
 }
+
+.dnshub-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.dnshub-split > .settings-section {
+    min-width: 0;
+    padding: 12px;
+}
+
+.dnshub-split .section-title {
+    margin-bottom: 10px;
+}
+
+.dnshub-compact-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 10px;
+}
+
+.dnshub-compact-grid .form-group {
+    margin-bottom: 0;
+}
+
+.dnshub-compact-grid .form-label {
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.dnshub-actions {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    grid-column: 1 / -1;
+}
+
+.dnshub-hint {
+    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.dnshub-account-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dnshub-account-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.dnshub-account-name {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+}
+
+.dnshub-account-name strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.dnshub-result {
+    margin: 8px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    resize: vertical;
+    max-width: 100%;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 900px) {
+    .dnshub-split,
+    .dnshub-compact-grid {
+        grid-template-columns: 1fr;
+    }
+}

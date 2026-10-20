@@ -1,61 +1,111 @@
 <template>
   <div id="tab-dnshub" class="tab-content" :class="{ active: activeTab === 'dnshub' }">
-    <div class="settings-section">
-      <div class="section-title"><span>▸</span> {{ trans.dnshub }}</div>
-      <p class="text-muted mb-2">{{ trans.dnshubDesc }}</p>
-      <div class="header-actions mb-2">
-        <button class="btn" :class="{ 'btn-primary': page === 'accounts' }" @click="page = 'accounts'">{{ trans.dnshubAccounts }}</button>
-        <button class="btn" :class="{ 'btn-primary': page === 'optimize' }" @click="page = 'optimize'">{{ trans.dnshubOptimize }}</button>
-      </div>
-      <p v-if="error" class="text-sm" style="color: var(--accent-red)">{{ error }}</p>
-    </div>
+    <div v-if="page === 'home'" class="dnshub-home">
+      <p v-if="error" class="text-sm mb-2" style="color: var(--accent-red)">{{ error }}</p>
+      <div class="dnshub-split">
+        <div class="settings-section">
+          <div class="section-title"><span>▸</span> {{ trans.dnshubAccounts }}</div>
+          <form class="dnshub-compact-grid" @submit.prevent="addAccount">
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubAccountName }}</label>
+              <input v-model="accountForm.name" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubProvider }}</label>
+              <select v-model="accountForm.provider" class="form-select" @change="resetCredentials">
+                <option v-for="provider in providers" :key="provider.id" :value="provider.id">{{ provider.name }}</option>
+              </select>
+            </div>
+            <div v-for="field in currentFields" :key="field.id" class="form-group">
+              <label class="form-label">{{ field.label }}</label>
+              <input
+                v-model="accountForm.credentials[field.id]"
+                class="form-input"
+                :type="field.type || 'text'"
+                :placeholder="field.placeholder || ''"
+              >
+            </div>
+            <div class="form-group dnshub-actions">
+              <button class="btn btn-primary" type="submit" :disabled="loading">{{ trans.dnshubAddAccount }}</button>
+            </div>
+          </form>
 
-    <div v-if="page === 'accounts'" class="settings-section">
-      <div class="section-title"><span>▸</span> {{ trans.dnshubAddAccount }}</div>
-      <form class="settings-grid" @submit.prevent="addAccount">
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubAccountName }}</label>
-          <input v-model="accountForm.name" class="form-input" required>
+          <div class="dnshub-account-list">
+            <div v-if="!accounts.length" class="text-muted">{{ trans.dnshubNoAccounts }}</div>
+            <div v-for="item in accounts" :key="item.id" class="dnshub-account-row">
+              <button class="dnshub-account-name" type="button" @click="useAccount(item)">
+                <strong>{{ item.name }}</strong>
+                <span class="text-muted text-sm">{{ providerName(item.provider) }}</span>
+              </button>
+              <div class="header-actions">
+                <button class="btn" type="button" @click="openDomains(item)">{{ trans.dnshubOpenDomains }}</button>
+                <button class="btn btn-red" type="button" @click="removeAccount(item)">{{ trans.delete || '删除' }}</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubProvider }}</label>
-          <select v-model="accountForm.provider" class="form-select" @change="resetCredentials">
-            <option v-for="provider in providers" :key="provider.id" :value="provider.id">{{ provider.name }}</option>
-          </select>
-        </div>
-        <div v-for="field in currentFields" :key="field.id" class="form-group">
-          <label class="form-label">{{ field.label }}</label>
-          <input
-            v-model="accountForm.credentials[field.id]"
-            class="form-input"
-            :type="field.type || 'text'"
-            :placeholder="field.placeholder || ''"
-          >
-        </div>
-        <div class="form-group">
-          <button class="btn btn-primary" type="submit" :disabled="loading">{{ trans.dnshubAddAccount }}</button>
-        </div>
-      </form>
 
-      <div class="mt-3">
-        <div v-if="!accounts.length" class="text-muted">{{ trans.dnshubNoAccounts }}</div>
-        <div v-for="account in accounts" :key="account.id" class="flex-justify-between mb-2">
-          <div>
-            <strong>{{ account.name }}</strong>
-            <span class="text-muted text-sm ml-3">{{ providerName(account.provider) }}</span>
-          </div>
-          <div class="header-actions">
-            <button class="btn" type="button" @click="openDomains(account)">{{ trans.dnshubOpenDomains }}</button>
-            <button class="btn btn-red" type="button" @click="removeAccount(account)">{{ trans.delete || '删除' }}</button>
-          </div>
+        <div class="settings-section">
+          <div class="section-title"><span>▸</span> {{ trans.dnshubOptimize }}</div>
+          <p class="text-muted dnshub-hint">{{ trans.dnshubOptimizeHint }}</p>
+          <form class="dnshub-compact-grid" @submit.prevent="applyOptimize">
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubAccountId }}</label>
+              <select v-model="optimize.accountId" class="form-select">
+                <option v-for="item in accounts" :key="item.id" :value="item.id">{{ item.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubDomains }}</label>
+              <input v-model="optimize.domain" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubDomainId }}</label>
+              <input v-model="optimize.domainId" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubHost }}</label>
+              <input v-model="optimize.name" class="form-input" required placeholder="@">
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubCdn }}</label>
+              <select v-model="optimize.cdnType" class="form-select">
+                <option value="1">Cloudflare</option>
+                <option value="2">CloudFront</option>
+                <option value="3">Gcore</option>
+                <option value="4">EdgeOne</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubIpType }}</label>
+              <select v-model="optimize.ipType" class="form-select">
+                <option value="v4">IPv4</option>
+                <option value="v6">IPv6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubRecordNum }}</label>
+              <input v-model.number="optimize.recordNum" class="form-input" type="number" min="1" max="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">TTL</label>
+              <input v-model.number="optimize.ttl" class="form-input" type="number" min="1">
+            </div>
+            <div class="form-group dnshub-actions">
+              <button class="btn" type="button" @click="previewOptimize">{{ trans.dnshubPreview }}</button>
+              <button class="btn btn-primary" type="submit">{{ trans.dnshubApply }}</button>
+            </div>
+          </form>
+          <pre v-if="optimizeResult" class="dnshub-result">{{ optimizeResult }}</pre>
         </div>
       </div>
     </div>
 
     <div v-else-if="page === 'domains'" class="settings-section">
+      <p v-if="error" class="text-sm mb-2" style="color: var(--accent-red)">{{ error }}</p>
       <div class="section-title">
         <span>▸</span>
-        <button class="btn" type="button" @click="page = 'accounts'">{{ trans.dnshubBack }}</button>
+        <button class="btn" type="button" @click="page = 'home'">{{ trans.dnshubBack }}</button>
         {{ account?.name }} · {{ trans.dnshubDomains }}
       </div>
       <form class="settings-grid" @submit.prevent="addDomain">
@@ -85,6 +135,7 @@
     </div>
 
     <div v-else-if="page === 'records'" class="settings-section">
+      <p v-if="error" class="text-sm mb-2" style="color: var(--accent-red)">{{ error }}</p>
       <div class="section-title">
         <span>▸</span>
         <button class="btn" type="button" @click="page = 'domains'">{{ trans.dnshubBack }}</button>
@@ -164,60 +215,6 @@
         </table>
       </div>
     </div>
-
-    <div v-else class="settings-section">
-      <div class="section-title"><span>▸</span> {{ trans.dnshubOptimize }}</div>
-      <p class="text-muted mb-2">{{ trans.dnshubOptimizeHint }}</p>
-      <form class="settings-grid" @submit.prevent="applyOptimize">
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubAccountId }}</label>
-          <select v-model="optimize.accountId" class="form-select">
-            <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubDomains }}</label>
-          <input v-model="optimize.domain" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubDomainId }}</label>
-          <input v-model="optimize.domainId" class="form-input">
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubHost }}</label>
-          <input v-model="optimize.name" class="form-input" required placeholder="@">
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubCdn }}</label>
-          <select v-model="optimize.cdnType" class="form-select">
-            <option value="1">Cloudflare</option>
-            <option value="2">CloudFront</option>
-            <option value="3">Gcore</option>
-            <option value="4">EdgeOne</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubIpType }}</label>
-          <select v-model="optimize.ipType" class="form-select">
-            <option value="v4">IPv4</option>
-            <option value="v6">IPv6</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ trans.dnshubRecordNum }}</label>
-          <input v-model.number="optimize.recordNum" class="form-input" type="number" min="1" max="5">
-        </div>
-        <div class="form-group">
-          <label class="form-label">TTL</label>
-          <input v-model.number="optimize.ttl" class="form-input" type="number" min="1">
-        </div>
-        <div class="form-group">
-          <button class="btn" type="button" @click="previewOptimize">{{ trans.dnshubPreview }}</button>
-          <button class="btn btn-primary" type="submit">{{ trans.dnshubApply }}</button>
-        </div>
-      </form>
-      <pre v-if="optimizeResult" class="mt-3">{{ optimizeResult }}</pre>
-    </div>
   </div>
 </template>
 
@@ -231,7 +228,7 @@ const props = defineProps({
   selectedApiIndex: { type: Number, default: 0 }
 })
 
-const page = ref('accounts')
+const page = ref('home')
 const loading = ref(false)
 const error = ref('')
 const providers = ref([])
@@ -357,8 +354,13 @@ const removeAccount = async (item) => {
   }
 }
 
+const useAccount = (item) => {
+  optimize.accountId = item.id
+}
+
 const openDomains = async (item) => {
   account.value = item
+  optimize.accountId = item.id
   page.value = 'domains'
   await loadDomains()
 }
