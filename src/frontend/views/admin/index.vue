@@ -80,32 +80,32 @@
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'servers' }"
-            @click="activeTab = 'servers'"
+            @click="setActiveTab('servers')"
           >{{ trans.servers }}</button>
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'settings' }"
-            @click="activeTab = 'settings'"
+            @click="setActiveTab('settings')"
           >{{ trans.settings }}</button>
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'database' }"
-            @click="activeTab = 'database'"
+            @click="setActiveTab('database')"
           >{{ trans.dbManagement }}</button>
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'themeStore' }"
-            @click="activeTab = 'themeStore'"
+            @click="setActiveTab('themeStore')"
           >{{ trans.themeStore }}</button>
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'donation' }"
-            @click="activeTab = 'donation'"
+            @click="setActiveTab('donation')"
           >{{ trans.donation }}</button>
           <button
             class="tab-btn"
             :class="{ active: activeTab === 'dnshub' }"
-            @click="activeTab = 'dnshub'"
+            @click="setActiveTab('dnshub')"
           >{{ trans.dnshub }}</button>
         </div>
 
@@ -602,6 +602,7 @@ import CopyCommandModal from './components/CopyCommandModal.vue'
 import { adminApi, login, logout as apiLogout, upgradeDatabase, clearHistory, fetchConfig } from '../../utils/api'
 import { http } from '../../utils/http'
 import { hasMultipleApiBases, getApiBases } from '../../utils/config.js'
+import { buildAdminViewQuery, parseAdminViewQuery } from '../../utils/adminView.js'
 import { copyTextToClipboard } from '../../utils/clipboard.js'
 import { t, useTranslation } from '../../utils/i18n'
 import { PING_NODE_FIELDS, validatePingNode } from '../../utils/pingNode.js'
@@ -902,6 +903,21 @@ const normalizeApiIndex = (value) => {
 const selectedApiIndex = ref(normalizeApiIndex(route.query.apiIndex))
 const selectedApiBase = computed(() => apiBases[selectedApiIndex.value] || apiBases[0])
 const currentOrigin = computed(() => window.location.origin)
+const initialView = parseAdminViewQuery(route.query)
+const activeTab = ref(initialView.tab)
+
+const syncAdminViewQuery = (next = {}) => {
+  const query = buildAdminViewQuery(route.query, { tab: activeTab.value, ...next })
+  const same = Object.keys(query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
+    && Object.keys(route.query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
+  if (same) return
+  router.replace({ path: '/admin', query })
+}
+
+const setActiveTab = (tab) => {
+  activeTab.value = tab
+  syncAdminViewQuery(tab === 'dnshub' ? { tab } : { tab, dnsPage: 'home', dnsAccount: '', dnsDomain: '', dnsDomainId: '' })
+}
 
 const syncApiIndexQuery = () => {
   if (!isMultipleMode.value) return
@@ -922,7 +938,6 @@ const loginForm = ref({ username: '', password: '' })
 const loginError = ref('')
 const loginLoading = ref(false)
 const adminSiteLoading = ref(false)
-const activeTab = ref('servers')
 const servers = ref([])
 const selectedServers = ref([])
 const stats = ref({ total: '-', online: 0, offline: 0, avg_cpu: 0 })
@@ -2450,6 +2465,11 @@ const sendTestNotification = async () => {
     testNotificationLoading.value = false
   }
 }
+
+watch(() => route.query.tab, (value) => {
+  const next = parseAdminViewQuery(route.query).tab
+  if (next !== activeTab.value) activeTab.value = next
+})
 
 watch(() => route.query.apiIndex, async (value) => {
   const nextIndex = normalizeApiIndex(value)
