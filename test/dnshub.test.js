@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { handleDnshubRequest } from '../src/dnshub/handler.js';
+import { handleDnshubRequest, runPreferredIpJobs } from '../src/dnshub/handler.js';
 
 function makeMemoryDb() {
   const accounts = new Map();
+  const jobs = new Map();
   return {
     prepare(sql) {
       const statement = {
@@ -16,6 +17,10 @@ function makeMemoryDb() {
             const results = [...accounts.values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
             return { results };
           }
+          if (/FROM dnshub_optimize_jobs/.test(sql) && /ORDER BY/.test(sql)) {
+            const results = [...jobs.values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
+            return { results };
+          }
           return { results: [] };
         },
         async first() {
@@ -24,6 +29,9 @@ function makeMemoryDb() {
           }
           if (/FROM dnshub_accounts WHERE id = \?/.test(sql)) {
             return accounts.get(statement.params[0]) || null;
+          }
+          if (/FROM dnshub_optimize_jobs WHERE id = \?/.test(sql)) {
+            return jobs.get(statement.params[0]) || null;
           }
           return null;
         },
@@ -34,7 +42,7 @@ function makeMemoryDb() {
             accounts.set(id, { id, name, provider, credentials, created_at });
             return { success: true };
           }
-          if (/UPDATE dnshub_accounts/.test(sql)) {
+          if (/UPDATE dnshub_accounts SET name/.test(sql)) {
             const [name, provider, credentials, id] = statement.params;
             const existing = accounts.get(id);
             if (existing) accounts.set(id, { ...existing, name, provider, credentials });
@@ -42,6 +50,27 @@ function makeMemoryDb() {
           }
           if (/DELETE FROM dnshub_accounts/.test(sql)) {
             accounts.delete(statement.params[0]);
+            return { success: true };
+          }
+          if (/INSERT INTO dnshub_optimize_jobs/.test(sql)) {
+            const [id, account_id, domain, domain_id, name, cdn_type, ip_type, record_num, ttl, interval_hours, enabled, last_run_at, last_result, created_at] = statement.params;
+            jobs.set(id, { id, account_id, domain, domain_id, name, cdn_type, ip_type, record_num, ttl, interval_hours, enabled, last_run_at, last_result, created_at });
+            return { success: true };
+          }
+          if (/UPDATE dnshub_optimize_jobs SET account_id/.test(sql)) {
+            const [account_id, domain, domain_id, name, cdn_type, ip_type, record_num, ttl, interval_hours, enabled, id] = statement.params;
+            const existing = jobs.get(id);
+            if (existing) jobs.set(id, { ...existing, account_id, domain, domain_id, name, cdn_type, ip_type, record_num, ttl, interval_hours, enabled });
+            return { success: true };
+          }
+          if (/UPDATE dnshub_optimize_jobs SET last_run_at/.test(sql)) {
+            const [last_run_at, last_result, id] = statement.params;
+            const existing = jobs.get(id);
+            if (existing) jobs.set(id, { ...existing, last_run_at, last_result });
+            return { success: true };
+          }
+          if (/DELETE FROM dnshub_optimize_jobs/.test(sql)) {
+            jobs.delete(statement.params[0]);
             return { success: true };
           }
           return { success: true };
@@ -350,6 +379,73 @@ const env = { DB: makeMemoryDb() };
   assert.match(panel, /dnshub-field-host/);
   assert.match(css, /\.dnshub-record-row \{[\s\S]*padding: 8px 8px/);
   assert.match(css, /--dnshub-record-columns:/);
+  assert.match(panel, /\/api\/dnshub\/optimize\/jobs/);
+  assert.match(panel, /saveOptimizeJob/);
+  assert.match(panel, /intervalHours/);
+}
+
+{
+  const listed = await readJson(await handleDnshubRequest(jsonRequest('GET', '/api/dnshub/accounts'), env, true));
+  const accountId = listed.body.data[0].id;
+  const created = await readJson(await handleDnshubRequest(jsonRequest('POST', '/api/dnshub/optimize/jobs', {
+    accountId,
+    domain: 'example.com',
+    domainId: 'zone-1',
+    name: 'www',
+    cdnType: '1',
+    ipType: 'v4',
+    recordNum: 1,
+    ttl: 600,
+    intervalHours: 6
+  }), env, true));
+  assert.equal(created.status, 201);
+  assert.equal(created.body.data.domain, 'example.com');
+  assert.equal(created.body.data.intervalHours, 6);
+  assert.equal(created.body.data.enabled, true);
+  assert.equal(created.body.data.credentials, undefined);
+  const jobs = await readJson(await handleDnshubRequest(jsonRequest('GET', '/api/dnshub/optimize/jobs'), env, true));
+  assert.equal(jobs.status, 200);
+  assert.equal(jobs.body.data.some((item) => item.id === created.body.data.id), true);
+  const disabled = await readJson(await handleDnshubRequest(jsonRequest('PATCH', `/api/dnshub/optimize/jobs/${created.body.data.id}`, { enabled: false }), env, true));
+  assert.equal(disabled.body.data.enabled, false);
+}
+
+{
+  const listed = await readJson(await handleDnshubRequest(jsonRequest('GET', '/api/dnshub/accounts'), env, true));
+  const accountId = listed.body.data[0].id;
+  const created = await readJson(await handleDnshubRequest(jsonRequest('POST', '/api/dnshub/optimize/jobs', {
+    accountId,
+    domain: 'cron.example.com',
+    domainId: 'zone-cron',
+    name: '@',
+    intervalHours: 6
+  }), env, true));
+  const calls = [];
+  const fetchImpl = async (input) => {
+    const url = String(input);
+    calls.push(url);
+    if (url.includes('wetest.vip')) {
+      return new Response(JSON.stringify({ code: 200, info: { DEF: [{ ip: '1.1.1.1' }] } }));
+    }
+    if (url.includes('/dns_records') && !/dns_records\/[^/]+$/.test(url)) {
+      return new Response(JSON.stringify({ success: true, result: [], result_info: { total_count: 0 } }));
+    }
+    if (url.includes('/dns_records')) {
+      return new Response(JSON.stringify({ success: true, result: { id: 'rec-cron' } }));
+    }
+    return new Response(JSON.stringify({ success: true, result: [] }));
+  };
+  const ran = await runPreferredIpJobs(env.DB, fetchImpl, Date.parse('2026-10-20T12:00:00Z'));
+  assert.equal(ran.some((item) => item.id === created.body.data.id && item.ok === true), true);
+  assert.equal(calls.some((url) => url.includes('wetest.vip')), true);
+  const skipped = await runPreferredIpJobs(env.DB, fetchImpl, Date.parse('2026-10-20T14:00:00Z'));
+  assert.equal(skipped.some((item) => item.id === created.body.data.id), false);
+}
+
+{
+  const source = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/index.js', import.meta.url), 'utf8'));
+  assert.match(source, /runPreferredIpJobs/);
+  assert.match(source, /cron_hourly/);
 }
 
 console.log('dnshub tests passed');

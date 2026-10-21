@@ -1941,14 +1941,14 @@ UUID 缺失或格式非法时返回 `400 { "error": "invalidServerId", "code": 4
 
 ## 6. 定时任务 (Cron)
 
-Worker 同时注册了 cron 触发器（`scheduled` handler），可在 `wrangler.toml` 配置：
+Worker 同时注册了 cron 触发器（`scheduled` handler）。账号额度紧张，实际只挂 **1 条** `*/1 * * * *`。`scheduled()` 每分钟唤醒后，按后台设置里的间隔决定跑哪一组任务（界面是「每 5 分钟 / 每 6 小时」这类选项）：
 
-| Cron          | 行为              | 备注                                                             |
-| ------------- | --------------- | -------------------------------------------------------------- |
-| `*/1 * * * *` | 每分钟：检测离线节点、资源告警 | `checkOfflineNodes`、`checkResourceAlerts`（通知） |
-| `0 * * * *`   | 每小时：根据 UTC 日期分支 | 见下表                                                            |
-| <br />        | 每周日 0 点：表轮换    | `weeklyCleanup`（删除旧表、重命名 metrics\_history → metrics\_history\_old、创建新表） |
-| <br />        | 每小时按通知时区/到期提醒时间判断是否执行到期检测 | `checkExpiringServers` |
+| 设置字段 | 默认 | 行为 |
+| --- | --- | --- |
+| `cron_offline_alert` | `*/1 * * * *` | 离线节点检测、资源负载告警 |
+| `cron_hourly` | `0 * * * *` | 到期检测、周日 0 点表轮换、DNSHub 优选 IP 任务 |
+
+优选 IP 任务还要满足各自的 `intervalHours` 才会真正写入解析。
 
 每周日 00:00–00:04 UTC 的表轮换窗口内，分钟任务会跳过离线节点检测。
 

@@ -93,12 +93,27 @@
               <label class="form-label">TTL</label>
               <input v-model.number="optimize.ttl" class="form-input" type="number" min="1">
             </div>
+            <div class="form-group">
+              <label class="form-label">{{ trans.dnshubIntervalHours }}</label>
+              <input v-model.number="optimize.intervalHours" class="form-input" type="number" min="1" max="168">
+            </div>
             <div class="form-group dnshub-actions">
               <button class="btn" type="button" @click="previewOptimize">{{ trans.dnshubPreview }}</button>
               <button class="btn btn-primary" type="submit">{{ trans.dnshubApply }}</button>
+              <button class="btn" type="button" @click="saveOptimizeJob">{{ trans.dnshubSaveJob }}</button>
             </div>
           </form>
           <pre v-if="optimizeResult" class="dnshub-result">{{ optimizeResult }}</pre>
+          <div class="section-title" style="margin-top:12px">{{ trans.dnshubOptimizeJobs }}</div>
+          <p class="dnshub-hint">{{ trans.dnshubOptimizeCronHint }}</p>
+          <div v-if="!optimizeJobs.length" class="text-muted">{{ trans.dnshubNoJobs }}</div>
+          <div v-for="job in optimizeJobs" :key="job.id" class="dnshub-domain-row">
+            <label><input type="checkbox" :checked="job.enabled" @change="toggleOptimizeJob(job)"> {{ job.name }}.{{ job.domain }}</label>
+            <span class="text-sm">{{ job.intervalHours }}h</span>
+            <span class="text-muted text-sm">{{ job.lastResult || trans.dnshubNeverRun }}</span>
+            <button class="btn" type="button" @click="runOptimizeJob(job)">{{ trans.dnshubRunNow }}</button>
+            <button class="btn btn-red" type="button" @click="removeOptimizeJob(job)">{{ trans.delete || '删除' }}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -242,6 +257,7 @@ const domainQuery = ref('')
 const editingId = ref('')
 const editingAccountId = ref('')
 const optimizeResult = ref('')
+const optimizeJobs = ref([])
 
 const accountForm = reactive({
   name: '',
@@ -267,7 +283,8 @@ const optimize = reactive({
   cdnType: '1',
   ipType: 'v4',
   recordNum: 1,
-  ttl: 600
+  ttl: 600,
+  intervalHours: 6
 })
 
 const currentFields = computed(() => providers.value.find((item) => item.id === accountForm.provider)?.fields || [])
@@ -382,11 +399,17 @@ const loadAccounts = async () => {
   if (!optimize.accountId && accounts.value[0]) optimize.accountId = accounts.value[0].id
 }
 
+const loadOptimizeJobs = async () => {
+  const result = unwrap(await requestGet('/api/dnshub/optimize/jobs'))
+  optimizeJobs.value = result?.data || []
+}
+
 const bootstrap = async () => {
   error.value = ''
   try {
     await loadProviders()
     await loadAccounts()
+    await loadOptimizeJobs()
     const view = parseAdminViewQuery(route.query)
     if (view.dnsAccount) {
       const item = accounts.value.find((row) => row.id === view.dnsAccount)
@@ -577,5 +600,39 @@ const applyOptimize = async () => {
   } catch (err) {
     optimizeResult.value = err.message || String(err)
   }
+}
+
+const saveOptimizeJob = async () => {
+  error.value = ''
+  try {
+    unwrap(await requestPost('/api/dnshub/optimize/jobs', { ...optimize }))
+    optimizeResult.value = props.trans.dnshubJobSaved
+    await loadOptimizeJobs()
+  } catch (err) {
+    optimizeResult.value = err.message || String(err)
+  }
+}
+
+const toggleOptimizeJob = async (job) => {
+  unwrap(await requestPatch(`/api/dnshub/optimize/jobs/${job.id}`, { enabled: !job.enabled }))
+  await loadOptimizeJobs()
+}
+
+const runOptimizeJob = async (job) => {
+  error.value = ''
+  try {
+    const result = unwrap(await requestPost(`/api/dnshub/optimize/jobs/${job.id}/run`, {}))
+    const data = result?.result || result
+    optimizeResult.value = data?.added != null ? `已写入：新增 ${data.added}，修改 ${data.changed}，删除 ${data.deleted}` : (result.lastResult || props.trans.dnshubJobSaved)
+    await loadOptimizeJobs()
+  } catch (err) {
+    optimizeResult.value = err.message || String(err)
+  }
+}
+
+const removeOptimizeJob = async (job) => {
+  if (!window.confirm(`${job.name}.${job.domain}?`)) return
+  unwrap(await requestDelete(`/api/dnshub/optimize/jobs/${job.id}`))
+  await loadOptimizeJobs()
 }
 </script>

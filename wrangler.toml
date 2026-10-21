@@ -6,11 +6,10 @@ compatibility_flags = ["nodejs_compat"]
 
 keep_vars = true
 
-# 定时任务：Workers 免费套餐全账号最多 5 条 Cron。
-# 当前账号已满，GitHub Actions 部署不挂 Cron；代码里的 scheduled() 仍保留。
-# 腾出额度或升级 Paid 后，取消下面注释并同步改 deploy.yml。
-# [triggers]
-# crons = ["*/1 * * * *", "0 * * * *"]
+# 定时任务：只挂 1 条每分钟触发器（Workers 免费套餐全账号最多 5 条）。
+# 离线/告警、到期/优选 的实际执行间隔在后台设置里自定义，scheduled() 按表达式过滤。
+[triggers]
+crons = ["*/1 * * * *"]
 
 [assets]
 directory = "./dist"

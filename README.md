@@ -60,7 +60,7 @@ https://cf-monitor.chrimast.workers.dev
 
 工作流会在 CI 里生成带真实 `database_id` 的 `wrangler.toml` 再 `wrangler deploy`，并写入 Worker Secret `API_SECRET`。仓库里的 `wrangler.toml` 没有真实 D1 UUID，只给本地测试用。
 
-Workers 免费套餐全账号最多 5 条 Cron。本账号已满，所以当前部署**不挂定时任务**；离线检测、资源告警、到期提醒不会自动跑，面板和反向终端仍可用。腾出 Cron 额度或升级 Paid 后，再把 `wrangler.toml` / `deploy.yml` 里的 `[triggers]` 打开。
+Workers 免费套餐全账号最多 5 条 Cron。当前部署只挂 **1 条**每分钟触发器；离线检测、资源告警、到期提醒、优选 IP 的实际执行间隔在后台「设置」里用下拉选择（例如每 5 分钟 / 每 6 小时）。默认：离线/告警每分钟，到期/优选每小时。
 
 未配置 `CF_ACCOUNT_ID` 时，push 不会部署（工作流 `check` 会跳过），避免空跑失败。
 

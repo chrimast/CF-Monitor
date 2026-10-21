@@ -30,6 +30,167 @@ async function ensureDnshubSchema(db) {
         created_at TEXT NOT NULL
       )`
   ).run();
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS dnshub_optimize_jobs (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        domain TEXT NOT NULL,
+        domain_id TEXT NOT NULL DEFAULT '',
+        name TEXT NOT NULL,
+        cdn_type TEXT NOT NULL DEFAULT '1',
+        ip_type TEXT NOT NULL DEFAULT 'v4',
+        record_num INTEGER NOT NULL DEFAULT 1,
+        ttl INTEGER NOT NULL DEFAULT 600,
+        interval_hours INTEGER NOT NULL DEFAULT 6,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        last_run_at TEXT NOT NULL DEFAULT '',
+        last_result TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`
+  ).run();
+}
+
+function jobEnabled(value) {
+  return value === true || value === 1 || value === "1";
+}
+
+function publicOptimizeJob(row) {
+  return {
+    id: row.id,
+    accountId: row.account_id || row.accountId,
+    domain: row.domain,
+    domainId: row.domain_id || row.domainId || "",
+    name: row.name,
+    cdnType: row.cdn_type || row.cdnType || "1",
+    ipType: row.ip_type || row.ipType || "v4",
+    recordNum: Number(row.record_num || row.recordNum || 1),
+    ttl: Number(row.ttl || 600),
+    intervalHours: Number(row.interval_hours || row.intervalHours || 6),
+    enabled: jobEnabled(row.enabled),
+    lastRunAt: row.last_run_at || row.lastRunAt || "",
+    lastResult: row.last_result || row.lastResult || "",
+    createdAt: row.created_at || row.createdAt || ""
+  };
+}
+
+function clampIntervalHours(value) {
+  const hours = Number(value);
+  if (!Number.isFinite(hours)) return 6;
+  return Math.min(168, Math.max(1, Math.round(hours)));
+}
+
+function jobIsDue(job, now) {
+  if (!job.enabled) return false;
+  if (!job.lastRunAt) return true;
+  const last = Date.parse(job.lastRunAt);
+  if (!Number.isFinite(last)) return true;
+  return now - last >= job.intervalHours * 3600 * 1000;
+}
+
+async function listOptimizeJobs(db) {
+  const { results } = await db.prepare("SELECT * FROM dnshub_optimize_jobs ORDER BY created_at DESC").all();
+  return (results || []).map(publicOptimizeJob);
+}
+
+async function getOptimizeJob(db, id) {
+  const row = await db.prepare("SELECT * FROM dnshub_optimize_jobs WHERE id = ?").bind(id).first();
+  return row ? publicOptimizeJob(row) : null;
+}
+
+async function saveOptimizeJobRow(db, job) {
+  await db.prepare(
+    `INSERT INTO dnshub_optimize_jobs (id, account_id, domain, domain_id, name, cdn_type, ip_type, record_num, ttl, interval_hours, enabled, last_run_at, last_result, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    job.id,
+    job.accountId,
+    job.domain,
+    job.domainId || "",
+    job.name,
+    job.cdnType,
+    job.ipType,
+    job.recordNum,
+    job.ttl,
+    job.intervalHours,
+    job.enabled ? 1 : 0,
+    job.lastRunAt || "",
+    job.lastResult || "",
+    job.createdAt
+  ).run();
+}
+
+async function updateOptimizeJobRow(db, job) {
+  await db.prepare(
+    `UPDATE dnshub_optimize_jobs SET account_id = ?, domain = ?, domain_id = ?, name = ?, cdn_type = ?, ip_type = ?, record_num = ?, ttl = ?, interval_hours = ?, enabled = ? WHERE id = ?`
+  ).bind(
+    job.accountId,
+    job.domain,
+    job.domainId || "",
+    job.name,
+    job.cdnType,
+    job.ipType,
+    job.recordNum,
+    job.ttl,
+    job.intervalHours,
+    job.enabled ? 1 : 0,
+    job.id
+  ).run();
+}
+
+async function markOptimizeJobRun(db, id, lastRunAt, lastResult) {
+  await db.prepare("UPDATE dnshub_optimize_jobs SET last_run_at = ?, last_result = ? WHERE id = ?")
+    .bind(lastRunAt, lastResult, id)
+    .run();
+}
+
+function readJobInput(body, existing = {}) {
+  const accountId = typeof body.accountId === "string" && body.accountId.trim() ? body.accountId.trim() : existing.accountId;
+  const domain = typeof body.domain === "string" && body.domain.trim() ? body.domain.trim() : existing.domain;
+  const name = typeof body.name === "string" && body.name.trim() ? body.name.trim() : existing.name;
+  return {
+    accountId,
+    domain,
+    domainId: typeof body.domainId === "string" ? body.domainId : (existing.domainId || ""),
+    name,
+    cdnType: typeof body.cdnType === "string" && body.cdnType ? body.cdnType : (existing.cdnType || "1"),
+    ipType: body.ipType === "v6" || existing.ipType === "v6" ? "v6" : "v4",
+    recordNum: Math.min(5, Math.max(1, Number(body.recordNum || existing.recordNum || 1))),
+    ttl: Math.max(1, Number(body.ttl || existing.ttl || 600)),
+    intervalHours: clampIntervalHours(body.intervalHours ?? existing.intervalHours ?? 6),
+    enabled: body.enabled == null ? (existing.enabled !== false) : jobEnabled(body.enabled)
+  };
+}
+
+async function runPreferredIpJobs(db, fetchImpl, now = Date.now()) {
+  await ensureDnshubSchema(db);
+  const store = new D1Store(db);
+  const jobs = await listOptimizeJobs(db);
+  const results = [];
+  for (const job of jobs) {
+    if (!jobIsDue(job, now)) continue;
+    try {
+      const data = await applyPreferredIps(store, fetchImpl, {
+        accountId: job.accountId,
+        domain: job.domain,
+        domainId: job.domainId,
+        name: job.name,
+        cdnType: job.cdnType,
+        ipType: job.ipType,
+        recordNum: job.recordNum,
+        ttl: job.ttl
+      });
+      const lastRunAt = new Date(now).toISOString();
+      const lastResult = `ok added=${data.added} changed=${data.changed} deleted=${data.deleted}`;
+      await markOptimizeJobRun(db, job.id, lastRunAt, lastResult);
+      results.push({ id: job.id, ok: true, data });
+    } catch (err) {
+      const lastRunAt = new Date(now).toISOString();
+      const lastResult = `error ${err instanceof Error ? err.message : String(err)}`;
+      await markOptimizeJobRun(db, job.id, lastRunAt, lastResult);
+      results.push({ id: job.id, ok: false, error: lastResult });
+    }
+  }
+  return results;
 }
 function match(pathname, pattern) {
   const pathParts = pathname.split("/").filter(Boolean);
@@ -289,9 +450,81 @@ async function handleDnshubRequest(request, env, authenticated) {
       return jsonError(err instanceof Error ? err.message : String(err), 502);
     }
   }
+  if (method === "GET" && path === "/api/dnshub/optimize/jobs") {
+    return json({ success: true, data: await listOptimizeJobs(env.DB) });
+  }
+  if (method === "POST" && path === "/api/dnshub/optimize/jobs") {
+    const body = await readBody(request);
+    const input = readJobInput(body);
+    if (!input.accountId || !input.domain || !input.name) return jsonError("请填写账号、域名和主机记录", 422);
+    const account = await store.getAccount(input.accountId);
+    if (!account) return jsonError("账号不存在", 404);
+    const job = {
+      id: crypto.randomUUID(),
+      ...input,
+      lastRunAt: "",
+      lastResult: "",
+      createdAt: new Date().toISOString()
+    };
+    await saveOptimizeJobRow(env.DB, job);
+    return json({ success: true, data: publicOptimizeJob({
+      id: job.id,
+      account_id: job.accountId,
+      domain: job.domain,
+      domain_id: job.domainId,
+      name: job.name,
+      cdn_type: job.cdnType,
+      ip_type: job.ipType,
+      record_num: job.recordNum,
+      ttl: job.ttl,
+      interval_hours: job.intervalHours,
+      enabled: job.enabled ? 1 : 0,
+      last_run_at: "",
+      last_result: "",
+      created_at: job.createdAt
+    }) }, 201);
+  }
+  const oneJob = match(path, "/api/dnshub/optimize/jobs/:id");
+  if (oneJob && method === "PATCH") {
+    const existing = await getOptimizeJob(env.DB, oneJob.id);
+    if (!existing) return jsonError("任务不存在", 404);
+    const body = await readBody(request);
+    const next = { ...existing, ...readJobInput(body, existing), id: existing.id, createdAt: existing.createdAt };
+    if (!next.accountId || !next.domain || !next.name) return jsonError("请填写账号、域名和主机记录", 422);
+    await updateOptimizeJobRow(env.DB, next);
+    return json({ success: true, data: next });
+  }
+  if (oneJob && method === "DELETE") {
+    await env.DB.prepare("DELETE FROM dnshub_optimize_jobs WHERE id = ?").bind(oneJob.id).run();
+    return json({ success: true });
+  }
+  const runJob = match(path, "/api/dnshub/optimize/jobs/:id/run");
+  if (runJob && method === "POST") {
+    const existing = await getOptimizeJob(env.DB, runJob.id);
+    if (!existing) return jsonError("任务不存在", 404);
+    try {
+      const data = await applyPreferredIps(store, fetchImpl, {
+        accountId: existing.accountId,
+        domain: existing.domain,
+        domainId: existing.domainId,
+        name: existing.name,
+        cdnType: existing.cdnType,
+        ipType: existing.ipType,
+        recordNum: existing.recordNum,
+        ttl: existing.ttl
+      });
+      const lastRunAt = new Date().toISOString();
+      const lastResult = `ok added=${data.added} changed=${data.changed} deleted=${data.deleted}`;
+      await markOptimizeJobRun(env.DB, existing.id, lastRunAt, lastResult);
+      return json({ success: true, data: { ...existing, lastRunAt, lastResult, result: data } });
+    } catch (err) {
+      return jsonError(err instanceof Error ? err.message : String(err), 502);
+    }
+  }
   return jsonError("Not Found", 404);
 }
 export {
   ensureDnshubSchema,
-  handleDnshubRequest
+  handleDnshubRequest,
+  runPreferredIpJobs
 };

@@ -472,6 +472,27 @@
 
         <div class="form-row">
           <div class="form-group flex-1">
+            <label class="form-label">
+              {{ trans.cronOfflineAlert }}
+              <HelpTooltip :text="trans.cronOfflineAlertTip" />
+            </label>
+            <select v-model="offlineCronPreset" class="form-select">
+              <option v-for="item in offlineCronOptions" :key="item.key" :value="item.key">{{ item.label }}</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">
+              {{ trans.cronHourly }}
+              <HelpTooltip :text="trans.cronHourlyTip" />
+            </label>
+            <select v-model="hourlyCronPreset" class="form-select">
+              <option v-for="item in hourlyCronOptions" :key="item.key" :value="item.key">{{ item.label }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
             <label class="form-label">{{ trans.notificationTemplate || 'Notification Template' }}</label>
             <textarea
               v-model="settings.notification_template"
@@ -793,6 +814,7 @@ import HelpTooltip from '../../../components/HelpTooltip.vue'
 import { FRONTEND_WS_TIMEOUT_MINUTES_MAX, HISTORY } from '../../../utils/constants.js'
 import { currentLang } from '../../../utils/i18n.js'
 import { PING_NODE_FIELDS, validatePingNode } from '../../../utils/pingNode.js'
+import { HOURLY_INTERVAL_OPTIONS, intervalKey, intervalToCron, OFFLINE_INTERVAL_OPTIONS, parseCronInterval } from '../../../utils/cron.js'
 
 const props = defineProps({
   trans: { type: Object, required: true },
@@ -832,6 +854,37 @@ const CUSTOM_NOTIFICATION_TIMEZONE_VALUE = '__custom__'
 const manualCustomExpireReminder = ref(false)
 const manualCustomNotificationTimezone = ref(false)
 const isCommonNotificationTimezone = (value) => commonNotificationTimezones.includes(String(value || '').trim())
+
+const formatCronInterval = (item) => {
+  if (item.unit === 'hour') {
+    return item.every === 1 ? (props.trans.cronEveryHour || '每小时') : (props.trans.cronEveryHours || '每 {hours} 小时').replace('{hours}', item.every)
+  }
+  return item.every === 1 ? (props.trans.cronEveryMinute || '每分钟') : (props.trans.cronEveryMinutes || '每 {minutes} 分钟').replace('{minutes}', item.every)
+}
+const offlineCronOptions = computed(() => OFFLINE_INTERVAL_OPTIONS.map((item) => ({ ...item, key: intervalKey(item), label: formatCronInterval(item) })))
+const hourlyCronOptions = computed(() => HOURLY_INTERVAL_OPTIONS.map((item) => ({ ...item, key: intervalKey(item), label: formatCronInterval(item) })))
+const offlineCronPreset = computed({
+  get: () => {
+    const parsed = parseCronInterval(props.settings.cron_offline_alert) || { every: 1, unit: 'minute' }
+    const key = intervalKey(parsed)
+    return offlineCronOptions.value.some((item) => item.key === key) ? key : intervalKey({ every: 1, unit: 'minute' })
+  },
+  set: (value) => {
+    const item = OFFLINE_INTERVAL_OPTIONS.find((option) => intervalKey(option) === value) || OFFLINE_INTERVAL_OPTIONS[0]
+    props.settings.cron_offline_alert = intervalToCron(item)
+  }
+})
+const hourlyCronPreset = computed({
+  get: () => {
+    const parsed = parseCronInterval(props.settings.cron_hourly) || { every: 1, unit: 'hour' }
+    const key = intervalKey(parsed)
+    return hourlyCronOptions.value.some((item) => item.key === key) ? key : intervalKey({ every: 1, unit: 'hour' })
+  },
+  set: (value) => {
+    const item = HOURLY_INTERVAL_OPTIONS.find((option) => intervalKey(option) === value) || HOURLY_INTERVAL_OPTIONS[0]
+    props.settings.cron_hourly = intervalToCron(item)
+  }
+})
 
 const isPresetExpireReminder = (value) => {
   const reminder = String(value ?? '').trim()

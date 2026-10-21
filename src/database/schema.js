@@ -1,5 +1,6 @@
 import { getAllServers, getLatestMetricsCache, setLatestMetricsCache, getMetricsHistoryCache, setMetricsHistoryCache, getCacheDuration, clearAllCaches } from '../utils/cache.js';
 import { ensureDnshubSchema } from '../dnshub/handler.js';
+import { ensureWafpanelSchema } from '../wafpanel/handler.js';
 import { saveSiteOptions, debug, normalizeLongHistoryPoints, DEFAULT_LONG_HISTORY_POINTS } from '../utils/settings.js';
 import { attachDiskMetricsObject, flattenDiskMetrics, isDisabledProbeMetric, normalizeProbeMetricRow } from '../utils/metrics.js';
 import { ensureServerOptimization, buildHistoryId, getServerHistoryInfo, getHistoryIdRange } from './indexOptimization.js';
@@ -122,6 +123,7 @@ export async function initDatabase(db) {
     // 确保 metrics_history 表存在（主键 id 已编码分区与时间，无需二级索引）
     await db.prepare(createHistoryTableSql('metrics_history')).run();
     await ensureDnshubSchema(db);
+    await ensureWafpanelSchema(db);
 
     debug('✅ 数据库初始化完成');
     dbInitialized = true;

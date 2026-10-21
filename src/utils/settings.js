@@ -4,10 +4,11 @@ import {
   SITE_SETTINGS_CACHE_TTL_MS
 } from './config.js';
 import { normalizePct } from './traffic.js';
+import { DEFAULT_CRON_HOURLY, DEFAULT_CRON_OFFLINE_ALERT, normalizeCronExpression } from '../frontend/utils/cron.js';
 
 export const APPEARANCE_FIELDS = ['site_title', 'custom_bg', 'custom_bg_mobile', 'favicon', 'custom_head', 'custom_script', 'csp_static', 'csp_api', 'display_mode', 'preferred_theme', 'default_language', 'theme_options'];
 
-export const SITE_FIELDS = ['is_public', 'show_price', 'show_expire', 'show_tf', 'show_three_net_details', 'wss_report_enabled', 'wss_report_hours', 'frontend_ws_timeout_minutes', 'long_history_points', 'tg_notify', 'tg_bot_token', 'tg_chat_id', 'notification_timezone', 'expire_notification_time', 'notification_webhook_enabled', 'notification_webhook_url', 'notification_webhook_method', 'notification_webhook_format', 'notification_webhook_headers', 'notification_webhook_body', 'notification_template', 'turnstile_enabled', 'turnstile_login_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'jwt_secret', 'username', 'password', 'cloudflare_account_id', 'cloudflare_token', 'custom_ct', 'custom_cu', 'custom_cm', 'custom_bd', 'node_1', 'node_2', 'node_3', 'node_4', 'custom_ct_name', 'custom_cu_name', 'custom_cm_name', 'custom_bd_name', 'node_1_name', 'node_2_name', 'node_3_name', 'node_4_name', 'expire_reminder', 'resource_alert_rules', 'traffic_alert_threshold', 'theme_url', 'servers_optimized'];
+export const SITE_FIELDS = ['is_public', 'show_price', 'show_expire', 'show_tf', 'show_three_net_details', 'wss_report_enabled', 'wss_report_hours', 'frontend_ws_timeout_minutes', 'long_history_points', 'tg_notify', 'tg_bot_token', 'tg_chat_id', 'notification_timezone', 'expire_notification_time', 'notification_webhook_enabled', 'notification_webhook_url', 'notification_webhook_method', 'notification_webhook_format', 'notification_webhook_headers', 'notification_webhook_body', 'notification_template', 'turnstile_enabled', 'turnstile_login_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'jwt_secret', 'username', 'password', 'cloudflare_account_id', 'cloudflare_token', 'custom_ct', 'custom_cu', 'custom_cm', 'custom_bd', 'node_1', 'node_2', 'node_3', 'node_4', 'custom_ct_name', 'custom_cu_name', 'custom_cm_name', 'custom_bd_name', 'node_1_name', 'node_2_name', 'node_3_name', 'node_4_name', 'expire_reminder', 'resource_alert_rules', 'traffic_alert_threshold', 'theme_url', 'servers_optimized', 'cron_offline_alert', 'cron_hourly'];
 
 export const TG_NOTIFY_MINUTES_MIN = 2;
 export const TG_NOTIFY_MINUTES_MAX = 30;
@@ -119,7 +120,9 @@ const defaults = {
   resource_alert_rules: [],
   traffic_alert_threshold: '0',
   theme_url: '',
-  servers_optimized: 'false'
+  servers_optimized: 'false',
+  cron_offline_alert: DEFAULT_CRON_OFFLINE_ALERT,
+  cron_hourly: DEFAULT_CRON_HOURLY
 };
 
 export function normalizeLongHistoryPoints(value) {
@@ -216,6 +219,14 @@ export function normalizeExpireNotificationTime(value) {
   return Number.isInteger(hour) && hour >= 0 && hour <= 23
     ? String(hour)
     : DEFAULT_EXPIRE_NOTIFICATION_TIME;
+}
+
+export function normalizeOfflineAlertCron(value) {
+  return normalizeCronExpression(value, DEFAULT_CRON_OFFLINE_ALERT);
+}
+
+export function normalizeHourlyCron(value) {
+  return normalizeCronExpression(value, DEFAULT_CRON_HOURLY);
 }
 
 export function normalizeNotificationWebhookMethod(value) {
@@ -666,6 +677,8 @@ export async function loadSiteSettings(db, options = {}) {
     result.notification_timezone = normalizeNotificationTimezone(result.notification_timezone);
     result.expire_notification_time = normalizeExpireNotificationTime(result.expire_notification_time);
     result.traffic_alert_threshold = normalizeTrafficAlertThreshold(result.traffic_alert_threshold);
+    result.cron_offline_alert = normalizeOfflineAlertCron(result.cron_offline_alert);
+    result.cron_hourly = normalizeHourlyCron(result.cron_hourly);
   } catch (e) {
     console.error('加载站点设置失败:', e);
   }
@@ -794,6 +807,8 @@ export async function saveSiteOptions(db, updates) {
   siteOptions.notification_timezone = normalizeNotificationTimezone(siteOptions.notification_timezone);
   siteOptions.expire_notification_time = normalizeExpireNotificationTime(siteOptions.expire_notification_time);
   siteOptions.traffic_alert_threshold = normalizeTrafficAlertThreshold(siteOptions.traffic_alert_threshold);
+  siteOptions.cron_offline_alert = normalizeOfflineAlertCron(siteOptions.cron_offline_alert);
+  siteOptions.cron_hourly = normalizeHourlyCron(siteOptions.cron_hourly);
   
   await db.prepare(
     'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'

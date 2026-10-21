@@ -497,12 +497,7 @@ After upgrading from older versions to versions with GPU, disk IO, packet loss, 
 
 ### Cron Jobs
 
-`wrangler.toml` includes two Cron triggers:
-
-| Cron | Description |
-| --- | --- |
-| `*/1 * * * *` | Detect offline nodes/resource alerts every minute |
-| `0 * * * *` | Run hourly combined tasks, including monthly table rotation, old table cleanup, and expiration checks at the configured notification timezone/hour |
+`wrangler.toml` registers one Cron trigger (`*/1 * * * *`). Actual offline/alert and expiry/preferred-IP intervals are selected in Admin → Settings as readable options such as every 5 minutes or every 6 hours.
 
 ## Local Development
 

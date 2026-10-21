@@ -1,15 +1,19 @@
-const ADMIN_TABS = ['servers', 'settings', 'database', 'themeStore', 'donation', 'dnshub']
+const ADMIN_TABS = ['servers', 'settings', 'database', 'themeStore', 'donation', 'dnshub', 'wafpanel']
 const DNSHUB_PAGES = ['home', 'domains', 'records']
+const WAFPANEL_PAGES = ['nodes', 'dashboard', 'logs', 'bans', 'autoban', 'pages']
 
 export const parseAdminViewQuery = (query = {}) => {
   const tab = ADMIN_TABS.includes(query.tab) ? query.tab : 'servers'
   const dnsPage = DNSHUB_PAGES.includes(query.dnsPage) ? query.dnsPage : 'home'
+  const wafPage = WAFPANEL_PAGES.includes(query.wafPage) ? query.wafPage : 'nodes'
   return {
     tab,
     dnsPage: tab === 'dnshub' ? dnsPage : 'home',
     dnsAccount: tab === 'dnshub' ? String(query.dnsAccount || '') : '',
     dnsDomain: tab === 'dnshub' ? String(query.dnsDomain || '') : '',
-    dnsDomainId: tab === 'dnshub' ? String(query.dnsDomainId || '') : ''
+    dnsDomainId: tab === 'dnshub' ? String(query.dnsDomainId || '') : '',
+    wafPage: tab === 'wafpanel' ? wafPage : 'nodes',
+    wafNode: tab === 'wafpanel' ? String(query.wafNode || '') : ''
   }
 }
 
@@ -30,6 +34,12 @@ export const buildAdminViewQuery = (current = {}, next = {}) => {
 
   if (view.tab === 'dnshub' && view.dnsPage === 'records' && view.dnsDomainId) query.dnsDomainId = view.dnsDomainId
   else delete query.dnsDomainId
+
+  if (view.tab === 'wafpanel' && view.wafPage !== 'nodes') query.wafPage = view.wafPage
+  else delete query.wafPage
+
+  if (view.tab === 'wafpanel' && view.wafNode) query.wafNode = view.wafNode
+  else delete query.wafNode
 
   return query
 }

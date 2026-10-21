@@ -2,13 +2,15 @@ import { initDatabase, weeklyCleanup, getMetricsHistory, clearHistory } from './
 import { checkOfflineNodes, checkExpiringServers, checkResourceAlerts } from './services/notification.js';
 import { updateDatabase } from './database/updateDatabase.js';
 import { handleAdminAPI } from './handlers/admin.js';
-import { handleDnshubRequest } from './dnshub/handler.js';
+import { handleDnshubRequest, runPreferredIpJobs } from './dnshub/handler.js';
+import { handleWafpanelRequest } from './wafpanel/handler.js';
 import { serveFrontend } from './handlers/frontend.js';
 import { handleUpdate, handleWebSocketUpgrade, handleUpdateWebSocketUpgrade } from './handlers/update.js';
 import { handleAgentTerminalUpgrade, handleBrowserTerminalUpgrade, handleToggleTerminal } from './handlers/terminal.js';
 import { handleServerAPI, handleServersAPI } from './handlers/dashboard.js';
 import { handleTheme } from './handlers/theme.js';
 import { isValidThemeOptions, loadSettings, loadSiteSettings, loadAppearanceOptions, normalizeFrontendWsTimeoutMinutes, normalizeLongHistoryPoints, saveThemeOptions, setDebug, debug } from './utils/settings.js';
+import { cronMatches } from './frontend/utils/cron.js';
 import { omitNullLossProbeFields } from './handlers/dashboard.js';
 import { checkAuth, simpleAuthResponse } from './middleware/auth.js';
 import { getServerDetail, getMetricsHistoryCache, setMetricsHistoryCache, getCacheDuration } from './utils/cache.js';
@@ -233,6 +235,7 @@ export default {
 
     const isApiRequest = path.startsWith('/api/') || path.startsWith('/admin/api');
     const isDnshubRequest = path.startsWith('/api/dnshub');
+    const isWafpanelRequest = path.startsWith('/api/wafpanel');
     if (path === '/api/config' || path === '/api/theme_options' || path === '/clearHistory') {
       await initDatabase(env.DB);
     }
@@ -289,6 +292,17 @@ export default {
       const authenticated = await checkAuth(request, env, sys);
       try {
         const response = await handleDnshubRequest(request, env, authenticated);
+        return applyCors(response, request, corsAllowedOrigins);
+      } catch (e) {
+        return applyCors(createErrorResponse(e), request, corsAllowedOrigins);
+      }
+    }
+
+    if (isWafpanelRequest) {
+      await ensureSiteSettings();
+      const authenticated = await checkAuth(request, env, sys);
+      try {
+        const response = await handleWafpanelRequest(request, env, authenticated);
         return applyCors(response, request, corsAllowedOrigins);
       } catch (e) {
         return applyCors(createErrorResponse(e), request, corsAllowedOrigins);
@@ -497,8 +511,11 @@ export default {
     const day = now.getUTCDay();
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();
+    const siteSettings = await loadSiteSettings(env.DB);
+    const shouldRunOfflineAlert = cronMatches(siteSettings.cron_offline_alert, now);
+    const shouldRunHourly = cronMatches(siteSettings.cron_hourly, now);
     
-    if (cron === '*/1 * * * *') {
+    if (shouldRunOfflineAlert) {
       if (day === 0 && hour === 0 && minute < 5) {
         debug('[Cron] 每周日0:00-0:05表轮换期间，跳过离线节点检测');
       } else {
@@ -509,7 +526,8 @@ export default {
         await checkResourceAlerts(env);
         debug('[Cron] 资源负载告警检测完成');
       }
-    } else if (cron === '0 * * * *') {
+    }
+    if (shouldRunHourly) {
       if (day === 0 && hour === 0) {
         debug('[Cron] 开始执行每周数据清理任务（表轮换）');
         await weeklyCleanup(env.DB);
@@ -517,7 +535,11 @@ export default {
       }
       debug('[Cron] 检查是否到达服务器到期检测时间');
       await checkExpiringServers(env.DB, { scheduled: true, now: now.getTime() });
-    }else if(env.DEBUG == 1){
+      debug('[Cron] 开始执行优选 IP 定时任务');
+      await runPreferredIpJobs(env.DB, globalThis.fetch, now.getTime());
+      debug('[Cron] 优选 IP 定时任务完成');
+    }
+    if (env.DEBUG == 1) {
       if (cron === '0 0 * * 0') {
         debug('[Cron DEBUG] 开始执行每周数据清理任务（表轮换）');
         await weeklyCleanup(env.DB);

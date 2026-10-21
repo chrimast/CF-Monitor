@@ -5603,9 +5603,53 @@ body.admin-workspace .admin-container {
     }
 }
 
+.wafpanel-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.wafpanel-dash {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.wafpanel-map {
+    min-height: 360px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.wafpanel-side {
+    min-width: 0;
+}
+
+.wafpanel-table {
+    overflow-x: auto;
+}
+
+.wafpanel-advanced {
+    margin-top: 12px;
+}
+
+.wafpanel-resource-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+}
+
 @media (max-width: 900px) {
     .dnshub-split,
-    .dnshub-compact-grid {
+    .dnshub-compact-grid,
+    .wafpanel-dash,
+    .wafpanel-resource-columns {
         grid-template-columns: 1fr;
     }
 

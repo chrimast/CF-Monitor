@@ -79,6 +79,7 @@ test('已是标准形式时幂等，不再改写地址栏', () => {
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin' }), null)
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin?apiIndex=1' }), null)
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin?tab=dnshub&dnsPage=domains&dnsAccount=acc-1' }), null)
+  assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin?tab=wafpanel&wafPage=logs&wafNode=n1' }), null)
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin?foo=1' }), null)
   assert.equal(resolveAdminEntryUrl({ pathname: '/admin', hash: '#/admin/term/abc' }), null)
 })

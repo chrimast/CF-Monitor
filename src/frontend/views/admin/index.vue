@@ -107,6 +107,11 @@
             :class="{ active: activeTab === 'dnshub' }"
             @click="setActiveTab('dnshub')"
           >{{ trans.dnshub }}</button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'wafpanel' }"
+            @click="setActiveTab('wafpanel')"
+          >{{ trans.wafpanel }}</button>
         </div>
 
         <ServerTable
@@ -187,6 +192,12 @@
         />
 
         <DnsHubPanel
+          :trans="trans"
+          :active-tab="activeTab"
+          :selected-api-index="selectedApiIndex"
+        />
+
+        <WafPanel
           :trans="trans"
           :active-tab="activeTab"
           :selected-api-index="selectedApiIndex"
@@ -595,6 +606,7 @@ import DatabasePanel from './components/DatabasePanel.vue'
 import ThemeStorePanel from './components/ThemeStorePanel.vue'
 import DonationPanel from './components/DonationPanel.vue'
 import DnsHubPanel from './components/DnsHubPanel.vue'
+import WafPanel from './components/WafPanel.vue'
 import EditServerModal from './components/EditServerModal.vue'
 import BatchEditServersModal from './components/BatchEditServersModal.vue'
 import DeleteServerModal from './components/DeleteServerModal.vue'
@@ -916,7 +928,23 @@ const syncAdminViewQuery = (next = {}) => {
 
 const setActiveTab = (tab) => {
   activeTab.value = tab
-  syncAdminViewQuery(tab === 'dnshub' ? { tab } : { tab, dnsPage: 'home', dnsAccount: '', dnsDomain: '', dnsDomainId: '' })
+  if (tab === 'dnshub') {
+    syncAdminViewQuery({ tab })
+    return
+  }
+  if (tab === 'wafpanel') {
+    syncAdminViewQuery({ tab })
+    return
+  }
+  syncAdminViewQuery({
+    tab,
+    dnsPage: 'home',
+    dnsAccount: '',
+    dnsDomain: '',
+    dnsDomainId: '',
+    wafPage: 'nodes',
+    wafNode: ''
+  })
 }
 
 const syncApiIndexQuery = () => {
@@ -974,6 +1002,8 @@ const settings = ref({
   tg_chat_id: '',
   notification_timezone: 'UTC',
   expire_notification_time: '12',
+  cron_offline_alert: '*/1 * * * *',
+  cron_hourly: '0 * * * *',
   notification_webhook_enabled: false,
   notification_webhook_url: '',
   notification_webhook_method: 'POST',
@@ -1415,6 +1445,8 @@ const loadSettings = async () => {
         tg_chat_id: settingsData.tg_chat_id || '',
         notification_timezone: normalizeNotificationTimezoneSetting(settingsData.notification_timezone),
         expire_notification_time: normalizeExpireNotificationTimeSetting(settingsData.expire_notification_time),
+        cron_offline_alert: settingsData.cron_offline_alert || '*/1 * * * *',
+        cron_hourly: settingsData.cron_hourly || '0 * * * *',
         notification_webhook_enabled: settingsData.notification_webhook_enabled === 'true' || settingsData.notification_webhook_enabled === true,
         notification_webhook_url: settingsData.notification_webhook_url || '',
         notification_webhook_method: String(settingsData.notification_webhook_method || 'POST').toUpperCase() === 'GET' ? 'GET' : 'POST',
@@ -1612,6 +1644,8 @@ const saveSettings = async () => {
       tg_chat_id: settings.value.tg_chat_id,
       notification_timezone: normalizeNotificationTimezoneSetting(settings.value.notification_timezone),
       expire_notification_time: normalizeExpireNotificationTimeSetting(settings.value.expire_notification_time),
+      cron_offline_alert: settings.value.cron_offline_alert || '*/1 * * * *',
+      cron_hourly: settings.value.cron_hourly || '0 * * * *',
       notification_webhook_enabled: settings.value.notification_webhook_enabled ? 'true' : 'false',
       notification_webhook_url: settings.value.notification_webhook_url,
       notification_webhook_method: settings.value.notification_webhook_method === 'GET' ? 'GET' : 'POST',
