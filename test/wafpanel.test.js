@@ -306,13 +306,17 @@ function delayedPayloadSocket(httpText) {
   const payload = encoder.encode(httpText)
   let written = ''
   let closedWrite = false
+  const waiters = []
   return {
     written: () => written,
     opened: Promise.resolve({}),
     writable: {
       getWriter() {
         return {
-          async write(chunk) { written += new TextDecoder().decode(chunk) },
+          async write(chunk) {
+            written += new TextDecoder().decode(chunk)
+            while (waiters.length) waiters.shift()()
+          },
           async close() { closedWrite = true }
         }
       }
@@ -323,9 +327,9 @@ function delayedPayloadSocket(httpText) {
         return {
           async read() {
             if (done) return { done: true, value: undefined }
-            const closedBeforeRead = closedWrite
+            if (!written) await new Promise((resolve) => waiters.push(resolve))
             done = true
-            if (closedBeforeRead) return { done: true, value: undefined }
+            if (closedWrite) return { done: true, value: undefined }
             return { done: false, value: payload }
           }
         }
@@ -379,13 +383,26 @@ function delayedPayloadSocket(httpText) {
     url: 'http://198.51.100.10:10087',
     token: 'half-token'
   }), env, true))
-  const connectImpl = () => delayedPayloadSocket('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 24\r\nConnection: close\r\n\r\n{"ok":true,"role":"agent"}')
+  let writerClosed = false
+  const connectImpl = () => {
+    const socket = delayedPayloadSocket('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 24\r\nConnection: close\r\n\r\n{"ok":true,"role":"agent"}')
+    const inner = socket.writable.getWriter()
+    socket.writable.getWriter = () => ({
+      write: inner.write,
+      close: async () => {
+        writerClosed = true
+        return inner.close()
+      }
+    })
+    return socket
+  }
   const { body } = await readJson(await handleWafpanelRequest(
     jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
     { ...env, connectImpl, fetchImpl: async () => new Response('should-not-fetch', { status: 500 }) },
     true
   ))
   const probed = body.data.find((item) => item.id === created.body.data.id)
+  assert.equal(writerClosed, false)
   assert.equal(probed.online, true)
   assert.equal(probed.status, 'ok')
 }

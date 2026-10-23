@@ -130,17 +130,37 @@ function decodeChunkedBody(body) {
   return decoded
 }
 
-function parseHttpResponse(bytes) {
+function httpBodyBytes(bytes, headerEnd) {
+  return bytes.slice(headerEnd + 4)
+}
+
+function chunkedComplete(body) {
+  let remaining = body
+  while (remaining) {
+    const lineEnd = remaining.indexOf('\r\n')
+    if (lineEnd < 0) return false
+    const size = Number.parseInt(remaining.slice(0, lineEnd), 16)
+    if (!Number.isFinite(size) || size < 0) return false
+    remaining = remaining.slice(lineEnd + 2)
+    if (size === 0) return true
+    if (remaining.length < size + 2) return false
+    remaining = remaining.slice(size)
+    if (remaining.startsWith('\r\n')) remaining = remaining.slice(2)
+  }
+  return false
+}
+
+function tryParseHttpResponse(bytes, { complete = false } = {}) {
   const text = new TextDecoder().decode(bytes)
   const split = text.indexOf('\r\n\r\n')
   if (split < 0) {
+    if (!complete) return null
     return new Response(JSON.stringify({ error: true, message: text.trim() || 'Agent 没有返回 HTTP 响应' }), {
       status: 502,
       headers: { 'Content-Type': 'application/json' }
     })
   }
   const head = text.slice(0, split)
-  let body = text.slice(split + 4)
   const lines = head.split('\r\n')
   const status = Number(lines[0]?.split(' ')[1] || 0)
   const headers = {}
@@ -148,10 +168,23 @@ function parseHttpResponse(bytes) {
     const index = line.indexOf(':')
     if (index > 0) headers[line.slice(0, index).trim().toLowerCase()] = line.slice(index + 1).trim()
   }
+  const bodyBytes = httpBodyBytes(bytes, split)
+  let body = new TextDecoder().decode(bodyBytes)
   if (String(headers['transfer-encoding'] || '').toLowerCase().includes('chunked')) {
+    if (!complete && !chunkedComplete(body)) return null
     body = decodeChunkedBody(body)
+  } else if (headers['content-length'] != null && headers['content-length'] !== '') {
+    const need = Number(headers['content-length'])
+    if (Number.isFinite(need) && bodyBytes.byteLength < need && !complete) return null
+    if (Number.isFinite(need)) body = new TextDecoder().decode(bodyBytes.slice(0, Math.max(0, need)))
+  } else if (!complete) {
+    return null
   }
   return new Response(body, { status: status || 502, headers })
+}
+
+function parseHttpResponse(bytes) {
+  return tryParseHttpResponse(bytes, { complete: true })
 }
 
 async function resolveConnect(connectImpl) {
@@ -183,23 +216,31 @@ async function socketHttpRequest(parsed, init, connectImpl) {
   } else if (!bodyText) {
     headers.delete('Content-Type')
   }
-  let requestText = `${method} ${path} HTTP/1.0\r\n`
+  let requestText = `${method} ${path} HTTP/1.1\r\n`
   for (const [key, value] of headers.entries()) requestText += `${key}: ${value}\r\n`
   requestText += `\r\n${bodyText}`
-  const reader = socket.readable.getReader()
   const writer = socket.writable.getWriter()
-  const chunks = []
-  const reading = (async () => {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      if (value) chunks.push(value)
-    }
-  })()
   await writer.write(encoder.encode(requestText))
-  await writer.close()
-  await reading
-  return parseHttpResponse(concatBytes(chunks))
+  const reader = socket.readable.getReader()
+  const chunks = []
+  let response
+  try {
+    while (true) {
+      response = tryParseHttpResponse(concatBytes(chunks), { complete: false })
+      if (response) break
+      const { done, value } = await reader.read()
+      if (value) chunks.push(value)
+      if (done) {
+        response = tryParseHttpResponse(concatBytes(chunks), { complete: true })
+        break
+      }
+    }
+  } finally {
+    try { reader.releaseLock() } catch {}
+    try { writer.releaseLock() } catch {}
+    try { await socket.close?.() } catch {}
+  }
+  return response
 }
 
 async function agentRequest(node, method, pathWithQuery, { headers, body, fetchImpl, connectImpl } = {}) {
