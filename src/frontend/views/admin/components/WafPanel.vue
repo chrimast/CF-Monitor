@@ -32,7 +32,8 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ trans.wafpanelNodeUrl }}</label>
-          <input v-model="nodeForm.url" class="form-input" placeholder="https://host:10087" required>
+          <input v-model="nodeForm.url" class="form-input" placeholder="https://waf.example.com" required>
+          <p class="dnshub-hint">{{ trans.wafpanelUrlHint }}</p>
         </div>
         <div class="form-group">
           <label class="form-label">{{ trans.wafpanelNodeToken }}</label>
@@ -1231,8 +1232,12 @@ const saveNode = async () => {
   loading.value = true
   error.value = ''
   try {
-    if (editingId.value) unwrap(await requestPatch(`/api/wafpanel/nodes/${editingId.value}`, { ...nodeForm }))
-    else unwrap(await requestPost('/api/wafpanel/nodes', { ...nodeForm }))
+    const payload = {
+      ...nodeForm,
+      token: String(nodeForm.token || '').trim().replace(/^['"]+|['"]+$/g, '').trim()
+    }
+    if (editingId.value) unwrap(await requestPatch(`/api/wafpanel/nodes/${editingId.value}`, payload))
+    else unwrap(await requestPost('/api/wafpanel/nodes', payload))
     cancelEdit()
     await loadNodes(true)
   } catch (err) {

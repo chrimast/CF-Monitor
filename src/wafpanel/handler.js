@@ -23,10 +23,44 @@ function publicNode(node, extra = {}) {
   }
 }
 
-function probeStatus(ok, status, payload) {
+function probeStatus(ok, status, payload, text = '') {
   if (ok && payload && payload.ok !== false) return { online: true, status: 'ok', message: '' }
-  if (status === 401 || status === 403) return { online: false, status: 'auth', message: 'Token 无效' }
+  if (status === 401) return { online: false, status: 'auth', message: 'Token 无效' }
+  const raw = `${text || ''} ${payload?.error || ''} ${payload?.message || ''} ${payload?.raw || ''}`
+  if (status === 403 || /error code:\s*1003|Direct IP/i.test(raw)) {
+    return {
+      online: false,
+      status: 'error',
+      message: 'Worker 访问不到这台 Agent。请填公网 https://域名（443），不要用 IP 或 :10087。可用 cloudflared tunnel。'
+    }
+  }
   return { online: false, status: 'error', message: payload?.error || payload?.message || `HTTP ${status}` }
+}
+
+function isBlockedHostname(hostname) {
+  const host = String(hostname || '').replace(/^\[|\]$/g, '').toLowerCase()
+  if (!host || host === 'localhost' || host.endsWith('.localhost')) return true
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return true
+  if (host.includes(':')) return true
+  return false
+}
+
+function normalizeToken(raw) {
+  return String(raw || '').trim().replace(/^['"]+|['"]+$/g, '').trim()
+}
+
+function urlError(raw) {
+  const value = String(raw || '').trim()
+  let parsed
+  try {
+    parsed = new URL(value)
+  } catch {
+    return '远程节点地址无效'
+  }
+  if (parsed.protocol !== 'https:') return 'Worker 只能访问公网 HTTPS（443）。不要填 http://IP:10087'
+  if (isBlockedHostname(parsed.hostname)) return '不能使用 IP 或 localhost。请填 https://域名，并用 Cloudflare Tunnel 或反代到 443'
+  if (parsed.port && parsed.port !== '443') return 'Worker 不能访问非 80/443 端口。请用 https://域名（443）'
+  return ''
 }
 
 function match(pathname, pattern) {
@@ -49,15 +83,9 @@ async function readBody(request) {
 }
 
 function normalizeUrl(raw) {
-  const value = String(raw || '').trim().replace(/\/+$/, '')
-  let parsed
-  try {
-    parsed = new URL(value)
-  } catch {
-    return ''
-  }
-  if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.host) return ''
-  return `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/+$/, '')}`
+  if (urlError(raw)) return ''
+  const parsed = new URL(String(raw || '').trim())
+  return `${parsed.protocol}//${parsed.hostname}${parsed.pathname.replace(/\/+$/, '')}`
 }
 
 export async function ensureWafpanelSchema(db) {
@@ -103,9 +131,13 @@ async function probeNode(node, fetchImpl) {
     const text = await response.text()
     let payload = {}
     try { payload = text ? JSON.parse(text) : {} } catch { payload = { raw: text } }
-    return publicNode(node, probeStatus(response.ok, response.status, payload))
+    return publicNode(node, probeStatus(response.ok, response.status, payload, text))
   } catch (err) {
-    return publicNode(node, { online: false, status: 'offline', message: err instanceof Error ? err.message : String(err) })
+    const message = err instanceof Error ? err.message : String(err)
+    if (/1003|Direct IP/i.test(message)) {
+      return publicNode(node, probeStatus(false, 403, { message }, message))
+    }
+    return publicNode(node, { online: false, status: 'offline', message })
   }
 }
 
@@ -176,9 +208,9 @@ export async function handleWafpanelRequest(request, env, authenticated) {
     const body = await readBody(request)
     const name = typeof body.name === 'string' ? body.name.trim() : ''
     const nodeUrl = normalizeUrl(body.url)
-    const token = typeof body.token === 'string' ? body.token.trim() : ''
+    const token = normalizeToken(body.token)
     if (!name) return jsonError('请填写节点名称', 422)
-    if (!nodeUrl) return jsonError('远程节点地址无效', 422)
+    if (!nodeUrl) return jsonError(urlError(body.url) || '远程节点地址无效', 422)
     if (!token) return jsonError('请填写 Agent Token', 422)
     const node = {
       id: crypto.randomUUID(),
@@ -204,8 +236,8 @@ export async function handleWafpanelRequest(request, env, authenticated) {
     const body = await readBody(request)
     const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : existing.name
     const nodeUrl = body.url ? normalizeUrl(body.url) : existing.url
-    const token = typeof body.token === 'string' && body.token.trim() ? body.token.trim() : existing.token
-    if (!nodeUrl) return jsonError('远程节点地址无效', 422)
+    const token = typeof body.token === 'string' && body.token.trim() ? normalizeToken(body.token) : existing.token
+    if (body.url && !nodeUrl) return jsonError(urlError(body.url) || '远程节点地址无效', 422)
     await env.DB.prepare('UPDATE wafpanel_nodes SET name = ?, url = ?, token = ? WHERE id = ?')
       .bind(name, nodeUrl, token, oneNode.id)
       .run()

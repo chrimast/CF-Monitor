@@ -86,21 +86,39 @@ const env = { DB: makeMemoryDb() }
 {
   const { status, body } = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '香港 1',
-    url: 'http://192.0.2.8:10087',
-    token: 'agent-token'
+    url: 'https://waf-hk.example.com',
+    token: '"agent-token"'
   }), env, true))
   assert.equal(status, 201)
   assert.equal(body.data.name, '香港 1')
-  assert.equal(body.data.url, 'http://192.0.2.8:10087')
+  assert.equal(body.data.url, 'https://waf-hk.example.com')
   assert.equal(body.data.token, undefined)
   const listed = await readJson(await handleWafpanelRequest(jsonRequest('GET', '/api/wafpanel/nodes'), env, true))
   assert.equal(listed.body.data[0].token, undefined)
 }
 
 {
+  const ip = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: 'IP 节点',
+    url: 'http://192.0.2.8:10087',
+    token: 'agent-token'
+  }), env, true))
+  assert.equal(ip.status, 422)
+  assert.match(ip.body.error, /公网 HTTPS|443|不能使用 IP/)
+
+  const customPort = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: '自定义端口',
+    url: 'https://waf.example.com:10087',
+    token: 'agent-token'
+  }), env, true))
+  assert.equal(customPort.status, 422)
+  assert.match(customPort.body.error, /80|443/)
+}
+
+{
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '转发节点',
-    url: 'https://192.0.2.9:10087',
+    url: 'https://waf-fwd.example.com',
     token: 'fwd-token'
   }), env, true))
   const nodeId = created.body.data.id
@@ -122,14 +140,14 @@ const env = { DB: makeMemoryDb() }
   ))
   assert.equal(status, 200)
   assert.equal(body.data[0].count, 12)
-  assert.equal(captured[0].url, 'https://192.0.2.9:10087/agent/api/logs?page=1&limit=20')
+  assert.equal(captured[0].url, 'https://waf-fwd.example.com/agent/api/logs?page=1&limit=20')
   assert.equal(captured[0].headers.Authorization, 'Bearer fwd-token')
 }
 
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '写操作节点',
-    url: 'https://192.0.2.11:10087',
+    url: 'https://waf-write.example.com',
     token: 'write-token'
   }), env, true))
   const nodeId = created.body.data.id
@@ -146,7 +164,7 @@ const env = { DB: makeMemoryDb() }
   assert.equal(status, 200)
   assert.equal(body.ok, true)
   assert.equal(captured[0].method, 'POST')
-  assert.equal(captured[0].url, 'https://192.0.2.11:10087/agent/api/log_ban')
+  assert.equal(captured[0].url, 'https://waf-write.example.com/agent/api/log_ban')
   assert.match(String(captured[0].body), /203\.0\.113\.9/)
 }
 
@@ -207,12 +225,14 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /is_block/)
   assert.match(panel, /item\.mtime/)
   assert.match(panel, /\/reload/)
+  assert.match(panel, /wafpanelUrlHint/)
+  assert.ok(panel.includes('placeholder="https://waf.example.com"'))
 }
 
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '探活节点',
-    url: 'https://192.0.2.21:10087',
+    url: 'https://waf-probe.example.com',
     token: 'probe-token'
   }), env, true))
   const captured = []
@@ -230,14 +250,50 @@ const env = { DB: makeMemoryDb() }
   assert.equal(probed.online, true)
   assert.equal(probed.status, 'ok')
   assert.equal(probed.token, undefined)
-  assert.equal(captured.some((item) => item.url === 'https://192.0.2.21:10087/agent/health'), true)
+  assert.equal(captured.some((item) => item.url === 'https://waf-probe.example.com/agent/health'), true)
   assert.equal(captured.find((item) => item.url.endsWith('/agent/health')).headers.Authorization, 'Bearer probe-token')
 }
 
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: '403 节点',
+    url: 'https://waf-blocked.example.com',
+    token: 'blocked-token'
+  }), env, true))
+  const fetchImpl = async () => new Response('error code: 1003', { status: 403 })
+  const { body } = await readJson(await handleWafpanelRequest(
+    jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
+    { ...env, fetchImpl },
+    true
+  ))
+  const probed = body.data.find((item) => item.id === created.body.data.id)
+  assert.equal(probed.online, false)
+  assert.equal(probed.status, 'error')
+  assert.match(probed.message, /1003|公网 HTTPS|443|不能使用 IP|Worker/)
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: '401 节点',
+    url: 'https://waf-auth.example.com',
+    token: 'wrong-token'
+  }), env, true))
+  const fetchImpl = async () => new Response(JSON.stringify({ error: true, message: 'Agent Token 无效' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
+  const { body } = await readJson(await handleWafpanelRequest(
+    jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
+    { ...env, fetchImpl },
+    true
+  ))
+  const probed = body.data.find((item) => item.id === created.body.data.id)
+  assert.equal(probed.online, false)
+  assert.equal(probed.status, 'auth')
+  assert.equal(probed.message, 'Token 无效')
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '离线节点',
-    url: 'https://192.0.2.22:10087',
+    url: 'https://waf-offline.example.com',
     token: 'offline-token'
   }), env, true))
   const fetchImpl = async () => {
