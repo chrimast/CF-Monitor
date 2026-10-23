@@ -43,3 +43,11 @@ export const buildAdminViewQuery = (current = {}, next = {}) => {
 
   return query
 }
+
+export const sameAdminViewQuery = (left = {}, right = {}) => {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)])
+  for (const key of keys) {
+    if (String(left[key] ?? '') !== String(right[key] ?? '')) return false
+  }
+  return true
+}

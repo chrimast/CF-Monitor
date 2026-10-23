@@ -462,7 +462,7 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { http } from '../../../utils/http'
-import { buildAdminViewQuery, parseAdminViewQuery } from '../../../utils/adminView.js'
+import { buildAdminViewQuery, parseAdminViewQuery, sameAdminViewQuery } from '../../../utils/adminView.js'
 import { getPublicAssetUrl } from '../../../utils/config.js'
 
 const props = defineProps({
@@ -641,10 +641,8 @@ const syncView = (next = {}) => {
     wafNode: currentNode.value?.id || '',
     ...next
   })
-  const same = Object.keys(query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
-    && Object.keys(route.query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
-  if (same) return
-  router.replace({ path: '/admin', query })
+  if (sameAdminViewQuery(query, route.query)) return
+  router.push({ path: '/admin', query })
 }
 
 const loadNodes = async (probe = false) => {
@@ -1249,19 +1247,30 @@ const removeNode = async (item) => {
   if (currentNode.value?.id === item.id) goNodes()
   await loadNodes(true)
 }
+const restoreWafView = async () => {
+  const view = parseAdminViewQuery(route.query)
+  if (view.tab !== 'wafpanel') return
+  const nextPage = view.wafPage || 'nodes'
+  const nextNodeId = view.wafNode || ''
+  if ((currentNode.value?.id || '') === nextNodeId && page.value === (nextNodeId ? nextPage : 'nodes')) return
+  if (nextNodeId && nextPage !== 'nodes') {
+    const item = nodes.value.find((node) => node.id === nextNodeId)
+    if (item) {
+      currentNode.value = item
+      page.value = nextPage
+      await loadPageData()
+      return
+    }
+  }
+  currentNode.value = null
+  page.value = 'nodes'
+}
+
 const bootstrap = async () => {
   error.value = ''
   try {
     await loadNodes(true)
-    const view = parseAdminViewQuery(route.query)
-    if (view.wafNode) {
-      const item = nodes.value.find((node) => node.id === view.wafNode)
-      if (item) {
-        currentNode.value = item
-        page.value = view.wafPage || 'dashboard'
-        await loadPageData()
-      }
-    }
+    await restoreWafView()
   } catch (err) {
     error.value = err.message || String(err)
   }
@@ -1270,6 +1279,15 @@ const bootstrap = async () => {
 watch(() => props.activeTab, (value) => {
   if (value === 'wafpanel') bootstrap()
 }, { immediate: true })
+
+watch(() => [route.query.tab, route.query.wafPage, route.query.wafNode], async () => {
+  if (props.activeTab !== 'wafpanel') return
+  try {
+    await restoreWafView()
+  } catch (err) {
+    error.value = err.message || String(err)
+  }
+})
 
 onBeforeUnmount(() => {
   if (mapInstance) mapInstance.remove()

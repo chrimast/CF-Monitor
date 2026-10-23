@@ -614,7 +614,7 @@ import CopyCommandModal from './components/CopyCommandModal.vue'
 import { adminApi, login, logout as apiLogout, upgradeDatabase, clearHistory, fetchConfig } from '../../utils/api'
 import { http } from '../../utils/http'
 import { hasMultipleApiBases, getApiBases } from '../../utils/config.js'
-import { buildAdminViewQuery, parseAdminViewQuery } from '../../utils/adminView.js'
+import { buildAdminViewQuery, parseAdminViewQuery, sameAdminViewQuery } from '../../utils/adminView.js'
 import { copyTextToClipboard } from '../../utils/clipboard.js'
 import { t, useTranslation } from '../../utils/i18n'
 import { PING_NODE_FIELDS, validatePingNode } from '../../utils/pingNode.js'
@@ -920,10 +920,8 @@ const activeTab = ref(initialView.tab)
 
 const syncAdminViewQuery = (next = {}) => {
   const query = buildAdminViewQuery(route.query, { tab: activeTab.value, ...next })
-  const same = Object.keys(query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
-    && Object.keys(route.query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
-  if (same) return
-  router.replace({ path: '/admin', query })
+  if (sameAdminViewQuery(query, route.query)) return
+  router.push({ path: '/admin', query })
 }
 
 const setActiveTab = (tab) => {

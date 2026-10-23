@@ -231,7 +231,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { http } from '../../../utils/http'
-import { buildAdminViewQuery, parseAdminViewQuery } from '../../../utils/adminView.js'
+import { buildAdminViewQuery, parseAdminViewQuery, sameAdminViewQuery } from '../../../utils/adminView.js'
 
 const props = defineProps({
   trans: { type: Object, required: true },
@@ -308,20 +308,21 @@ const syncView = (next = {}) => {
     dnsDomainId: domain.value?.DomainId || '',
     ...next
   })
-  const same = Object.keys(query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
-    && Object.keys(route.query).every((key) => String(query[key] ?? '') === String(route.query[key] ?? ''))
-  if (same) return
-  router.replace({ path: '/admin', query })
+  if (sameAdminViewQuery(query, route.query)) return
+  router.push({ path: '/admin', query })
 }
 
 const goHome = () => {
   page.value = 'home'
+  domain.value = null
   syncView({ dnsPage: 'home', dnsDomain: '', dnsDomainId: '' })
 }
 
-const goDomains = () => {
+const goDomains = async () => {
   page.value = 'domains'
+  domain.value = null
   syncView({ dnsPage: 'domains', dnsDomain: '', dnsDomainId: '' })
+  if (account.value) await loadDomains()
 }
 
 const providerName = (id) => providers.value.find((item) => item.id === id)?.name || id
@@ -404,33 +405,49 @@ const loadOptimizeJobs = async () => {
   optimizeJobs.value = result?.data || []
 }
 
+const restoreDnsView = async () => {
+  const view = parseAdminViewQuery(route.query)
+  if (view.tab !== 'dnshub') return
+  if (view.dnsAccount) {
+    const item = accounts.value.find((row) => row.id === view.dnsAccount)
+    if (item) {
+      account.value = item
+      optimize.accountId = item.id
+    }
+  } else if (view.dnsPage === 'home') {
+    account.value = null
+  }
+  const nextPage = view.dnsPage || 'home'
+  const same =
+    page.value === nextPage &&
+    (account.value?.id || '') === (view.dnsAccount || '') &&
+    (domain.value?.Domain || '') === (view.dnsDomain || '') &&
+    (domain.value?.DomainId || '') === (view.dnsDomainId || '')
+  if (same) return
+  if (nextPage === 'domains' && account.value) {
+    page.value = 'domains'
+    domain.value = null
+    await loadDomains()
+    return
+  }
+  if (nextPage === 'records' && account.value && view.dnsDomain) {
+    page.value = 'records'
+    domain.value = { Domain: view.dnsDomain, DomainId: view.dnsDomainId }
+    await loadLines()
+    await loadRecords()
+    return
+  }
+  page.value = 'home'
+  domain.value = null
+}
+
 const bootstrap = async () => {
   error.value = ''
   try {
     await loadProviders()
     await loadAccounts()
     await loadOptimizeJobs()
-    const view = parseAdminViewQuery(route.query)
-    if (view.dnsAccount) {
-      const item = accounts.value.find((row) => row.id === view.dnsAccount)
-      if (item) {
-        account.value = item
-        optimize.accountId = item.id
-      }
-    }
-    if (view.dnsPage === 'domains' && account.value) {
-      page.value = 'domains'
-      await loadDomains()
-      return
-    }
-    if (view.dnsPage === 'records' && account.value && view.dnsDomain) {
-      page.value = 'records'
-      domain.value = { Domain: view.dnsDomain, DomainId: view.dnsDomainId }
-      await loadLines()
-      await loadRecords()
-      return
-    }
-    page.value = 'home'
+    await restoreDnsView()
   } catch (err) {
     error.value = err.message || String(err)
   }
@@ -439,6 +456,15 @@ const bootstrap = async () => {
 watch(() => props.activeTab, (value) => {
   if (value === 'dnshub') bootstrap()
 }, { immediate: true })
+
+watch(() => [route.query.tab, route.query.dnsPage, route.query.dnsAccount, route.query.dnsDomain, route.query.dnsDomainId], async () => {
+  if (props.activeTab !== 'dnshub') return
+  try {
+    await restoreDnsView()
+  } catch (err) {
+    error.value = err.message || String(err)
+  }
+})
 
 const removeAccount = async (item) => {
   error.value = ''
@@ -457,6 +483,7 @@ const useAccount = (item) => {
 const openDomains = async (item) => {
   account.value = item
   optimize.accountId = item.id
+  domain.value = null
   page.value = 'domains'
   syncView({ dnsPage: 'domains', dnsAccount: item.id, dnsDomain: '', dnsDomainId: '' })
   await loadDomains()
