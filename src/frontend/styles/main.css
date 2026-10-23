@@ -5676,12 +5676,58 @@ body.admin-workspace .admin-container {
     background: var(--bg-secondary);
 }
 
+.wafpanel-node-form {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.7fr) minmax(180px, 1.6fr) minmax(140px, 1.1fr) auto;
+    gap: 8px 10px;
+    align-items: end;
+    margin: 8px 0 6px;
+}
+
+.wafpanel-node-form .form-group {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+.wafpanel-node-name {
+    max-width: none;
+}
+
+.wafpanel-node-url {
+    min-width: 0;
+}
+
+.wafpanel-node-token {
+    min-width: 0;
+}
+
+.wafpanel-node-form .form-label {
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.wafpanel-node-actions {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.wafpanel-node-actions .btn {
+    min-height: 36px;
+}
+
 @media (max-width: 900px) {
     .dnshub-split,
     .dnshub-compact-grid,
     .wafpanel-dash,
-    .wafpanel-resource-columns {
+    .wafpanel-resource-columns,
+    .wafpanel-node-form {
         grid-template-columns: 1fr;
+    }
+
+    .wafpanel-node-actions {
+        flex-wrap: wrap;
     }
 
     .dnshub-domain-toolbar {

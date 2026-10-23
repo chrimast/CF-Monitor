@@ -235,6 +235,18 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /\/reload/)
   assert.match(panel, /wafpanelUrlHint/)
   assert.ok(panel.includes('placeholder="http://203.0.113.10:10087"'))
+  assert.match(panel, /wafpanel-node-form/)
+  assert.match(panel, /wafpanel-node-actions/)
+  assert.match(panel, /@click="probeNodes"/)
+}
+
+{
+  const css = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/styles/main.css', import.meta.url), 'utf8'))
+  assert.match(css, /\.wafpanel-node-form\s*\{[\s\S]*grid-template-columns:/)
+  assert.match(css, /\.wafpanel-node-form\s*\{[\s\S]*align-items:\s*end/)
+  assert.match(css, /\.wafpanel-node-name\s*\{/)
+  assert.match(css, /\.wafpanel-node-url\s*\{/)
+  assert.match(css, /\.wafpanel-node-token\s*\{/)
 }
 
 {

@@ -25,28 +25,26 @@
         </div>
         <p class="dnshub-hint">{{ trans.wafpanelUninstallHint }}</p>
       </details>
-      <form class="dnshub-compact-grid" @submit.prevent="saveNode">
-        <div class="form-group">
+      <form class="wafpanel-node-form" @submit.prevent="saveNode">
+        <div class="form-group wafpanel-node-name">
           <label class="form-label">{{ trans.wafpanelNodeName }}</label>
           <input v-model="nodeForm.name" class="form-input" required>
         </div>
-        <div class="form-group">
+        <div class="form-group wafpanel-node-url">
           <label class="form-label">{{ trans.wafpanelNodeUrl }}</label>
           <input v-model="nodeForm.url" class="form-input" placeholder="http://203.0.113.10:10087" required>
-          <p class="dnshub-hint">{{ trans.wafpanelUrlHint }}</p>
         </div>
-        <div class="form-group">
+        <div class="form-group wafpanel-node-token">
           <label class="form-label">{{ trans.wafpanelNodeToken }}</label>
           <input v-model="nodeForm.token" class="form-input" :placeholder="editingId ? trans.wafpanelKeepToken : ''">
         </div>
-        <div class="form-group dnshub-actions">
+        <div class="form-group wafpanel-node-actions">
           <button class="btn btn-primary" type="submit" :disabled="loading">{{ editingId ? trans.wafpanelSaveNode : trans.wafpanelAddNode }}</button>
+          <button class="btn" type="button" @click="probeNodes">{{ trans.wafpanelProbe }}</button>
           <button v-if="editingId" class="btn" type="button" @click="cancelEdit">{{ trans.dnshubCancelEdit }}</button>
         </div>
       </form>
-      <div class="dnshub-actions" style="margin-bottom:8px">
-        <button class="btn" type="button" @click="probeNodes">{{ trans.wafpanelProbe }}</button>
-      </div>
+      <p class="dnshub-hint">{{ trans.wafpanelUrlHint }}</p>
       <div class="dnshub-account-list">
         <div v-if="!nodes.length" class="text-muted">{{ trans.wafpanelNoNodes }}</div>
         <div v-for="item in nodes" :key="item.id" class="dnshub-account-row">
