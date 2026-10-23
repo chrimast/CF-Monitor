@@ -103,18 +103,43 @@ function concatBytes(chunks) {
   return out
 }
 
+function decodeChunkedBody(body) {
+  let remaining = body
+  let decoded = ''
+  while (remaining) {
+    const lineEnd = remaining.indexOf('\r\n')
+    if (lineEnd < 0) break
+    const size = Number.parseInt(remaining.slice(0, lineEnd), 16)
+    if (!Number.isFinite(size) || size < 0) break
+    remaining = remaining.slice(lineEnd + 2)
+    if (size === 0) break
+    decoded += remaining.slice(0, size)
+    remaining = remaining.slice(size)
+    if (remaining.startsWith('\r\n')) remaining = remaining.slice(2)
+  }
+  return decoded
+}
+
 function parseHttpResponse(bytes) {
   const text = new TextDecoder().decode(bytes)
   const split = text.indexOf('\r\n\r\n')
-  if (split < 0) return new Response(text, { status: 502 })
+  if (split < 0) {
+    return new Response(JSON.stringify({ error: true, message: text.trim() || 'Agent 没有返回 HTTP 响应' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
   const head = text.slice(0, split)
-  const body = text.slice(split + 4)
+  let body = text.slice(split + 4)
   const lines = head.split('\r\n')
   const status = Number(lines[0]?.split(' ')[1] || 0)
   const headers = {}
   for (const line of lines.slice(1)) {
     const index = line.indexOf(':')
-    if (index > 0) headers[line.slice(0, index).trim()] = line.slice(index + 1).trim()
+    if (index > 0) headers[line.slice(0, index).trim().toLowerCase()] = line.slice(index + 1).trim()
+  }
+  if (String(headers['transfer-encoding'] || '').toLowerCase().includes('chunked')) {
+    body = decodeChunkedBody(body)
   }
   return new Response(body, { status: status || 502, headers })
 }
@@ -128,8 +153,12 @@ async function resolveConnect(connectImpl) {
 async function socketHttpRequest(parsed, init, connectImpl) {
   const port = Number(parsed.port || (parsed.protocol === 'https:' ? 443 : 80))
   const connect = await resolveConnect(connectImpl)
-  const options = parsed.protocol === 'https:' ? { secureTransport: 'on' } : undefined
+  const options = {
+    allowHalfOpen: true,
+    ...(parsed.protocol === 'https:' ? { secureTransport: 'on' } : { secureTransport: 'off' })
+  }
   const socket = connect({ hostname: parsed.hostname, port }, options)
+  if (socket.opened) await socket.opened
   const encoder = new TextEncoder()
   const method = (init.method || 'GET').toUpperCase()
   const path = `${parsed.pathname || '/'}${parsed.search || ''}`
@@ -137,17 +166,20 @@ async function socketHttpRequest(parsed, init, connectImpl) {
   if (!headers.has('Host')) headers.set('Host', parsed.host)
   if (!headers.has('Connection')) headers.set('Connection', 'close')
   if (!headers.has('Accept')) headers.set('Accept', 'application/json')
+  headers.set('Accept-Encoding', 'identity')
   const bodyText = init.body == null ? '' : String(init.body)
   if (bodyText && !headers.has('Content-Length')) {
     headers.set('Content-Length', String(encoder.encode(bodyText).byteLength))
+  } else if (!bodyText) {
+    headers.delete('Content-Type')
   }
-  let requestText = `${method} ${path} HTTP/1.1\r\n`
+  let requestText = `${method} ${path} HTTP/1.0\r\n`
   for (const [key, value] of headers.entries()) requestText += `${key}: ${value}\r\n`
   requestText += `\r\n${bodyText}`
+  const reader = socket.readable.getReader()
   const writer = socket.writable.getWriter()
   await writer.write(encoder.encode(requestText))
   await writer.close()
-  const reader = socket.readable.getReader()
   const chunks = []
   while (true) {
     const { done, value } = await reader.read()
@@ -238,9 +270,6 @@ async function probeNode(node, fetchImpl, connectImpl) {
     const message = err instanceof Error ? err.message : String(err)
     if (/disallowed|private network|localhost/i.test(message)) {
       return publicNode(node, probeStatus(false, 0, { message }, message))
-    }
-    if (/1003|Direct IP/i.test(message)) {
-      return publicNode(node, probeStatus(false, 403, { message }, message))
     }
     return publicNode(node, { online: false, status: 'offline', message })
   }

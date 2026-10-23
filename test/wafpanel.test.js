@@ -262,27 +262,72 @@ const env = { DB: makeMemoryDb() }
   assert.equal(captured.find((item) => item.url.endsWith('/agent/health')).headers.Authorization, 'Bearer probe-token')
 }
 
-function fakeTcpSocket(httpText) {
+function fakeTcpSocket(httpText, { requireReaderFirst = false, opened = Promise.resolve({ remoteAddress: '203.0.113.10:10087' }) } = {}) {
   const encoder = new TextEncoder()
   const payload = encoder.encode(httpText)
   let written = ''
+  let readerAttached = false
+  let closedWrite = false
   return {
     written: () => written,
+    opened,
     writable: {
       getWriter() {
         return {
           async write(chunk) { written += new TextDecoder().decode(chunk) },
-          async close() {}
+          async close() { closedWrite = true }
         }
       }
     },
     readable: {
       getReader() {
+        readerAttached = true
         let done = false
         return {
           async read() {
             if (done) return { done: true, value: undefined }
             done = true
+            if (requireReaderFirst && closedWrite && !readerAttached) {
+              return { done: true, value: undefined }
+            }
+            if (requireReaderFirst && !readerAttached) {
+              return { done: true, value: undefined }
+            }
+            return { done: false, value: payload }
+          }
+        }
+      }
+    }
+  }
+}
+
+function delayedPayloadSocket(httpText) {
+  const encoder = new TextEncoder()
+  const payload = encoder.encode(httpText)
+  let written = ''
+  let closedWrite = false
+  let readerAttached = false
+  return {
+    written: () => written,
+    opened: Promise.resolve({}),
+    writable: {
+      getWriter() {
+        return {
+          async write(chunk) { written += new TextDecoder().decode(chunk) },
+          async close() { closedWrite = true }
+        }
+      }
+    },
+    readable: {
+      getReader() {
+        const attachedBeforeClose = !closedWrite
+        readerAttached = true
+        let done = false
+        return {
+          async read() {
+            if (done) return { done: true, value: undefined }
+            done = true
+            if (!attachedBeforeClose) return { done: true, value: undefined }
             return { done: false, value: payload }
           }
         }
@@ -328,6 +373,40 @@ function fakeTcpSocket(httpText) {
   assert.equal(forwardedResult.status, 200)
   assert.equal(forwarded[0].hostname, '203.0.113.10')
   assert.equal(forwarded[0].port, 10087)
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: 'TCP 半关闭节点',
+    url: 'http://198.51.100.10:10087',
+    token: 'half-token'
+  }), env, true))
+  const connectImpl = () => delayedPayloadSocket('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 24\r\nConnection: close\r\n\r\n{"ok":true,"role":"agent"}')
+  const { body } = await readJson(await handleWafpanelRequest(
+    jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
+    { ...env, connectImpl, fetchImpl: async () => new Response('should-not-fetch', { status: 500 }) },
+    true
+  ))
+  const probed = body.data.find((item) => item.id === created.body.data.id)
+  assert.equal(probed.online, true)
+  assert.equal(probed.status, 'ok')
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: 'TCP chunked 节点',
+    url: 'http://198.51.100.11:10087',
+    token: 'chunk-token'
+  }), env, true))
+  const connectImpl = () => fakeTcpSocket('HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n18\r\n{"ok":true,"role":"agent"}\r\n0\r\n\r\n')
+  const { body } = await readJson(await handleWafpanelRequest(
+    jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
+    { ...env, connectImpl, fetchImpl: async () => new Response('should-not-fetch', { status: 500 }) },
+    true
+  ))
+  const probed = body.data.find((item) => item.id === created.body.data.id)
+  assert.equal(probed.online, true)
+  assert.equal(probed.status, 'ok')
 }
 
 {
