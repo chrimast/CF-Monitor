@@ -32,7 +32,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ trans.wafpanelNodeUrl }}</label>
-          <input v-model="nodeForm.url" class="form-input" placeholder="https://waf.example.com" required>
+          <input v-model="nodeForm.url" class="form-input" placeholder="http://203.0.113.10:10087" required>
           <p class="dnshub-hint">{{ trans.wafpanelUrlHint }}</p>
         </div>
         <div class="form-group">

@@ -103,16 +103,24 @@ const env = { DB: makeMemoryDb() }
     url: 'http://192.0.2.8:10087',
     token: 'agent-token'
   }), env, true))
-  assert.equal(ip.status, 422)
-  assert.match(ip.body.error, /公网 HTTPS|443|不能使用 IP/)
+  assert.equal(ip.status, 201)
+  assert.equal(ip.body.data.url, 'http://192.0.2.8:10087')
+
+  const privateIp = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: '内网节点',
+    url: 'http://192.168.1.8:10087',
+    token: 'agent-token'
+  }), env, true))
+  assert.equal(privateIp.status, 422)
+  assert.match(privateIp.body.error, /内网|私网|localhost/)
 
   const customPort = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '自定义端口',
-    url: 'https://waf.example.com:10087',
+    url: 'http://waf.example.com:10087',
     token: 'agent-token'
   }), env, true))
-  assert.equal(customPort.status, 422)
-  assert.match(customPort.body.error, /80|443/)
+  assert.equal(customPort.status, 201)
+  assert.equal(customPort.body.data.url, 'http://waf.example.com:10087')
 }
 
 {
@@ -226,7 +234,7 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /item\.mtime/)
   assert.match(panel, /\/reload/)
   assert.match(panel, /wafpanelUrlHint/)
-  assert.ok(panel.includes('placeholder="https://waf.example.com"'))
+  assert.ok(panel.includes('placeholder="http://203.0.113.10:10087"'))
 }
 
 {
@@ -254,22 +262,72 @@ const env = { DB: makeMemoryDb() }
   assert.equal(captured.find((item) => item.url.endsWith('/agent/health')).headers.Authorization, 'Bearer probe-token')
 }
 
+function fakeTcpSocket(httpText) {
+  const encoder = new TextEncoder()
+  const payload = encoder.encode(httpText)
+  let written = ''
+  return {
+    written: () => written,
+    writable: {
+      getWriter() {
+        return {
+          async write(chunk) { written += new TextDecoder().decode(chunk) },
+          async close() {}
+        }
+      }
+    },
+    readable: {
+      getReader() {
+        let done = false
+        return {
+          async read() {
+            if (done) return { done: true, value: undefined }
+            done = true
+            return { done: false, value: payload }
+          }
+        }
+      }
+    }
+  }
+}
+
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
-    name: '403 节点',
-    url: 'https://waf-blocked.example.com',
-    token: 'blocked-token'
+    name: 'TCP 节点',
+    url: 'http://203.0.113.10:10087',
+    token: 'tcp-token'
   }), env, true))
-  const fetchImpl = async () => new Response('error code: 1003', { status: 403 })
+  const sockets = []
+  const connectImpl = (address) => {
+    sockets.push({ address, method: 'GET' })
+    return fakeTcpSocket('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 24\r\nConnection: close\r\n\r\n{"ok":true,"role":"agent"}')
+  }
+  const fetchImpl = async () => new Response(JSON.stringify({ ok: true, role: 'agent' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   const { body } = await readJson(await handleWafpanelRequest(
     jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
-    { ...env, fetchImpl },
+    { ...env, connectImpl, fetchImpl },
     true
   ))
   const probed = body.data.find((item) => item.id === created.body.data.id)
-  assert.equal(probed.online, false)
-  assert.equal(probed.status, 'error')
-  assert.match(probed.message, /1003|公网 HTTPS|443|不能使用 IP|Worker/)
+  assert.equal(probed.online, true)
+  assert.equal(probed.status, 'ok')
+  assert.equal(probed.token, undefined)
+  assert.equal(sockets[0].address.hostname, '203.0.113.10')
+  assert.equal(sockets[0].address.port, 10087)
+
+  const forwarded = []
+  const forwardConnect = (address) => {
+    forwarded.push(address)
+    return fakeTcpSocket('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 12\r\nConnection: close\r\n\r\n{"ok":true}')
+  }
+  const forwardedResult = await readJson(await handleWafpanelRequest(
+    jsonRequest('GET', `/api/wafpanel/nodes/${created.body.data.id}/dashboard`),
+    { ...env, connectImpl: forwardConnect, fetchImpl: async () => new Response('should-not-fetch', { status: 500 }) },
+    true
+  ))
+  assert.equal(forwardedResult.status, 200)
+  assert.equal(forwarded[0].hostname, '203.0.113.10')
+  assert.equal(forwarded[0].port, 10087)
 }
 
 {

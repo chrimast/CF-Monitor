@@ -27,21 +27,39 @@ function probeStatus(ok, status, payload, text = '') {
   if (ok && payload && payload.ok !== false) return { online: true, status: 'ok', message: '' }
   if (status === 401) return { online: false, status: 'auth', message: 'Token 无效' }
   const raw = `${text || ''} ${payload?.error || ''} ${payload?.message || ''} ${payload?.raw || ''}`
+  if (/disallowed|private network|localhost/i.test(raw)) {
+    return { online: false, status: 'error', message: '不能访问内网/localhost。请填公网 IP:端口，例如 http://203.0.113.10:10087' }
+  }
   if (status === 403 || /error code:\s*1003|Direct IP/i.test(raw)) {
     return {
       online: false,
       status: 'error',
-      message: 'Worker 访问不到这台 Agent。请填公网 https://域名（443），不要用 IP 或 :10087。可用 cloudflared tunnel。'
+      message: 'Worker 访问失败。请填公网 http://IP:端口，并放行该端口。'
     }
   }
   return { online: false, status: 'error', message: payload?.error || payload?.message || `HTTP ${status}` }
 }
 
-function isBlockedHostname(hostname) {
-  const host = String(hostname || '').replace(/^\[|\]$/g, '').toLowerCase()
-  if (!host || host === 'localhost' || host.endsWith('.localhost')) return true
-  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return true
-  if (host.includes(':')) return true
+function isPrivateIPv4(host) {
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host)
+  if (!match) return false
+  const oct = match.slice(1).map(Number)
+  if (oct.some((n) => n > 255)) return true
+  const [a, b] = oct
+  if (a === 10 || a === 127 || a === 0) return true
+  if (a === 169 && b === 254) return true
+  if (a === 192 && b === 168) return true
+  if (a === 172 && b >= 16 && b <= 31) return true
+  if (a === 100 && b >= 64 && b <= 127) return true
+  if (a >= 224) return true
+  return false
+}
+
+function isPrivateIPv6(host) {
+  const value = String(host || '').toLowerCase()
+  if (!value.includes(':')) return false
+  if (value === '::1' || value === '::') return true
+  if (value.startsWith('fc') || value.startsWith('fd') || value.startsWith('fe80')) return true
   return false
 }
 
@@ -57,10 +75,94 @@ function urlError(raw) {
   } catch {
     return '远程节点地址无效'
   }
-  if (parsed.protocol !== 'https:') return 'Worker 只能访问公网 HTTPS（443）。不要填 http://IP:10087'
-  if (isBlockedHostname(parsed.hostname)) return '不能使用 IP 或 localhost。请填 https://域名，并用 Cloudflare Tunnel 或反代到 443'
-  if (parsed.port && parsed.port !== '443') return 'Worker 不能访问非 80/443 端口。请用 https://域名（443）'
+  if (!['http:', 'https:'].includes(parsed.protocol)) return '请填写 http://公网IP:端口 或 https://域名'
+  const host = String(parsed.hostname || '').replace(/^\[|\]$/g, '').toLowerCase()
+  if (!host || host === 'localhost' || host.endsWith('.localhost')) return '不能使用 localhost 或内网地址'
+  if (isPrivateIPv4(host) || isPrivateIPv6(host)) return '不能使用内网/私网地址。请填公网 IP:端口，例如 http://203.0.113.10:10087'
+  const port = Number(parsed.port || (parsed.protocol === 'https:' ? 443 : 80))
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return '端口无效'
+  if (port === 25) return '不能使用 25 端口'
   return ''
+}
+
+function needsSocketTransport(parsed) {
+  const host = String(parsed.hostname || '').replace(/^\[|\]$/g, '')
+  const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80')
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) || host.includes(':')) return true
+  return port !== '80' && port !== '443'
+}
+
+function concatBytes(chunks) {
+  const total = chunks.reduce((n, chunk) => n + chunk.byteLength, 0)
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out
+}
+
+function parseHttpResponse(bytes) {
+  const text = new TextDecoder().decode(bytes)
+  const split = text.indexOf('\r\n\r\n')
+  if (split < 0) return new Response(text, { status: 502 })
+  const head = text.slice(0, split)
+  const body = text.slice(split + 4)
+  const lines = head.split('\r\n')
+  const status = Number(lines[0]?.split(' ')[1] || 0)
+  const headers = {}
+  for (const line of lines.slice(1)) {
+    const index = line.indexOf(':')
+    if (index > 0) headers[line.slice(0, index).trim()] = line.slice(index + 1).trim()
+  }
+  return new Response(body, { status: status || 502, headers })
+}
+
+async function resolveConnect(connectImpl) {
+  if (connectImpl) return connectImpl
+  const mod = await import('cloudflare:sockets')
+  return mod.connect
+}
+
+async function socketHttpRequest(parsed, init, connectImpl) {
+  const port = Number(parsed.port || (parsed.protocol === 'https:' ? 443 : 80))
+  const connect = await resolveConnect(connectImpl)
+  const options = parsed.protocol === 'https:' ? { secureTransport: 'on' } : undefined
+  const socket = connect({ hostname: parsed.hostname, port }, options)
+  const encoder = new TextEncoder()
+  const method = (init.method || 'GET').toUpperCase()
+  const path = `${parsed.pathname || '/'}${parsed.search || ''}`
+  const headers = new Headers(init.headers || {})
+  if (!headers.has('Host')) headers.set('Host', parsed.host)
+  if (!headers.has('Connection')) headers.set('Connection', 'close')
+  if (!headers.has('Accept')) headers.set('Accept', 'application/json')
+  const bodyText = init.body == null ? '' : String(init.body)
+  if (bodyText && !headers.has('Content-Length')) {
+    headers.set('Content-Length', String(encoder.encode(bodyText).byteLength))
+  }
+  let requestText = `${method} ${path} HTTP/1.1\r\n`
+  for (const [key, value] of headers.entries()) requestText += `${key}: ${value}\r\n`
+  requestText += `\r\n${bodyText}`
+  const writer = socket.writable.getWriter()
+  await writer.write(encoder.encode(requestText))
+  await writer.close()
+  const reader = socket.readable.getReader()
+  const chunks = []
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (value) chunks.push(value)
+  }
+  return parseHttpResponse(concatBytes(chunks))
+}
+
+async function agentRequest(node, method, pathWithQuery, { headers, body, fetchImpl, connectImpl } = {}) {
+  const target = agentApiUrl(node.url, pathWithQuery)
+  const parsed = new URL(target)
+  const init = { method, headers, body }
+  if (needsSocketTransport(parsed)) return socketHttpRequest(parsed, init, connectImpl)
+  return fetchImpl(target, init)
 }
 
 function match(pathname, pattern) {
@@ -85,7 +187,7 @@ async function readBody(request) {
 function normalizeUrl(raw) {
   if (urlError(raw)) return ''
   const parsed = new URL(String(raw || '').trim())
-  return `${parsed.protocol}//${parsed.hostname}${parsed.pathname.replace(/\/+$/, '')}`
+  return `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/+$/, '')}`
 }
 
 export async function ensureWafpanelSchema(db) {
@@ -121,12 +223,12 @@ async function listNodesWithToken(db) {
   }))
 }
 
-async function probeNode(node, fetchImpl) {
-  const target = agentApiUrl(node.url, '/agent/health')
+async function probeNode(node, fetchImpl, connectImpl) {
   try {
-    const response = await fetchImpl(target, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${node.token}` }
+    const response = await agentRequest(node, 'GET', '/agent/health', {
+      headers: { Authorization: `Bearer ${node.token}` },
+      fetchImpl,
+      connectImpl
     })
     const text = await response.text()
     let payload = {}
@@ -134,6 +236,9 @@ async function probeNode(node, fetchImpl) {
     return publicNode(node, probeStatus(response.ok, response.status, payload, text))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    if (/disallowed|private network|localhost/i.test(message)) {
+      return publicNode(node, probeStatus(false, 0, { message }, message))
+    }
     if (/1003|Direct IP/i.test(message)) {
       return publicNode(node, probeStatus(false, 403, { message }, message))
     }
@@ -161,21 +266,21 @@ function agentApiUrl(baseUrl, pathWithQuery) {
   return `${base}/agent/api${raw}`
 }
 
-async function forwardNode(node, request, fetchImpl, extraPath = '') {
+async function forwardNode(node, request, fetchImpl, extraPath = '', connectImpl) {
   const url = new URL(request.url)
   const suffix = extraPath || url.pathname.replace(/^\/api\/wafpanel\/nodes\/[^/]+/, '') || '/'
-  const target = agentApiUrl(node.url, `${suffix}${url.search || ''}`)
   const init = {
-    method: request.method,
     headers: {
       Authorization: `Bearer ${node.token}`,
       'Content-Type': request.headers.get('Content-Type') || 'application/json'
-    }
+    },
+    fetchImpl,
+    connectImpl
   }
   if (!['GET', 'HEAD'].includes(request.method.toUpperCase())) {
     init.body = await request.clone().text()
   }
-  const response = await fetchImpl(target, init)
+  const response = await agentRequest(node, request.method, `${suffix}${url.search || ''}`, init)
   const text = await response.text()
   let payload
   try {
@@ -191,6 +296,7 @@ export async function handleWafpanelRequest(request, env, authenticated) {
   if (!env.DB) return jsonError('D1 未绑定', 500)
   await ensureWafpanelSchema(env.DB)
   const fetchImpl = boundFetch(env.fetchImpl)
+  const connectImpl = env.connectImpl
   const url = new URL(request.url)
   const path = url.pathname
   const method = request.method.toUpperCase()
@@ -198,7 +304,7 @@ export async function handleWafpanelRequest(request, env, authenticated) {
   if (method === 'GET' && path === '/api/wafpanel/nodes') {
     if (url.searchParams.get('probe') === '1') {
       const nodes = await listNodesWithToken(env.DB)
-      const data = await Promise.all(nodes.map((node) => probeNode(node, fetchImpl)))
+      const data = await Promise.all(nodes.map((node) => probeNode(node, fetchImpl, connectImpl)))
       return json({ success: true, data })
     }
     return json({ success: true, data: await listNodes(env.DB) })
@@ -250,7 +356,7 @@ export async function handleWafpanelRequest(request, env, authenticated) {
     if (!node) return jsonError('节点不存在', 404)
     const extraPath = nested[2] || '/agent/health'
     try {
-      return await forwardNode(node, request, fetchImpl, extraPath === '/' ? '/agent/health' : extraPath)
+      return await forwardNode(node, request, fetchImpl, extraPath === '/' ? '/agent/health' : extraPath, connectImpl)
     } catch (err) {
       return jsonError(err instanceof Error ? err.message : String(err), 502)
     }
