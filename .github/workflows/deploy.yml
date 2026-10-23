@@ -56,6 +56,9 @@ jobs:
           compatibility_flags = ["nodejs_compat"]
           workers_dev = true
 
+          [triggers]
+          crons = ["*/1 * * * *"]
+
           [assets]
           directory = "./dist"
           binding = "ASSETS"
