@@ -23,10 +23,20 @@ function publicNode(node, extra = {}) {
   }
 }
 
+function probeMessage(payload, text = '', status) {
+  const message = payload?.message || payload?.detail || payload?.error
+  if (typeof message === 'string' && message.trim()) return message.trim()
+  if (typeof payload?.raw === 'string' && payload.raw.trim()) return payload.raw.trim()
+  if (typeof text === 'string' && text.trim() && !text.trim().startsWith('{')) return text.trim()
+  return `HTTP ${status}`
+}
+
 function probeStatus(ok, status, payload, text = '') {
-  if (ok && payload && payload.ok !== false) return { online: true, status: 'ok', message: '' }
+  if (ok && payload && payload.ok !== false && payload.error !== true) {
+    return { online: true, status: 'ok', message: '' }
+  }
   if (status === 401) return { online: false, status: 'auth', message: 'Token 无效' }
-  const raw = `${text || ''} ${payload?.error || ''} ${payload?.message || ''} ${payload?.raw || ''}`
+  const raw = `${text || ''} ${typeof payload?.error === 'string' ? payload.error : ''} ${payload?.message || ''} ${payload?.raw || ''}`
   if (/disallowed|private network|localhost/i.test(raw)) {
     return { online: false, status: 'error', message: '不能访问内网/localhost。请填公网 IP:端口，例如 http://203.0.113.10:10087' }
   }
@@ -37,7 +47,7 @@ function probeStatus(ok, status, payload, text = '') {
       message: 'Worker 访问失败。请填公网 http://IP:端口，并放行该端口。'
     }
   }
-  return { online: false, status: 'error', message: payload?.error || payload?.message || `HTTP ${status}` }
+  return { online: false, status: 'error', message: probeMessage(payload, text, status) }
 }
 
 function isPrivateIPv4(host) {

@@ -411,6 +411,30 @@ function delayedPayloadSocket(httpText) {
 
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: 'TCP 502 节点',
+    url: 'http://198.51.100.12:10087',
+    token: 'empty-token'
+  }), env, true))
+  const connectImpl = () => fakeTcpSocket('')
+  const { body } = await readJson(await handleWafpanelRequest(
+    jsonRequest('GET', '/api/wafpanel/nodes?probe=1'),
+    { ...env, connectImpl, fetchImpl: async () => new Response('should-not-fetch', { status: 500 }) },
+    true
+  ))
+  const probed = body.data.find((item) => item.id === created.body.data.id)
+  assert.equal(probed.online, false)
+  assert.equal(typeof probed.message, 'string')
+  assert.notEqual(probed.message, 'true')
+  assert.match(probed.message, /HTTP 502|没有返回/)
+}
+
+{
+  const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/WafPanel.vue', import.meta.url), 'utf8'))
+  assert.ok(panel.includes(':disabled="item.online !== true"'))
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '401 节点',
     url: 'https://waf-auth.example.com',
     token: 'wrong-token'

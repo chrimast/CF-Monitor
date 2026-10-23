@@ -50,14 +50,14 @@
       <div class="dnshub-account-list">
         <div v-if="!nodes.length" class="text-muted">{{ trans.wafpanelNoNodes }}</div>
         <div v-for="item in nodes" :key="item.id" class="dnshub-account-row">
-          <button class="dnshub-account-name" type="button" @click="openNode(item, 'dashboard')">
+          <button class="dnshub-account-name" type="button" @click="openNode(item, 'dashboard')" :disabled="item.online !== true">
             <strong>{{ item.name }}</strong>
             <span class="text-muted text-sm">{{ item.url }}</span>
             <span class="text-sm" :style="{ color: nodeStatusColor(item) }">{{ nodeStatusText(item) }}</span>
           </button>
           <div class="header-actions">
-            <button class="btn" type="button" @click="openNode(item, 'dashboard')" :disabled="item.online === false">{{ trans.wafpanelDashboard }}</button>
-            <button class="btn" type="button" @click="openNode(item, 'logs')" :disabled="item.online === false">{{ trans.wafpanelLogs }}</button>
+            <button class="btn" type="button" @click="openNode(item, 'dashboard')" :disabled="item.online !== true">{{ trans.wafpanelDashboard }}</button>
+            <button class="btn" type="button" @click="openNode(item, 'logs')" :disabled="item.online !== true">{{ trans.wafpanelLogs }}</button>
             <button class="btn" type="button" @click="startEdit(item)">{{ trans.edit || '编辑' }}</button>
             <button class="btn btn-red" type="button" @click="removeNode(item)">{{ trans.delete || '删除' }}</button>
           </div>
@@ -664,7 +664,8 @@ const probeNodes = async () => {
 const nodeStatusText = (item) => {
   if (item.status === 'ok' || item.online === true) return props.trans.wafpanelOnline
   if (item.status === 'auth') return props.trans.wafpanelAuthFail
-  if (item.status === 'offline' || item.online === false) return item.message || props.trans.wafpanelOffline
+  if (typeof item.message === 'string' && item.message.trim()) return item.message
+  if (item.status === 'offline' || item.online === false) return props.trans.wafpanelOffline
   return props.trans.wafpanelUnknown
 }
 const nodeStatusColor = (item) => {
