@@ -306,7 +306,6 @@ function delayedPayloadSocket(httpText) {
   const payload = encoder.encode(httpText)
   let written = ''
   let closedWrite = false
-  let readerAttached = false
   return {
     written: () => written,
     opened: Promise.resolve({}),
@@ -320,14 +319,13 @@ function delayedPayloadSocket(httpText) {
     },
     readable: {
       getReader() {
-        const attachedBeforeClose = !closedWrite
-        readerAttached = true
         let done = false
         return {
           async read() {
             if (done) return { done: true, value: undefined }
+            const closedBeforeRead = closedWrite
             done = true
-            if (!attachedBeforeClose) return { done: true, value: undefined }
+            if (closedBeforeRead) return { done: true, value: undefined }
             return { done: false, value: payload }
           }
         }

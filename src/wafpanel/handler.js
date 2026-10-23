@@ -188,14 +188,17 @@ async function socketHttpRequest(parsed, init, connectImpl) {
   requestText += `\r\n${bodyText}`
   const reader = socket.readable.getReader()
   const writer = socket.writable.getWriter()
+  const chunks = []
+  const reading = (async () => {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value) chunks.push(value)
+    }
+  })()
   await writer.write(encoder.encode(requestText))
   await writer.close()
-  const chunks = []
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value) chunks.push(value)
-  }
+  await reading
   return parseHttpResponse(concatBytes(chunks))
 }
 
