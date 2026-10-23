@@ -5645,6 +5645,37 @@ body.admin-workspace .admin-container {
     margin-top: 12px;
 }
 
+.wafpanel-agent-commands {
+    margin: 12px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.wafpanel-agent-commands summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.wafpanel-command-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 0;
+}
+
+.wafpanel-command-row code {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+}
+
 @media (max-width: 900px) {
     .dnshub-split,
     .dnshub-compact-grid,

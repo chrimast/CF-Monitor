@@ -6,6 +6,25 @@
     <div v-if="page === 'nodes'" class="settings-section">
       <div class="section-title"><span>▸</span> {{ trans.wafpanelNodes }}</div>
       <p class="dnshub-hint">{{ trans.wafpanelDesc }}</p>
+      <details class="wafpanel-agent-commands">
+        <summary>{{ trans.wafpanelAgentCommands }}</summary>
+        <p class="dnshub-hint">{{ trans.wafpanelAgentCommandHint }}</p>
+        <div class="form-group">
+          <label class="form-label">{{ trans.wafpanelInstallCommand }}</label>
+          <div class="wafpanel-command-row">
+            <code>{{ installCommand }}</code>
+            <button class="btn" type="button" @click="copyInstallCommand">{{ trans.wafpanelCopyCommand }}</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ trans.wafpanelUninstallCommand }}</label>
+          <div class="wafpanel-command-row">
+            <code>{{ uninstallCommand }}</code>
+            <button class="btn" type="button" @click="copyUninstallCommand">{{ trans.wafpanelCopyCommand }}</button>
+          </div>
+        </div>
+        <p class="dnshub-hint">{{ trans.wafpanelUninstallHint }}</p>
+      </details>
       <form class="dnshub-compact-grid" @submit.prevent="saveNode">
         <div class="form-group">
           <label class="form-label">{{ trans.wafpanelNodeName }}</label>
@@ -454,6 +473,8 @@ const props = defineProps({
 
 const route = useRoute()
 const router = useRouter()
+const installCommand = 'curl -fsSL https://raw.githubusercontent.com/chrimast/waf-panel/main/install.sh | sudo bash -s -- --role agent -y'
+const uninstallCommand = 'curl -fsSL https://raw.githubusercontent.com/chrimast/waf-panel/main/uninstall.sh | sudo bash -s -- -y'
 const initialView = parseAdminViewQuery(route.query)
 const page = ref(initialView.wafPage)
 const loading = ref(false)
@@ -591,6 +612,16 @@ const toast = (msg, isError = false) => {
   if (isError) { error.value = msg; notice.value = '' }
   else { notice.value = msg; error.value = '' }
 }
+const copyCommand = async (command) => {
+  try {
+    await navigator.clipboard.writeText(command)
+    toast(props.trans.wafpanelCommandCopied)
+  } catch {
+    toast(props.trans.wafpanelCommandCopyFailed, true)
+  }
+}
+const copyInstallCommand = () => copyCommand(installCommand)
+const copyUninstallCommand = () => copyCommand(uninstallCommand)
 
 const ipRuleValue = (rule) => {
   if (typeof rule === 'string') return rule
