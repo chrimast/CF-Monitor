@@ -590,8 +590,17 @@ const ruleList = computed(() => Object.keys(wafRules.value || {})
   .map((key) => ({ key, label: RULE_NAMES[key] || key, state: wafRules.value[key].state || 'off' })))
 
 let mapInstance = null
-let worldGeoJson = null
-let mapResizeTimer = 0
+
+const ISO2_TO_ISO3 = Object.fromEntries(
+  'AF-AFG,AX-ALA,AL-ALB,DZ-DZA,AS-ASM,AD-AND,AO-AGO,AI-AIA,AQ-ATA,AG-ATG,AR-ARG,AM-ARM,AW-ABW,AU-AUS,AT-AUT,AZ-AZE,BS-BHS,BH-BHR,BD-BGD,BB-BRB,BY-BLR,BE-BEL,BZ-BLZ,BJ-BEN,BM-BMU,BT-BTN,BO-BOL,BQ-BES,BA-BIH,BW-BWA,BV-BVT,BR-BRA,IO-IOT,BN-BRN,BG-BGR,BF-BFA,BI-BDI,KH-KHM,CM-CMR,CA-CAN,CV-CPV,KY-CYM,CF-CAF,TD-TCD,CL-CHL,CN-CHN,CX-CXR,CC-CCK,CO-COL,KM-COM,CG-COG,CD-COD,CK-COK,CR-CRI,CI-CIV,HR-HRV,CU-CUB,CW-CUW,CY-CYP,CZ-CZE,DK-DNK,DJ-DJI,DM-DMA,DO-DOM,EC-ECU,EG-EGY,SV-SLV,GQ-GNQ,ER-ERI,EE-EST,SZ-SWZ,ET-ETH,FK-FLK,FO-FRO,FJ-FJI,FI-FIN,FR-FRA,GF-GUF,PF-PYF,TF-ATF,GA-GAB,GM-GMB,GE-GEO,DE-DEU,GH-GHA,GI-GIB,GR-GRC,GL-GRL,GD-GRD,GP-GLP,GU-GUM,GT-GTM,GG-GGY,GN-GIN,GW-GNB,GY-GUY,HT-HTI,HM-HMD,VA-VAT,HN-HND,HK-HKG,HU-HUN,IS-ISL,IN-IND,ID-IDN,IR-IRN,IQ-IRQ,IE-IRL,IM-IMN,IL-ISR,IT-ITA,JM-JAM,JP-JPN,JE-JEY,JO-JOR,KZ-KAZ,KE-KEN,KI-KIR,KP-PRK,KR-KOR,KW-KWT,KG-KGZ,LA-LAO,LV-LVA,LB-LBN,LS-LSO,LR-LBR,LY-LBY,LI-LIE,LT-LTU,LU-LUX,MO-MAC,MG-MDG,MW-MWI,MY-MYS,MV-MDV,ML-MLI,MT-MLT,MH-MHL,MQ-MTQ,MR-MRT,MU-MUS,YT-MYT,MX-MEX,FM-FSM,MD-MDA,MC-MCO,MN-MNG,ME-MNE,MS-MSR,MA-MAR,MZ-MOZ,MM-MMR,NA-NAM,NR-NRU,NP-NPL,NL-NLD,NC-NCL,NZ-NZL,NI-NIC,NE-NER,NG-NGA,NU-NIU,NF-NFK,MK-MKD,MP-MNP,NO-NOR,OM-OMN,PK-PAK,PW-PLW,PS-PSE,PA-PAN,PG-PNG,PY-PRY,PE-PER,PH-PHL,PN-PCN,PL-POL,PT-PRT,PR-PRI,QA-QAT,RE-REU,RO-ROU,RU-RUS,RW-RWA,BL-BLM,SH-SHN,KN-KNA,LC-LCA,MF-MAF,PM-SPM,VC-VCT,WS-WSM,SM-SMR,ST-STP,SA-SAU,SN-SEN,RS-SRB,SC-SYC,SL-SLE,SG-SGP,SX-SXM,SK-SVK,SI-SVN,SB-SLB,SO-SOM,ZA-ZAF,GS-SGS,SS-SSD,ES-ESP,LK-LKA,SD-SDN,SR-SUR,SJ-SJM,SE-SWE,CH-CHE,SY-SYR,TW-TWN,TJ-TJK,TZ-TZA,TH-THA,TL-TLS,TG-TGO,TK-TKL,TO-TON,TT-TTO,TN-TUN,TR-TUR,TM-TKM,TC-TCA,TV-TUV,UG-UGA,UA-UKR,AE-ARE,GB-GBR,UK-GBR,US-USA,UM-UMI,UY-URY,UZ-UZB,VU-VUT,VE-VEN,VN-VNM,VG-VGB,VI-VIR,WF-WLF,EH-ESH,YE-YEM,ZM-ZMB,ZW-ZWE'.split(',').map((item) => item.split('-'))
+)
+const CHORO_FILLS = {
+  LOW: '#ffffcc',
+  MEDIUM: '#fd8d3c',
+  HIGH: '#e31a1c',
+  VERYHIGH: '#800026',
+  defaultFill: '#ABDDA4'
+}
 
 const unwrap = (result) => {
   if (result?.error && result.status && result.status >= 400) throw new Error(result.message || result.error)
@@ -678,99 +687,108 @@ const nodeStatusColor = (item) => {
   return 'var(--text-muted)'
 }
 
-const ensureLeaflet = () => new Promise((resolve) => {
-  if (window.L) return resolve(window.L)
-  if (!document.querySelector('link[data-wafpanel-leaflet]')) {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = getPublicAssetUrl('files/leaflet.css')
-    link.setAttribute('data-wafpanel-leaflet', '1')
-    document.head.appendChild(link)
-  }
-  const existing = document.querySelector('script[data-wafpanel-leaflet]')
+const loadScriptOnce = (src, attr) => new Promise((resolve, reject) => {
+  const existing = document.querySelector(`script[${attr}]`)
   if (existing) {
-    if (window.L) return resolve(window.L)
-    existing.addEventListener('load', () => resolve(window.L), { once: true })
+    if (existing.dataset.loaded === '1') return resolve()
+    existing.addEventListener('load', () => resolve(), { once: true })
+    existing.addEventListener('error', () => reject(new Error(src)), { once: true })
     return
   }
   const script = document.createElement('script')
-  script.src = getPublicAssetUrl('files/leaflet.js')
-  script.setAttribute('data-wafpanel-leaflet', '1')
-  script.onload = () => resolve(window.L)
+  script.src = src
+  script.setAttribute(attr, '1')
+  script.onload = () => {
+    script.dataset.loaded = '1'
+    resolve()
+  }
+  script.onerror = () => reject(new Error(src))
   document.head.appendChild(script)
 })
 
-const loadWorldGeoJson = async () => {
-  if (worldGeoJson) return worldGeoJson
-  const res = await fetch(getPublicAssetUrl('files/world.zh.json'))
-  if (!res.ok) throw new Error(props.trans.wafpanelNoMap)
-  worldGeoJson = await res.json()
-  return worldGeoJson
+const ensureDatamaps = async () => {
+  if (window.Datamap) return window.Datamap
+  await loadScriptOnce(getPublicAssetUrl('files/d3.min.js'), 'data-wafpanel-d3')
+  await loadScriptOnce(getPublicAssetUrl('files/topojson.min.js'), 'data-wafpanel-topojson')
+  await loadScriptOnce(getPublicAssetUrl('files/datamaps.world.min.js'), 'data-wafpanel-datamaps')
+  return window.Datamap
 }
 
-const getMapColors = () => {
-  const style = getComputedStyle(document.body)
-  const read = (name, fallback) => style.getPropertyValue(name).trim() || fallback
-  return {
-    bgPrimary: read('--bg-primary', '#080b10'),
-    borderColor: read('--border-color', '#243044'),
-    accent: read('--accent-green', '#0b7a4b'),
-    accentRed: read('--accent-red', '#b42318')
-  }
+const countryCodeFromPoint = (point) => {
+  const iso3 = String(point.countryCode3 || point.iso3 || '').toUpperCase()
+  if (iso3.length === 3) return iso3
+  const iso2 = String(point.countryCode || point.country_code || point.iso || '').toUpperCase()
+  return ISO2_TO_ISO3[iso2] || ''
 }
 
-const countryCodeFromPoint = (point) => String(point.countryCode || point.country_code || point.iso || '').toUpperCase()
+const choroplethFillKey = (count, max) => {
+  if (!max || count <= 0) return 'LOW'
+  const ratio = count / max
+  if (ratio >= 0.75) return 'VERYHIGH'
+  if (ratio >= 0.45) return 'HIGH'
+  if (ratio >= 0.2) return 'MEDIUM'
+  return 'LOW'
+}
+
+const buildChoroplethData = () => {
+  const grouped = {}
+  mapPoints.value.forEach((point) => {
+    const code = countryCodeFromPoint(point)
+    if (!code) return
+    const item = grouped[code] || { count: 0, country: point.country || code, cities: new Set() }
+    item.count += Number(point.count || 0)
+    if (point.city) item.cities.add(point.city)
+    if (point.country) item.country = point.country
+    grouped[code] = item
+  })
+  const max = Object.values(grouped).reduce((acc, item) => Math.max(acc, item.count), 0)
+  const data = {}
+  Object.entries(grouped).forEach(([code, item]) => {
+    data[code] = {
+      fillKey: choroplethFillKey(item.count, max),
+      count: item.count,
+      country: item.country,
+      cities: [...item.cities].join(', ')
+    }
+  })
+  return data
+}
 
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
   if (!el) return
-  const L = await ensureLeaflet()
-  if (!L) return
-  const geo = await loadWorldGeoJson()
+  const Datamap = await ensureDatamaps()
+  if (!Datamap) return
+  const choropleth = buildChoroplethData()
   if (mapInstance) {
-    mapInstance.remove()
+    if (el.firstChild) el.removeChild(el.firstChild)
     mapInstance = null
   }
   el.innerHTML = ''
-  mapInstance = L.map(el, {
-    scrollWheelZoom: false,
-    zoomControl: false,
-    attributionControl: false
-  }).setView([30, 20], 2)
-  L.control.zoom({ position: 'bottomright' }).addTo(mapInstance)
-  const colors = getMapColors()
-  const activeIso2 = {}
-  mapPoints.value.forEach((point) => {
-    const code = countryCodeFromPoint(point)
-    if (code) activeIso2[code] = true
-  })
-  L.geoJSON(geo, {
-    style: (feature) => {
-      const isActive = !!activeIso2[feature.properties?.iso_a2]
-      return {
-        fillColor: isActive ? colors.accent : colors.borderColor,
-        weight: 1,
-        opacity: 0.8,
-        color: colors.bgPrimary,
-        fillOpacity: isActive ? 0.45 : 0.22
+  mapInstance = new Datamap({
+    element: el,
+    scope: 'world',
+    projection: 'mercator',
+    responsive: true,
+    fills: CHORO_FILLS,
+    data: choropleth,
+    geographyConfig: {
+      hideAntarctica: true,
+      borderWidth: 1,
+      borderColor: '#FDFDFD',
+      highlightOnHover: true,
+      highlightFillColor: '#FC8D59',
+      highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
+      highlightBorderWidth: 2,
+      popupTemplate: (geography, data) => {
+        const count = data?.count || 0
+        const extra = data?.cities ? `<br>${data.cities}` : ''
+        return `<div class="hoverinfo"><strong>${data?.country || geography.properties.name}</strong><br>${count}${extra}</div>`
       }
     }
-  }).addTo(mapInstance)
-  mapPoints.value.forEach((point) => {
-    if (point.lat == null || point.lon == null) return
-    L.circleMarker([point.lat, point.lon], {
-      radius: Math.min(20, 6 + Math.log((point.count || 1) + 1) * 3),
-      fillColor: colors.accentRed,
-      color: colors.bgPrimary,
-      weight: 1,
-      fillOpacity: 0.8
-    }).addTo(mapInstance).bindPopup(`${point.ip}<br>${point.country || ''} ${point.city || ''}<br>${point.count || 0}`)
   })
-  clearTimeout(mapResizeTimer)
-  mapResizeTimer = setTimeout(() => {
-    if (mapInstance) mapInstance.invalidateSize()
-  }, 100)
+  mapInstance.updateChoropleth(choropleth)
 }
 
 const loadDashboard = async () => {
@@ -1351,7 +1369,8 @@ watch(() => [route.query.tab, route.query.wafPage, route.query.wafNode], async (
 })
 
 onBeforeUnmount(() => {
-  clearTimeout(mapResizeTimer)
-  if (mapInstance) mapInstance.remove()
+  const el = document.getElementById('wafpanel-map')
+  if (el) el.innerHTML = ''
+  mapInstance = null
 })
 </script>

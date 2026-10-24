@@ -244,9 +244,15 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /wafpanel-node-actions/)
   assert.match(panel, /@click="probeNodes"/)
   assert.ok(panel.includes("item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'"))
-  assert.ok(panel.includes("files/world.zh.json"))
-  assert.ok(panel.includes('invalidateSize'))
+  assert.ok(panel.includes('files/d3.min.js'))
+  assert.ok(panel.includes('files/topojson.min.js'))
+  assert.ok(panel.includes('files/datamaps.world.min.js'))
+  assert.ok(panel.includes('new Datamap'))
+  assert.ok(panel.includes("projection: 'mercator'"))
+  assert.ok(panel.includes('updateChoropleth'))
   assert.equal(panel.includes('basemaps.cartocdn'), false)
+  assert.equal(panel.includes('files/world.zh.json'), false)
+  assert.equal(panel.includes('ensureLeaflet'), false)
 }
 
 {
@@ -259,7 +265,8 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-rule-on\s*\{/)
   assert.match(css, /\.wafpanel-rule-on\s*\{[\s\S]*background:/)
   assert.match(css, /\.wafpanel-map\s*\{[\s\S]*height:\s*360px/)
-  assert.match(css, /\.wafpanel-map \.leaflet-container/)
+  assert.match(css, /\.wafpanel-map\s*\{[\s\S]*position:\s*relative/)
+  assert.match(css, /\.hoverinfo/)
 }
 
 {

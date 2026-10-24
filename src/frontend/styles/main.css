@@ -5629,10 +5629,15 @@ body.admin-workspace .admin-container {
     position: relative;
 }
 
-.wafpanel-map .leaflet-container {
-    width: 100%;
-    height: 100%;
-    background: var(--bg-secondary);
+.wafpanel-map .hoverinfo {
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: #fff;
+    color: #111;
+    box-shadow: 1px 1px 5px #ccc;
+    font-size: 12px;
+    border: 1px solid #ccc;
+    line-height: 1.4;
 }
 
 .wafpanel-side {
