@@ -5717,6 +5717,16 @@ body.admin-workspace .admin-container {
     min-height: 36px;
 }
 
+.wafpanel-rule-on {
+    background: #199C98;
+    color: #fff;
+    border-color: #187E87;
+}
+
+.wafpanel-rule-on:hover {
+    background: #187E87;
+}
+
 @media (max-width: 900px) {
     .dnshub-split,
     .dnshub-compact-grid,

@@ -243,6 +243,7 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /wafpanel-node-form/)
   assert.match(panel, /wafpanel-node-actions/)
   assert.match(panel, /@click="probeNodes"/)
+  assert.ok(panel.includes("item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'"))
 }
 
 {
@@ -252,6 +253,8 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-node-name\s*\{/)
   assert.match(css, /\.wafpanel-node-url\s*\{/)
   assert.match(css, /\.wafpanel-node-token\s*\{/)
+  assert.match(css, /\.wafpanel-rule-on\s*\{/)
+  assert.match(css, /\.wafpanel-rule-on\s*\{[\s\S]*background:/)
 }
 
 {

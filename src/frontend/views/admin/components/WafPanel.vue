@@ -152,7 +152,7 @@
               <div class="wafpanel-table">
                 <div v-for="item in ruleList" :key="item.key" class="dnshub-domain-row">
                   <span>{{ item.label }}</span>
-                  <button class="btn" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
+                  <button class="btn" :class="item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
                 </div>
               </div>
               <div v-if="ccForm" class="dnshub-compact-grid" style="margin-top:8px">
