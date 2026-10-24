@@ -167,13 +167,14 @@
         <div class="settings-section">
           <div class="section-title">{{ trans.wafpanelRecent }}</div>
           <div class="wafpanel-table">
-            <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelRule }}</span><span>URI</span></div>
+            <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelRule }}</span><span>URI</span><span>{{ trans.wafpanelAction }}</span></div>
             <div v-if="!(dashboard.recent || []).length" class="text-muted">暂无记录</div>
             <div v-for="row in dashboard.recent || []" :key="row.id || (row.ip + row.localtime)" class="dnshub-domain-row">
               <span>{{ row.localtime }}</span>
               <code>{{ row.ip }}</code>
               <span>{{ row.rule }}</span>
               <span>{{ row.uri }}</span>
+              <span>{{ row.is_block ? trans.wafpanelIntercepted : trans.wafpanelLogged }}</span>
             </div>
           </div>
         </div>
@@ -224,6 +225,9 @@
             <div class="dnshub-domain-row"><span>URI</span><span>{{ logDetail.uri }}</span></div>
             <div class="dnshub-domain-row"><span>{{ trans.wafpanelMethod }}</span><span>{{ logDetail.method }}</span></div>
             <div class="dnshub-domain-row"><span>{{ trans.wafpanelStatusCode }}</span><span>{{ logDetail.status_code }}</span></div>
+            <div class="dnshub-domain-row"><span>{{ trans.wafpanelMatchValue }}</span><span>{{ logDetail.match_val }}</span></div>
+            <div class="dnshub-domain-row"><span>{{ trans.wafpanelHost }}</span><span>{{ logDetail.host }}</span></div>
+            <div class="dnshub-domain-row"><span>{{ trans.wafpanelAction }}</span><span>{{ logDetail.is_block ? trans.wafpanelIntercepted : trans.wafpanelLogged }}</span></div>
             <div class="dnshub-domain-row"><span>UA</span><span>{{ logDetail.user_agent }}</span></div>
           </div>
           <pre class="text-sm">{{ logDetail.nginx_log || JSON.stringify(logDetail, null, 2) }}</pre>
