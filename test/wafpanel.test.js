@@ -250,6 +250,8 @@ const env = { DB: makeMemoryDb() }
   assert.ok(panel.includes('new Datamap'))
   assert.ok(panel.includes("projection: 'mercator'"))
   assert.ok(panel.includes('updateChoropleth'))
+  assert.ok(panel.includes('wafpanel-map-wrap'))
+  assert.ok(panel.includes('mapInstance.resize'))
   assert.equal(panel.includes('basemaps.cartocdn'), false)
   assert.equal(panel.includes('files/world.zh.json'), false)
   assert.equal(panel.includes('ensureLeaflet'), false)
@@ -264,8 +266,10 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-node-token\s*\{/)
   assert.match(css, /\.wafpanel-rule-on\s*\{/)
   assert.match(css, /\.wafpanel-rule-on\s*\{[\s\S]*background:/)
-  assert.match(css, /\.wafpanel-map\s*\{[\s\S]*height:\s*360px/)
+  assert.match(css, /\.wafpanel-map-wrap/)
+  assert.match(css, /\.wafpanel-map\s*\{[\s\S]*min-height:\s*480px/)
   assert.match(css, /\.wafpanel-map\s*\{[\s\S]*position:\s*relative/)
+  assert.match(css, /\.wafpanel-map svg/)
   assert.match(css, /\.hoverinfo/)
 }
 

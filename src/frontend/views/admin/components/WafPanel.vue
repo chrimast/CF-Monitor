@@ -87,7 +87,9 @@
 
       <div v-else-if="page === 'dashboard'" class="settings-section">
         <div class="wafpanel-dash">
-          <div id="wafpanel-map" class="wafpanel-map"></div>
+          <div class="wafpanel-map-wrap">
+            <div id="wafpanel-map" class="wafpanel-map"></div>
+          </div>
           <div class="wafpanel-side">
             <div class="stats-grid">
               <div class="stat-card">
@@ -147,21 +149,21 @@
                 </div>
               </div>
             </div>
-            <div class="settings-section">
-              <div class="section-title">{{ trans.wafpanelRules }}</div>
-              <div class="wafpanel-table">
-                <div v-for="item in ruleList" :key="item.key" class="dnshub-domain-row">
-                  <span>{{ item.label }}</span>
-                  <button class="btn" :class="item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
-                </div>
-              </div>
-              <div v-if="ccForm" class="dnshub-compact-grid" style="margin-top:8px">
-                <div class="form-group"><label class="form-label">CC threshold</label><input v-model.number="ccForm.threshold" class="form-input" type="number"></div>
-                <div class="form-group"><label class="form-label">CC duration</label><input v-model.number="ccForm.duration" class="form-input" type="number"></div>
-                <div class="form-group"><label class="form-label">CC ipBlockTime</label><input v-model.number="ccForm.ipBlockTime" class="form-input" type="number"></div>
-                <div class="form-group dnshub-actions"><button class="btn btn-primary" type="button" @click="saveCc">{{ trans.wafpanelSaveReload }}</button></div>
-              </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="section-title">{{ trans.wafpanelRules }}</div>
+          <div class="wafpanel-table">
+            <div v-for="item in ruleList" :key="item.key" class="dnshub-domain-row">
+              <span>{{ item.label }}</span>
+              <button class="btn" :class="item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
             </div>
+          </div>
+          <div v-if="ccForm" class="dnshub-compact-grid" style="margin-top:8px">
+            <div class="form-group"><label class="form-label">CC threshold</label><input v-model.number="ccForm.threshold" class="form-input" type="number"></div>
+            <div class="form-group"><label class="form-label">CC duration</label><input v-model.number="ccForm.duration" class="form-input" type="number"></div>
+            <div class="form-group"><label class="form-label">CC ipBlockTime</label><input v-model.number="ccForm.ipBlockTime" class="form-input" type="number"></div>
+            <div class="form-group dnshub-actions"><button class="btn btn-primary" type="button" @click="saveCc">{{ trans.wafpanelSaveReload }}</button></div>
           </div>
         </div>
         <div class="settings-section">
@@ -591,6 +593,10 @@ const ruleList = computed(() => Object.keys(wafRules.value || {})
 
 let mapInstance = null
 
+const handleMapResize = () => {
+  if (mapInstance?.resize) mapInstance.resize()
+}
+
 const ISO2_TO_ISO3 = Object.fromEntries(
   'AF-AFG,AX-ALA,AL-ALB,DZ-DZA,AS-ASM,AD-AND,AO-AGO,AI-AIA,AQ-ATA,AG-ATG,AR-ARG,AM-ARM,AW-ABW,AU-AUS,AT-AUT,AZ-AZE,BS-BHS,BH-BHR,BD-BGD,BB-BRB,BY-BLR,BE-BEL,BZ-BLZ,BJ-BEN,BM-BMU,BT-BTN,BO-BOL,BQ-BES,BA-BIH,BW-BWA,BV-BVT,BR-BRA,IO-IOT,BN-BRN,BG-BGR,BF-BFA,BI-BDI,KH-KHM,CM-CMR,CA-CAN,CV-CPV,KY-CYM,CF-CAF,TD-TCD,CL-CHL,CN-CHN,CX-CXR,CC-CCK,CO-COL,KM-COM,CG-COG,CD-COD,CK-COK,CR-CRI,CI-CIV,HR-HRV,CU-CUB,CW-CUW,CY-CYP,CZ-CZE,DK-DNK,DJ-DJI,DM-DMA,DO-DOM,EC-ECU,EG-EGY,SV-SLV,GQ-GNQ,ER-ERI,EE-EST,SZ-SWZ,ET-ETH,FK-FLK,FO-FRO,FJ-FJI,FI-FIN,FR-FRA,GF-GUF,PF-PYF,TF-ATF,GA-GAB,GM-GMB,GE-GEO,DE-DEU,GH-GHA,GI-GIB,GR-GRC,GL-GRL,GD-GRD,GP-GLP,GU-GUM,GT-GTM,GG-GGY,GN-GIN,GW-GNB,GY-GUY,HT-HTI,HM-HMD,VA-VAT,HN-HND,HK-HKG,HU-HUN,IS-ISL,IN-IND,ID-IDN,IR-IRN,IQ-IRQ,IE-IRL,IM-IMN,IL-ISR,IT-ITA,JM-JAM,JP-JPN,JE-JEY,JO-JOR,KZ-KAZ,KE-KEN,KI-KIR,KP-PRK,KR-KOR,KW-KWT,KG-KGZ,LA-LAO,LV-LVA,LB-LBN,LS-LSO,LR-LBR,LY-LBY,LI-LIE,LT-LTU,LU-LUX,MO-MAC,MG-MDG,MW-MWI,MY-MYS,MV-MDV,ML-MLI,MT-MLT,MH-MHL,MQ-MTQ,MR-MRT,MU-MUS,YT-MYT,MX-MEX,FM-FSM,MD-MDA,MC-MCO,MN-MNG,ME-MNE,MS-MSR,MA-MAR,MZ-MOZ,MM-MMR,NA-NAM,NR-NRU,NP-NPL,NL-NLD,NC-NCL,NZ-NZL,NI-NIC,NE-NER,NG-NGA,NU-NIU,NF-NFK,MK-MKD,MP-MNP,NO-NOR,OM-OMN,PK-PAK,PW-PLW,PS-PSE,PA-PAN,PG-PNG,PY-PRY,PE-PER,PH-PHL,PN-PCN,PL-POL,PT-PRT,PR-PRI,QA-QAT,RE-REU,RO-ROU,RU-RUS,RW-RWA,BL-BLM,SH-SHN,KN-KNA,LC-LCA,MF-MAF,PM-SPM,VC-VCT,WS-WSM,SM-SMR,ST-STP,SA-SAU,SN-SEN,RS-SRB,SC-SYC,SL-SLE,SG-SGP,SX-SXM,SK-SVK,SI-SVN,SB-SLB,SO-SOM,ZA-ZAF,GS-SGS,SS-SSD,ES-ESP,LK-LKA,SD-SDN,SR-SUR,SJ-SJM,SE-SWE,CH-CHE,SY-SYR,TW-TWN,TJ-TJK,TZ-TZA,TH-THA,TL-TLS,TG-TGO,TK-TKL,TO-TON,TT-TTO,TN-TUN,TR-TUR,TM-TKM,TC-TCA,TV-TUV,UG-UGA,UA-UKR,AE-ARE,GB-GBR,UK-GBR,US-USA,UM-UMI,UY-URY,UZ-UZB,VU-VUT,VE-VEN,VN-VNM,VG-VGB,VI-VIR,WF-WLF,EH-ESH,YE-YEM,ZM-ZMB,ZW-ZWE'.split(',').map((item) => item.split('-'))
 )
@@ -770,7 +776,9 @@ const renderMap = async () => {
     element: el,
     scope: 'world',
     projection: 'mercator',
-    responsive: true,
+    responsive: false,
+    height: el.clientHeight || 480,
+    width: el.clientWidth || 720,
     fills: CHORO_FILLS,
     data: choropleth,
     geographyConfig: {
@@ -789,6 +797,11 @@ const renderMap = async () => {
     }
   })
   mapInstance.updateChoropleth(choropleth)
+  window.removeEventListener('resize', handleMapResize)
+  window.addEventListener('resize', handleMapResize)
+  requestAnimationFrame(() => {
+    if (mapInstance?.resize) mapInstance.resize()
+  })
 }
 
 const loadDashboard = async () => {
@@ -1369,6 +1382,7 @@ watch(() => [route.query.tab, route.query.wafPage, route.query.wafNode], async (
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleMapResize)
   const el = document.getElementById('wafpanel-map')
   if (el) el.innerHTML = ''
   mapInstance = null
