@@ -244,6 +244,9 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /wafpanel-node-actions/)
   assert.match(panel, /@click="probeNodes"/)
   assert.ok(panel.includes("item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'"))
+  assert.ok(panel.includes("files/world.zh.json"))
+  assert.ok(panel.includes('invalidateSize'))
+  assert.equal(panel.includes('basemaps.cartocdn'), false)
 }
 
 {
@@ -255,6 +258,8 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-node-token\s*\{/)
   assert.match(css, /\.wafpanel-rule-on\s*\{/)
   assert.match(css, /\.wafpanel-rule-on\s*\{[\s\S]*background:/)
+  assert.match(css, /\.wafpanel-map\s*\{[\s\S]*height:\s*360px/)
+  assert.match(css, /\.wafpanel-map \.leaflet-container/)
 }
 
 {

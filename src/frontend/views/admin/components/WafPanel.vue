@@ -590,6 +590,8 @@ const ruleList = computed(() => Object.keys(wafRules.value || {})
   .map((key) => ({ key, label: RULE_NAMES[key] || key, state: wafRules.value[key].state || 'off' })))
 
 let mapInstance = null
+let worldGeoJson = null
+let mapResizeTimer = 0
 
 const unwrap = (result) => {
   if (result?.error && result.status && result.status >= 400) throw new Error(result.message || result.error)
@@ -698,30 +700,77 @@ const ensureLeaflet = () => new Promise((resolve) => {
   document.head.appendChild(script)
 })
 
+const loadWorldGeoJson = async () => {
+  if (worldGeoJson) return worldGeoJson
+  const res = await fetch(getPublicAssetUrl('files/world.zh.json'))
+  if (!res.ok) throw new Error(props.trans.wafpanelNoMap)
+  worldGeoJson = await res.json()
+  return worldGeoJson
+}
+
+const getMapColors = () => {
+  const style = getComputedStyle(document.body)
+  const read = (name, fallback) => style.getPropertyValue(name).trim() || fallback
+  return {
+    bgPrimary: read('--bg-primary', '#080b10'),
+    borderColor: read('--border-color', '#243044'),
+    accent: read('--accent-green', '#0b7a4b'),
+    accentRed: read('--accent-red', '#b42318')
+  }
+}
+
+const countryCodeFromPoint = (point) => String(point.countryCode || point.country_code || point.iso || '').toUpperCase()
+
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
   if (!el) return
   const L = await ensureLeaflet()
+  if (!L) return
+  const geo = await loadWorldGeoJson()
   if (mapInstance) {
     mapInstance.remove()
     mapInstance = null
   }
-  if (!mapPoints.value.length) {
-    el.innerHTML = `<div class="empty">${props.trans.wafpanelNoMap}</div>`
-    return
-  }
-  mapInstance = L.map(el, { scrollWheelZoom: false }).setView([30, 20], 2)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB', maxZoom: 18 }).addTo(mapInstance)
-  mapPoints.value.forEach((p) => {
-    L.circleMarker([p.lat, p.lon], {
-      radius: Math.min(20, 6 + Math.log((p.count || 1) + 1) * 3),
-      fillColor: '#dc2626',
-      color: '#991b1b',
-      weight: 1,
-      fillOpacity: 0.7
-    }).addTo(mapInstance).bindPopup(`${p.ip}<br>${p.country || ''} ${p.city || ''}<br>${p.count}`)
+  el.innerHTML = ''
+  mapInstance = L.map(el, {
+    scrollWheelZoom: false,
+    zoomControl: false,
+    attributionControl: false
+  }).setView([30, 20], 2)
+  L.control.zoom({ position: 'bottomright' }).addTo(mapInstance)
+  const colors = getMapColors()
+  const activeIso2 = {}
+  mapPoints.value.forEach((point) => {
+    const code = countryCodeFromPoint(point)
+    if (code) activeIso2[code] = true
   })
+  L.geoJSON(geo, {
+    style: (feature) => {
+      const isActive = !!activeIso2[feature.properties?.iso_a2]
+      return {
+        fillColor: isActive ? colors.accent : colors.borderColor,
+        weight: 1,
+        opacity: 0.8,
+        color: colors.bgPrimary,
+        fillOpacity: isActive ? 0.45 : 0.22
+      }
+    }
+  }).addTo(mapInstance)
+  mapPoints.value.forEach((point) => {
+    if (point.lat == null || point.lon == null) return
+    L.circleMarker([point.lat, point.lon], {
+      radius: Math.min(20, 6 + Math.log((point.count || 1) + 1) * 3),
+      fillColor: colors.accentRed,
+      color: colors.bgPrimary,
+      weight: 1,
+      fillOpacity: 0.8
+    }).addTo(mapInstance).bindPopup(`${point.ip}<br>${point.country || ''} ${point.city || ''}<br>${point.count || 0}`)
+  })
+  clearTimeout(mapResizeTimer)
+  mapResizeTimer = setTimeout(() => {
+    if (mapInstance) mapInstance.invalidateSize()
+  }, 100)
 }
 
 const loadDashboard = async () => {
@@ -737,7 +786,11 @@ const loadDashboard = async () => {
   geoRulesText.value = (geo.rules || []).join(',')
   wafRules.value = rules || {}
   if (rules?.cc) Object.assign(ccForm, { state: rules.cc.state || 'off', threshold: rules.cc.threshold || 120, duration: rules.cc.duration || 60, ipBlockTime: rules.cc.ipBlockTime || 600 })
-  await renderMap()
+  try {
+    await renderMap()
+  } catch (err) {
+    error.value = err.message || String(err)
+  }
 }
 
 const loadLogs = async (pageNo = 1) => {
@@ -1298,6 +1351,7 @@ watch(() => [route.query.tab, route.query.wafPage, route.query.wafNode], async (
 })
 
 onBeforeUnmount(() => {
+  clearTimeout(mapResizeTimer)
   if (mapInstance) mapInstance.remove()
 })
 </script>

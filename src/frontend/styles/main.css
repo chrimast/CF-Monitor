@@ -5619,10 +5619,19 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-map {
+    width: 100%;
+    height: 360px;
     min-height: 360px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
+    background: var(--bg-secondary);
+    position: relative;
+}
+
+.wafpanel-map .leaflet-container {
+    width: 100%;
+    height: 100%;
     background: var(--bg-secondary);
 }
 
