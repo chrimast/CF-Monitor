@@ -188,24 +188,24 @@
           <button class="btn btn-primary" type="button" @click="loadLogs(1)">{{ trans.wafpanelSearch }}</button>
           <span class="text-muted text-sm">{{ logsTotal }} {{ trans.wafpanelItems }}</span>
         </div>
-        <div class="wafpanel-table">
-          <div class="dnshub-domain-head">
+        <div class="wafpanel-table wafpanel-log-table">
+          <div class="wafpanel-log-head">
             <span>IP</span>
             <span>{{ trans.wafpanelCount }}</span>
             <span>{{ trans.wafpanelRule }}</span>
-            <span>URI</span>
+            <span>URL</span>
             <span>{{ trans.wafpanelFirstSeen }}</span>
             <span>{{ trans.wafpanelLastSeen }}</span>
             <span>{{ trans.wafpanelTempBan }}</span>
             <span>{{ trans.wafpanelPermBan }}</span>
-            <span></span>
+            <span>{{ trans.wafpanelDetail }}</span>
           </div>
           <div v-if="!logs.length" class="text-muted">暂无记录</div>
-          <div v-for="row in logs" :key="row.ip" class="dnshub-domain-row">
+          <div v-for="row in logs" :key="row.ip" class="wafpanel-log-row">
             <code>{{ row.ip }}</code>
             <span>{{ row.count }}</span>
-            <span>{{ row.rule }}</span>
-            <span>{{ row.uri }}</span>
+            <span :title="row.rule">{{ row.rule }}</span>
+            <span :title="row.uri">{{ row.uri }}</span>
             <span>{{ row.first_seen }}</span>
             <span>{{ row.last_seen }}</span>
             <button class="btn" type="button" @click="toggleLogBan(row, 'temporary', !row.is_temporary_banned)">{{ row.is_temporary_banned ? trans.wafpanelUnban : trans.wafpanelTempBan }}</button>

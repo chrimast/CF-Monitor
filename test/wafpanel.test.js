@@ -212,6 +212,8 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /probeNodes/)
   assert.match(panel, /loadLogs\(logPage/)
   assert.match(panel, /logPages/)
+  assert.ok(panel.includes('wafpanel-log-row'))
+  assert.ok(panel.includes('wafpanel-log-head'))
   assert.match(panel, /status_codes/)
   assert.match(panel, /ignore_regex/)
   assert.match(panel, /detectAutobanLogpaths/)
@@ -298,6 +300,8 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-map svg[\s\S]*max-height:\s*100%/)
   assert.equal(/\.wafpanel-map svg[\s\S]*height:\s*100%\s*!important/.test(css), false)
   assert.match(css, /\.hoverinfo/)
+  assert.match(css, /\.wafpanel-log-row\s*\{[\s\S]*grid-template-columns:/)
+  assert.match(css, /\.wafpanel-log-row\s*\{[\s\S]*white-space:\s*nowrap/)
 }
 
 {
