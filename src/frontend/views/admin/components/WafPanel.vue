@@ -783,6 +783,19 @@ const fitMapProjection = (element) => {
   return { path, projection }
 }
 
+const buildBubbles = () => mapPoints.value
+  .filter((point) => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lon)))
+  .map((point) => ({
+    name: point.ip,
+    latitude: Number(point.lat),
+    longitude: Number(point.lon),
+    radius: Math.min(14, 5 + Math.log((Number(point.count) || 1) + 1) * 2.4),
+    fillKey: 'HIGH',
+    country: point.country || '',
+    city: point.city || '',
+    count: Number(point.count) || 0
+  }))
+
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
@@ -813,11 +826,20 @@ const renderMap = async () => {
       highlightFillColor: '#FC8D59',
       highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
       highlightBorderWidth: 2,
+      popupOnHover: false,
       popupTemplate: (geography, data) => {
         const count = data?.count || 0
         const extra = data?.cities ? `<br>${data.cities}` : ''
         return `<div class="hoverinfo"><strong>${data?.country || geography.properties.name}</strong><br>${count}${extra}</div>`
       }
+    },
+    bubblesConfig: {
+      borderWidth: 1,
+      borderColor: '#fff',
+      fillOpacity: 0.85,
+      highlightOnHover: true,
+      popupOnHover: true,
+      popupTemplate: (_geo, data) => `<div class="hoverinfo"><strong>${data.name}</strong><br>${data.city || ''} ${data.country || ''}<br>${data.count}</div>`
     }
   })
   const svg = el.querySelector('svg')
@@ -828,6 +850,8 @@ const renderMap = async () => {
     svg.setAttribute('viewBox', `0 0 ${el.offsetWidth || 720} ${el.offsetHeight || 560}`)
   }
   mapInstance.updateChoropleth(choropleth)
+  const bubbles = buildBubbles()
+  if (bubbles.length) mapInstance.bubbles(bubbles)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
 }

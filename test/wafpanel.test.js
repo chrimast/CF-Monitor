@@ -268,6 +268,9 @@ const env = { DB: makeMemoryDb() }
   assert.equal(panel.includes('basemaps.cartocdn'), false)
   assert.equal(panel.includes('files/world.zh.json'), false)
   assert.equal(panel.includes('ensureLeaflet'), false)
+  assert.ok(panel.includes('mapInstance.bubbles'))
+  assert.ok(panel.includes('latitude'))
+  assert.ok(panel.includes('longitude'))
   assert.match(i18n, /wafpanelBans: 'Ban management'/)
   assert.match(i18n, /wafpanelBans: '封禁管理'/)
 }
