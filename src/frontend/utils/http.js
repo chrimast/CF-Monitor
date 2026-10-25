@@ -89,10 +89,12 @@ const handleResponse = async (res, options = {}) => {
     let errorMessageKey = null
     try {
       const data = await res.json()
-      if (data.message) {
-        errorMessageKey = data.message
+      const detail = typeof data.detail === 'string' ? data.detail : (typeof data.message === 'string' ? data.message : '')
+      if (detail) {
+        errorMessage = detail
+        errorMessageKey = detail
       }
-      if (data.error) {
+      if (typeof data.error === 'string' && data.error.trim()) {
         errorMessage = data.error
       }
       if (data.code) {

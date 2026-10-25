@@ -614,9 +614,9 @@ const CHORO_FILLS = {
 
 const unwrap = (result) => {
   if (result?.error && result.status && result.status >= 400) throw new Error(result.message || result.error)
-  if (result?.error && !result.data) throw new Error(result.message || result.error)
+  if (result?.error && !result.data) throw new Error(result.message || (typeof result.error === 'string' ? result.error : '请求失败'))
   const body = result?.data || {}
-  if (body && body.error && body.message) throw new Error(body.message)
+  if (body && body.error && (body.message || body.detail)) throw new Error(body.message || body.detail)
   return body
 }
 const requestGet = (url) => http.getByIndex(url, props.selectedApiIndex)
@@ -974,7 +974,7 @@ const refreshAutobanStatus = async () => {
 }
 
 const detectAutobanLogpaths = async () => {
-  const r = await agentGet('/autoban_config')
+  const r = await agentGet('/autoban_detect_logpaths')
   const paths = r.detected_logpaths || []
   detectedLogpaths.value = paths
   ab.logpathsText = paths.join('\n')

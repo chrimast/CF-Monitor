@@ -1415,7 +1415,7 @@ const translations = reactive({
     wafpanelFilterName: '主 Filter 名称',
     wafpanelStatusCodes: '匹配状态码',
     wafpanelIgnoreRegex: '忽略正则',
-    wafpanelDetectLogs: '再次探测日志路径',
+    wafpanelDetectLogs: '探测日志路径',
     wafpanelDetected: '探测到',
     wafpanelDetectedDefault: '使用内置默认路径',
     wafpanelDetectFilled: '已填入探测结果，保存后生效',
