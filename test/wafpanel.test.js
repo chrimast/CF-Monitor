@@ -232,10 +232,9 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /retryCurrentNode/)
   assert.match(panel, /loadBans\(/)
   assert.match(panel, /banPage/)
-  assert.match(panel, /logDetail\.method/)
-  assert.ok(panel.includes('logDetail.match_val'))
-  assert.ok(panel.includes('logDetail.host'))
-  assert.ok(panel.includes('logDetail.is_block'))
+  assert.equal(panel.includes('showDetail'), false)
+  assert.equal(panel.includes('logDetail'), false)
+  assert.equal(panel.includes('/log_detail'), false)
   assert.ok(panel.includes('dashboard.recent'))
   assert.ok(panel.includes('row.is_block ? trans.wafpanelIntercepted : trans.wafpanelLogged'))
   assert.match(panel, /count4xx/)
@@ -302,6 +301,7 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.hoverinfo/)
   assert.match(css, /\.wafpanel-log-row\s*\{[\s\S]*grid-template-columns:/)
   assert.match(css, /\.wafpanel-log-row\s*\{[\s\S]*white-space:\s*nowrap/)
+  assert.match(css, /\.wafpanel-log-head,\s*\n\.wafpanel-log-row \{\n    display: grid;\n    grid-template-columns: minmax\(110px, 1fr\) 52px minmax\(72px, 0\.9fr\) minmax\(0, 1\.6fr\) minmax\(118px, 0\.8fr\) minmax\(118px, 0\.8fr\) 88px 104px;/)
 }
 
 {

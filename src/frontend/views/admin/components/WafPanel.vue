@@ -198,7 +198,6 @@
             <span>{{ trans.wafpanelLastSeen }}</span>
             <span>{{ trans.wafpanelTempBan }}</span>
             <span>{{ trans.wafpanelPermBan }}</span>
-            <span>{{ trans.wafpanelDetail }}</span>
           </div>
           <div v-if="!logs.length" class="text-muted">暂无记录</div>
           <div v-for="row in logs" :key="row.ip" class="wafpanel-log-row">
@@ -210,29 +209,12 @@
             <span>{{ row.last_seen }}</span>
             <button class="btn" type="button" @click="toggleLogBan(row, 'temporary', !row.is_temporary_banned)">{{ row.is_temporary_banned ? trans.wafpanelUnban : trans.wafpanelTempBan }}</button>
             <button class="btn" type="button" @click="toggleLogBan(row, 'permanent', !row.is_permanent_banned)">{{ row.is_permanent_banned ? trans.wafpanelUnban : trans.wafpanelPermBan }}</button>
-            <button class="btn" type="button" @click="showDetail(row)">{{ trans.wafpanelDetail }}</button>
           </div>
         </div>
         <div v-if="logPages > 1" class="dnshub-actions" style="margin-top:8px">
           <button class="btn" type="button" :disabled="logPage <= 1" @click="loadLogs(logPage - 1)">‹</button>
           <span class="text-sm">{{ logPage }} / {{ logPages }}</span>
           <button class="btn" type="button" :disabled="logPage >= logPages" @click="loadLogs(logPage + 1)">›</button>
-        </div>
-        <div v-if="logDetail" class="settings-section" style="margin-top:12px">
-          <div class="section-title">{{ trans.wafpanelDetail }} {{ logDetail.ip }}</div>
-          <div class="wafpanel-table">
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelTime }}</span><span>{{ logDetail.localtime }}</span></div>
-            <div class="dnshub-domain-row"><span>IP</span><code>{{ logDetail.ip }}</code></div>
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelRule }}</span><span>{{ logDetail.rule }}</span></div>
-            <div class="dnshub-domain-row"><span>URI</span><span>{{ logDetail.uri }}</span></div>
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelMethod }}</span><span>{{ logDetail.method }}</span></div>
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelStatusCode }}</span><span>{{ logDetail.status_code }}</span></div>
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelMatchValue }}</span><span>{{ logDetail.match_val }}</span></div>
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelHost }}</span><span>{{ logDetail.host }}</span></div>
-            <div class="dnshub-domain-row"><span>{{ trans.wafpanelAction }}</span><span>{{ logDetail.is_block ? trans.wafpanelIntercepted : trans.wafpanelLogged }}</span></div>
-            <div class="dnshub-domain-row"><span>UA</span><span>{{ logDetail.user_agent }}</span></div>
-          </div>
-          <pre class="text-sm">{{ logDetail.nginx_log || JSON.stringify(logDetail, null, 2) }}</pre>
         </div>
       </div>
 
@@ -494,7 +476,6 @@ const logsTotal = ref(0)
 const logPage = ref(1)
 const logPages = ref(1)
 const logSearch = ref('')
-const logDetail = ref(null)
 const bans = ref([])
 const banPage = ref(1)
 const banPages = ref(1)
@@ -1338,10 +1319,6 @@ const toggleLogBan = async (row, banType, banned) => {
   const r = await agentPost('/log_ban', { log_id: row.last_id || row.id || 0, ip: row.ip, ban_type: banType, banned })
   toast(r.message || '已更新')
   await loadLogs(logPage.value)
-}
-const showDetail = async (row) => {
-  if (row.last_id) logDetail.value = await agentGet(`/log_detail?id=${row.last_id}`)
-  else logDetail.value = row
 }
 const unblock = async (row) => {
   const r = await agentPost('/unblock', { id: row.id })

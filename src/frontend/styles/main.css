@@ -5665,13 +5665,13 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-log-table {
-    min-width: 1080px;
+    min-width: 0;
 }
 
 .wafpanel-log-head,
 .wafpanel-log-row {
     display: grid;
-    grid-template-columns: minmax(118px, 0.9fr) 56px minmax(88px, 0.8fr) minmax(140px, 1.4fr) 136px 136px 92px 108px 64px;
+    grid-template-columns: minmax(110px, 1fr) 52px minmax(72px, 0.9fr) minmax(0, 1.6fr) minmax(118px, 0.8fr) minmax(118px, 0.8fr) 88px 104px;
     gap: 8px;
     align-items: center;
     width: 100%;
