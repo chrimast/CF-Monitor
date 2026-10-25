@@ -179,6 +179,7 @@ const env = { DB: makeMemoryDb() }
 {
   const source = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8'))
   const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/WafPanel.vue', import.meta.url), 'utf8'))
+  const i18n = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/utils/i18n.js', import.meta.url), 'utf8'))
   assert.match(source, /setActiveTab\('wafpanel'\)/)
   assert.match(source, /WafPanel/)
   assert.match(panel, /wafpanelPages/)
@@ -251,10 +252,14 @@ const env = { DB: makeMemoryDb() }
   assert.ok(panel.includes("projection: 'mercator'"))
   assert.ok(panel.includes('updateChoropleth'))
   assert.ok(panel.includes('wafpanel-map-wrap'))
-  assert.ok(panel.includes('mapInstance.resize'))
+  assert.ok(panel.includes('setProjection'))
+  assert.ok(panel.includes('preserveAspectRatio'))
+  assert.ok(panel.includes('xMidYMid meet'))
   assert.equal(panel.includes('basemaps.cartocdn'), false)
   assert.equal(panel.includes('files/world.zh.json'), false)
   assert.equal(panel.includes('ensureLeaflet'), false)
+  assert.match(i18n, /wafpanelBans: 'Ban management'/)
+  assert.match(i18n, /wafpanelBans: '封禁管理'/)
 }
 
 {
@@ -267,9 +272,10 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-rule-on\s*\{/)
   assert.match(css, /\.wafpanel-rule-on\s*\{[\s\S]*background:/)
   assert.match(css, /\.wafpanel-map-wrap/)
-  assert.match(css, /\.wafpanel-map\s*\{[\s\S]*min-height:\s*480px/)
+  assert.match(css, /\.wafpanel-map\s*\{[\s\S]*min-height:\s*560px/)
   assert.match(css, /\.wafpanel-map\s*\{[\s\S]*position:\s*relative/)
   assert.match(css, /\.wafpanel-map svg/)
+  assert.match(css, /\.wafpanel-map svg[\s\S]*preserveAspectRatio|object-fit:\s*contain/)
   assert.match(css, /\.hoverinfo/)
 }
 

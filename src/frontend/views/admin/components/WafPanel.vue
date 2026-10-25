@@ -592,9 +592,13 @@ const ruleList = computed(() => Object.keys(wafRules.value || {})
   .map((key) => ({ key, label: RULE_NAMES[key] || key, state: wafRules.value[key].state || 'off' })))
 
 let mapInstance = null
+let mapResizeTimer = 0
 
 const handleMapResize = () => {
-  if (mapInstance?.resize) mapInstance.resize()
+  clearTimeout(mapResizeTimer)
+  mapResizeTimer = setTimeout(() => {
+    renderMap()
+  }, 120)
 }
 
 const ISO2_TO_ISO3 = Object.fromEntries(
@@ -760,6 +764,16 @@ const buildChoroplethData = () => {
   return data
 }
 
+const fitMapProjection = (element) => {
+  const width = element.offsetWidth || 720
+  const height = element.offsetHeight || 560
+  const projection = window.d3.geo.mercator()
+    .scale(Math.min(width / 6.2, height / 3.4))
+    .translate([width / 2, height / 1.7])
+  const path = window.d3.geo.path().projection(projection)
+  return { path, projection }
+}
+
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
@@ -768,7 +782,7 @@ const renderMap = async () => {
   if (!Datamap) return
   const choropleth = buildChoroplethData()
   if (mapInstance) {
-    if (el.firstChild) el.removeChild(el.firstChild)
+    el.innerHTML = ''
     mapInstance = null
   }
   el.innerHTML = ''
@@ -777,8 +791,9 @@ const renderMap = async () => {
     scope: 'world',
     projection: 'mercator',
     responsive: false,
-    height: el.clientHeight || 480,
+    height: el.clientHeight || 560,
     width: el.clientWidth || 720,
+    setProjection: fitMapProjection,
     fills: CHORO_FILLS,
     data: choropleth,
     geographyConfig: {
@@ -796,6 +811,8 @@ const renderMap = async () => {
       }
     }
   })
+  const svg = el.querySelector('svg')
+  if (svg) svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
   mapInstance.updateChoropleth(choropleth)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
@@ -1383,6 +1400,7 @@ watch(() => [route.query.tab, route.query.wafPage, route.query.wafNode], async (
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleMapResize)
+  clearTimeout(mapResizeTimer)
   const el = document.getElementById('wafpanel-map')
   if (el) el.innerHTML = ''
   mapInstance = null
