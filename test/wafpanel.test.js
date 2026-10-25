@@ -274,6 +274,9 @@ const env = { DB: makeMemoryDb() }
   assert.ok(panel.includes('grouped.get(key)'))
   assert.ok(panel.includes('(data.ips || []).map'))
   assert.ok(panel.includes('item.count += Number(point.count) || 0'))
+  assert.ok(panel.includes("point.city || ''"))
+  assert.ok(panel.includes("point.region || ''") || panel.includes('point.regionName'))
+  assert.ok(panel.includes('cityKey'))
   assert.match(i18n, /wafpanelBans: 'Ban management'/)
   assert.match(i18n, /wafpanelBans: '封禁管理'/)
 }

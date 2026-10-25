@@ -783,24 +783,48 @@ const fitMapProjection = (element) => {
   return { path, projection }
 }
 
+const locationKey = (point) => {
+  const country = String(point.country || point.countryCode || '').trim().toLowerCase()
+  const city = String(point.city || '').trim().toLowerCase()
+  const region = String(point.region || point.regionName || '').trim().toLowerCase()
+  const cityKey = city || region
+  if (cityKey && country) return `place:${country}:${cityKey}`
+  if (cityKey) return `place:${cityKey}`
+  const latitude = Number(point.lat)
+  const longitude = Number(point.lon)
+  if (Number.isFinite(latitude) && Number.isFinite(longitude)) return `geo:${latitude.toFixed(1)},${longitude.toFixed(1)}`
+  return ''
+}
+
 const buildBubbles = () => {
   const grouped = new Map()
   mapPoints.value.forEach((point) => {
     const latitude = Number(point.lat)
     const longitude = Number(point.lon)
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
-    const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}`
+    const key = locationKey(point)
+    if (!key) return
     const item = grouped.get(key) || {
       latitude,
       longitude,
+      latSum: 0,
+      lonSum: 0,
+      samples: 0,
       count: 0,
       country: point.country || '',
       city: point.city || '',
+      region: point.region || point.regionName || '',
       ips: new Map()
     }
     item.count += Number(point.count) || 0
+    item.latSum += latitude
+    item.lonSum += longitude
+    item.samples += 1
+    item.latitude = item.latSum / item.samples
+    item.longitude = item.lonSum / item.samples
     if (point.country) item.country = point.country
     if (point.city) item.city = point.city
+    if (point.region || point.regionName) item.region = point.region || point.regionName
     const ip = point.ip || key
     item.ips.set(ip, (item.ips.get(ip) || 0) + (Number(point.count) || 0))
     grouped.set(key, item)
@@ -808,13 +832,14 @@ const buildBubbles = () => {
   return [...grouped.values()].map((item) => {
     const ips = [...item.ips.entries()].sort((a, b) => b[1] - a[1])
     return {
-      name: item.city || item.country || ips[0]?.[0] || '',
+      name: item.city || item.region || item.country || ips[0]?.[0] || '',
       latitude: item.latitude,
       longitude: item.longitude,
       radius: Math.min(16, 5 + Math.log(item.count + 1) * 2.4),
       fillKey: 'HIGH',
       country: item.country,
       city: item.city,
+      region: item.region,
       count: item.count,
       ips
     }
@@ -865,7 +890,7 @@ const renderMap = async () => {
       highlightOnHover: true,
       popupOnHover: true,
       popupTemplate: (_geo, data) => {
-        const place = [data.city, data.country].filter(Boolean).join(' ')
+        const place = [data.city, data.region, data.country].filter(Boolean).join(' ')
         const rows = (data.ips || []).map(([ip, count]) => `${ip} × ${count}`).join('<br>')
         return `<div class="hoverinfo"><strong>${place || data.name}</strong><br>${data.count}<br>${rows}</div>`
       }
