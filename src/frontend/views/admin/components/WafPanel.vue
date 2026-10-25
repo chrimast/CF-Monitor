@@ -783,18 +783,43 @@ const fitMapProjection = (element) => {
   return { path, projection }
 }
 
-const buildBubbles = () => mapPoints.value
-  .filter((point) => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lon)))
-  .map((point) => ({
-    name: point.ip,
-    latitude: Number(point.lat),
-    longitude: Number(point.lon),
-    radius: Math.min(14, 5 + Math.log((Number(point.count) || 1) + 1) * 2.4),
-    fillKey: 'HIGH',
-    country: point.country || '',
-    city: point.city || '',
-    count: Number(point.count) || 0
-  }))
+const buildBubbles = () => {
+  const grouped = new Map()
+  mapPoints.value.forEach((point) => {
+    const latitude = Number(point.lat)
+    const longitude = Number(point.lon)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+    const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}`
+    const item = grouped.get(key) || {
+      latitude,
+      longitude,
+      count: 0,
+      country: point.country || '',
+      city: point.city || '',
+      ips: new Map()
+    }
+    item.count += Number(point.count) || 0
+    if (point.country) item.country = point.country
+    if (point.city) item.city = point.city
+    const ip = point.ip || key
+    item.ips.set(ip, (item.ips.get(ip) || 0) + (Number(point.count) || 0))
+    grouped.set(key, item)
+  })
+  return [...grouped.values()].map((item) => {
+    const ips = [...item.ips.entries()].sort((a, b) => b[1] - a[1])
+    return {
+      name: item.city || item.country || ips[0]?.[0] || '',
+      latitude: item.latitude,
+      longitude: item.longitude,
+      radius: Math.min(16, 5 + Math.log(item.count + 1) * 2.4),
+      fillKey: 'HIGH',
+      country: item.country,
+      city: item.city,
+      count: item.count,
+      ips
+    }
+  })
+}
 
 const renderMap = async () => {
   await nextTick()
@@ -839,7 +864,11 @@ const renderMap = async () => {
       fillOpacity: 0.85,
       highlightOnHover: true,
       popupOnHover: true,
-      popupTemplate: (_geo, data) => `<div class="hoverinfo"><strong>${data.name}</strong><br>${data.city || ''} ${data.country || ''}<br>${data.count}</div>`
+      popupTemplate: (_geo, data) => {
+        const place = [data.city, data.country].filter(Boolean).join(' ')
+        const rows = (data.ips || []).map(([ip, count]) => `${ip} × ${count}`).join('<br>')
+        return `<div class="hoverinfo"><strong>${place || data.name}</strong><br>${data.count}<br>${rows}</div>`
+      }
     }
   })
   const svg = el.querySelector('svg')
