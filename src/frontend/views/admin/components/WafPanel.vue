@@ -765,11 +765,20 @@ const buildChoroplethData = () => {
 }
 
 const fitMapProjection = (element) => {
-  const width = element.offsetWidth || 720
-  const height = element.offsetHeight || 560
-  const projection = window.d3.geo.mercator()
-    .scale(Math.min(width / 6.2, height / 3.4))
-    .translate([width / 2, height / 1.7])
+  const width = Math.max(element.offsetWidth || 720, 1)
+  const height = Math.max(element.offsetHeight || 560, 1)
+  const projection = window.d3.geo.mercator().scale(1).translate([0, 0])
+  const world = [[-180, 83], [180, -55]]
+  const topLeft = projection(world[0])
+  const bottomRight = projection(world[1])
+  const geoWidth = Math.abs(bottomRight[0] - topLeft[0]) || 1
+  const geoHeight = Math.abs(bottomRight[1] - topLeft[1]) || 1
+  const padX = Math.max(12, width * 0.03)
+  const padY = Math.max(18, height * 0.06)
+  const scale = Math.min((width - padX * 2) / geoWidth, (height - padY * 2) / geoHeight)
+  const tx = width / 2 - scale * (topLeft[0] + bottomRight[0]) / 2
+  const ty = height / 2 - scale * (topLeft[1] + bottomRight[1]) / 2 + height * 0.03
+  projection.scale(scale).translate([tx, ty])
   const path = window.d3.geo.path().projection(projection)
   return { path, projection }
 }
@@ -791,8 +800,8 @@ const renderMap = async () => {
     scope: 'world',
     projection: 'mercator',
     responsive: false,
-    height: el.clientHeight || 560,
-    width: el.clientWidth || 720,
+    height: el.offsetHeight || 560,
+    width: el.offsetWidth || 720,
     setProjection: fitMapProjection,
     fills: CHORO_FILLS,
     data: choropleth,
@@ -812,13 +821,15 @@ const renderMap = async () => {
     }
   })
   const svg = el.querySelector('svg')
-  if (svg) svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  if (svg) {
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+    svg.setAttribute('width', '100%')
+    svg.setAttribute('height', '100%')
+    svg.setAttribute('viewBox', `0 0 ${el.offsetWidth || 720} ${el.offsetHeight || 560}`)
+  }
   mapInstance.updateChoropleth(choropleth)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
-  requestAnimationFrame(() => {
-    if (mapInstance?.resize) mapInstance.resize()
-  })
 }
 
 const loadDashboard = async () => {

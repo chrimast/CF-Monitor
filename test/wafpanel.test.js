@@ -255,6 +255,12 @@ const env = { DB: makeMemoryDb() }
   assert.ok(panel.includes('setProjection'))
   assert.ok(panel.includes('preserveAspectRatio'))
   assert.ok(panel.includes('xMidYMid meet'))
+  assert.ok(panel.includes('fitMapProjection'))
+  assert.match(panel, /projection\.scale\(scale\)\.translate\(\[tx,\s*ty\]\)/)
+  assert.match(panel, /offsetWidth/)
+  assert.match(panel, /offsetHeight/)
+  assert.equal(panel.includes('width / 6.2'), false)
+  assert.equal(panel.includes('height / 1.7'), false)
   assert.equal(panel.includes('basemaps.cartocdn'), false)
   assert.equal(panel.includes('files/world.zh.json'), false)
   assert.equal(panel.includes('ensureLeaflet'), false)
@@ -275,7 +281,9 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-map\s*\{[\s\S]*min-height:\s*560px/)
   assert.match(css, /\.wafpanel-map\s*\{[\s\S]*position:\s*relative/)
   assert.match(css, /\.wafpanel-map svg/)
-  assert.match(css, /\.wafpanel-map svg[\s\S]*preserveAspectRatio|object-fit:\s*contain/)
+  assert.match(css, /\.wafpanel-map svg[\s\S]*max-width:\s*100%/)
+  assert.match(css, /\.wafpanel-map svg[\s\S]*max-height:\s*100%/)
+  assert.equal(/\.wafpanel-map svg[\s\S]*height:\s*100%\s*!important/.test(css), false)
   assert.match(css, /\.hoverinfo/)
 }
 
