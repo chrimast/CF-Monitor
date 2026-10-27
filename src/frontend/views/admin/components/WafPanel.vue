@@ -470,6 +470,7 @@ const notice = ref('')
 const nodes = ref([])
 const currentNode = ref(null)
 const dashboard = ref({})
+const mapPoints = ref([])
 const logs = ref([])
 const logsTotal = ref(0)
 const logPage = ref(1)
@@ -712,6 +713,53 @@ const fitMapProjection = (element) => {
   return { path, projection }
 }
 
+const countryKey = (point) => {
+  const code = String(point.countryCode || '').trim().toUpperCase()
+  if (code) return code
+  const country = String(point.country || '').trim().toLowerCase()
+  return country
+}
+
+const buildBubbles = () => {
+  const grouped = new Map()
+  mapPoints.value.forEach((point) => {
+    const latitude = Number(point.lat)
+    const longitude = Number(point.lon)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+    const key = countryKey(point)
+    if (!key) return
+    const item = grouped.get(key) || {
+      latSum: 0,
+      lonSum: 0,
+      samples: 0,
+      count: 0,
+      country: point.country || key,
+      rows: []
+    }
+    item.count += Number(point.count) || 0
+    item.latSum += latitude
+    item.lonSum += longitude
+    item.samples += 1
+    if (point.country) item.country = point.country
+    item.rows.push({
+      city: point.city || point.region || '',
+      ip: point.ip || '',
+      count: Number(point.count) || 0
+    })
+    grouped.set(key, item)
+  })
+  return [...grouped.values()].map((item) => ({
+    name: item.country,
+    latitude: item.latSum / item.samples,
+    longitude: item.lonSum / item.samples,
+    radius: Math.min(18, 6 + Math.log(item.count + 1) * 2.6),
+    fillKey: 'ATTACK',
+    country: item.country,
+    count: item.count,
+    rows: item.rows.sort((a, b) => b.count - a.count)
+  }))
+}
+
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
@@ -731,7 +779,7 @@ const renderMap = async () => {
     height: el.offsetHeight || 560,
     width: el.offsetWidth || 720,
     setProjection: fitMapProjection,
-    fills: { defaultFill: '#ECF2F5' },
+    fills: { defaultFill: '#ECF2F5', ATTACK: '#E31A1C' },
     geographyConfig: {
       hideAntarctica: true,
       borderWidth: 0.8,
@@ -742,6 +790,17 @@ const renderMap = async () => {
       highlightBorderWidth: 1,
       popupOnHover: true,
       popupTemplate: (geography) => `<div class="hoverinfo">${geography.properties.name}</div>`
+    },
+    bubblesConfig: {
+      borderWidth: 1,
+      borderColor: '#fff',
+      fillOpacity: 0.85,
+      highlightOnHover: true,
+      popupOnHover: true,
+      popupTemplate: (_geo, data) => {
+        const rows = (data.rows || []).map((row) => `${row.city || data.country} ${row.ip} × ${row.count}`).join('<br>')
+        return `<div class="hoverinfo"><strong>${data.country || data.name}</strong><br>${rows}</div>`
+      }
     }
   })
   const svg = el.querySelector('svg')
@@ -751,17 +810,21 @@ const renderMap = async () => {
     svg.setAttribute('height', '100%')
     svg.setAttribute('viewBox', `0 0 ${el.offsetWidth || 720} ${el.offsetHeight || 560}`)
   }
+  const bubbles = buildBubbles()
+  if (bubbles.length) mapInstance.bubbles(bubbles)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
 }
 
 const loadDashboard = async () => {
-  const [d, geoCfg, rules] = await Promise.all([
+  const [d, mapData, geoCfg, rules] = await Promise.all([
     agentGet('/dashboard'),
+    agentGet('/map'),
     agentGet('/geo_config'),
     agentGet('/rules')
   ])
   dashboard.value = d
+  mapPoints.value = mapData.points || []
   Object.assign(geo, { state: geoCfg.state || 'off', action: geoCfg.action || 'deny', rules: geoCfg.rules || [] })
   geoRulesText.value = (geo.rules || []).join(',')
   wafRules.value = rules || {}
