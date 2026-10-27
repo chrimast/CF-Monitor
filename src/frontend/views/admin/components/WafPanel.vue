@@ -123,12 +123,12 @@
                     <option value="allow">{{ trans.wafpanelGeoAllow }}</option>
                   </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group wafpanel-geo-codes">
                   <label class="form-label">{{ trans.wafpanelCountries }}</label>
-                  <input v-model="geoRulesText" class="form-input" placeholder="CN,US,RU">
-                </div>
-                <div class="form-group dnshub-actions">
-                  <button class="btn btn-primary" type="button" @click="saveGeo">{{ trans.wafpanelSaveReload }}</button>
+                  <div class="wafpanel-geo-codes-row">
+                    <input v-model="geoRulesText" class="form-input" placeholder="CN,US,RU">
+                    <button class="btn btn-primary" type="button" @click="saveGeo">{{ trans.wafpanelSaveReload }}</button>
+                  </div>
                 </div>
               </div>
             </div>

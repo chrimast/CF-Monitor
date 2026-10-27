@@ -5660,6 +5660,27 @@ body.admin-workspace .admin-container {
     min-width: 0;
 }
 
+.wafpanel-geo-codes {
+    grid-column: 1 / -1;
+}
+
+.wafpanel-geo-codes-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.wafpanel-geo-codes-row .form-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.wafpanel-geo-codes-row .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .wafpanel-table {
     overflow-x: auto;
 }

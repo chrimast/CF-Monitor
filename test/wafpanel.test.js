@@ -185,6 +185,10 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /wafpanelPages/)
   assert.match(panel, /toggleLogBan/)
   assert.match(panel, /saveGeo/)
+  assert.ok(panel.includes('wafpanel-geo-codes'))
+  assert.ok(panel.includes('wafpanel-geo-codes-row'))
+  assert.match(panel, /wafpanel-geo-codes-row[\s\S]*geoRulesText[\s\S]*saveGeo/)
+  assert.equal(/class="form-group dnshub-actions"[\s\S]{0,180}@click="saveGeo"/.test(panel), false)
   assert.match(panel, /lookupASN/)
   assert.match(panel, /toggleAutobanProtection/)
   assert.match(panel, /savePage/)
@@ -301,6 +305,9 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-log-row\s*\{[\s\S]*grid-template-columns:/)
   assert.match(css, /\.wafpanel-log-row\s*\{[\s\S]*white-space:\s*nowrap/)
   assert.match(css, /\.wafpanel-log-head,\s*\n\.wafpanel-log-row \{\n    display: grid;\n    grid-template-columns: minmax\(110px, 1fr\) 52px minmax\(72px, 0\.9fr\) minmax\(0, 1\.6fr\) minmax\(118px, 0\.8fr\) minmax\(118px, 0\.8fr\) 88px 104px;/)
+  assert.match(css, /\.wafpanel-geo-codes\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1/)
+  assert.match(css, /\.wafpanel-geo-codes-row\s*\{[\s\S]*display:\s*flex/)
+  assert.match(css, /\.wafpanel-geo-codes-row \.form-input\s*\{[\s\S]*flex:\s*1/)
 }
 
 {
