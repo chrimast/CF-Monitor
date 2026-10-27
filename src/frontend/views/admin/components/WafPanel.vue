@@ -470,7 +470,6 @@ const notice = ref('')
 const nodes = ref([])
 const currentNode = ref(null)
 const dashboard = ref({})
-const mapPoints = ref([])
 const logs = ref([])
 const logsTotal = ref(0)
 const logPage = ref(1)
@@ -580,17 +579,6 @@ const handleMapResize = () => {
   mapResizeTimer = setTimeout(() => {
     renderMap()
   }, 120)
-}
-
-const ISO2_TO_ISO3 = Object.fromEntries(
-  'AF-AFG,AX-ALA,AL-ALB,DZ-DZA,AS-ASM,AD-AND,AO-AGO,AI-AIA,AQ-ATA,AG-ATG,AR-ARG,AM-ARM,AW-ABW,AU-AUS,AT-AUT,AZ-AZE,BS-BHS,BH-BHR,BD-BGD,BB-BRB,BY-BLR,BE-BEL,BZ-BLZ,BJ-BEN,BM-BMU,BT-BTN,BO-BOL,BQ-BES,BA-BIH,BW-BWA,BV-BVT,BR-BRA,IO-IOT,BN-BRN,BG-BGR,BF-BFA,BI-BDI,KH-KHM,CM-CMR,CA-CAN,CV-CPV,KY-CYM,CF-CAF,TD-TCD,CL-CHL,CN-CHN,CX-CXR,CC-CCK,CO-COL,KM-COM,CG-COG,CD-COD,CK-COK,CR-CRI,CI-CIV,HR-HRV,CU-CUB,CW-CUW,CY-CYP,CZ-CZE,DK-DNK,DJ-DJI,DM-DMA,DO-DOM,EC-ECU,EG-EGY,SV-SLV,GQ-GNQ,ER-ERI,EE-EST,SZ-SWZ,ET-ETH,FK-FLK,FO-FRO,FJ-FJI,FI-FIN,FR-FRA,GF-GUF,PF-PYF,TF-ATF,GA-GAB,GM-GMB,GE-GEO,DE-DEU,GH-GHA,GI-GIB,GR-GRC,GL-GRL,GD-GRD,GP-GLP,GU-GUM,GT-GTM,GG-GGY,GN-GIN,GW-GNB,GY-GUY,HT-HTI,HM-HMD,VA-VAT,HN-HND,HK-HKG,HU-HUN,IS-ISL,IN-IND,ID-IDN,IR-IRN,IQ-IRQ,IE-IRL,IM-IMN,IL-ISR,IT-ITA,JM-JAM,JP-JPN,JE-JEY,JO-JOR,KZ-KAZ,KE-KEN,KI-KIR,KP-PRK,KR-KOR,KW-KWT,KG-KGZ,LA-LAO,LV-LVA,LB-LBN,LS-LSO,LR-LBR,LY-LBY,LI-LIE,LT-LTU,LU-LUX,MO-MAC,MG-MDG,MW-MWI,MY-MYS,MV-MDV,ML-MLI,MT-MLT,MH-MHL,MQ-MTQ,MR-MRT,MU-MUS,YT-MYT,MX-MEX,FM-FSM,MD-MDA,MC-MCO,MN-MNG,ME-MNE,MS-MSR,MA-MAR,MZ-MOZ,MM-MMR,NA-NAM,NR-NRU,NP-NPL,NL-NLD,NC-NCL,NZ-NZL,NI-NIC,NE-NER,NG-NGA,NU-NIU,NF-NFK,MK-MKD,MP-MNP,NO-NOR,OM-OMN,PK-PAK,PW-PLW,PS-PSE,PA-PAN,PG-PNG,PY-PRY,PE-PER,PH-PHL,PN-PCN,PL-POL,PT-PRT,PR-PRI,QA-QAT,RE-REU,RO-ROU,RU-RUS,RW-RWA,BL-BLM,SH-SHN,KN-KNA,LC-LCA,MF-MAF,PM-SPM,VC-VCT,WS-WSM,SM-SMR,ST-STP,SA-SAU,SN-SEN,RS-SRB,SC-SYC,SL-SLE,SG-SGP,SX-SXM,SK-SVK,SI-SVN,SB-SLB,SO-SOM,ZA-ZAF,GS-SGS,SS-SSD,ES-ESP,LK-LKA,SD-SDN,SR-SUR,SJ-SJM,SE-SWE,CH-CHE,SY-SYR,TW-TWN,TJ-TJK,TZ-TZA,TH-THA,TL-TLS,TG-TGO,TK-TKL,TO-TON,TT-TTO,TN-TUN,TR-TUR,TM-TKM,TC-TCA,TV-TUV,UG-UGA,UA-UKR,AE-ARE,GB-GBR,UK-GBR,US-USA,UM-UMI,UY-URY,UZ-UZB,VU-VUT,VE-VEN,VN-VNM,VG-VGB,VI-VIR,WF-WLF,EH-ESH,YE-YEM,ZM-ZMB,ZW-ZWE'.split(',').map((item) => item.split('-'))
-)
-const CHORO_FILLS = {
-  LOW: '#ffffcc',
-  MEDIUM: '#fd8d3c',
-  HIGH: '#e31a1c',
-  VERYHIGH: '#800026',
-  defaultFill: '#ABDDA4'
 }
 
 const unwrap = (result) => {
@@ -705,46 +693,6 @@ const ensureDatamaps = async () => {
   return window.Datamap
 }
 
-const countryCodeFromPoint = (point) => {
-  const iso3 = String(point.countryCode3 || point.iso3 || '').toUpperCase()
-  if (iso3.length === 3) return iso3
-  const iso2 = String(point.countryCode || point.country_code || point.iso || '').toUpperCase()
-  return ISO2_TO_ISO3[iso2] || ''
-}
-
-const choroplethFillKey = (count, max) => {
-  if (!max || count <= 0) return 'LOW'
-  const ratio = count / max
-  if (ratio >= 0.75) return 'VERYHIGH'
-  if (ratio >= 0.45) return 'HIGH'
-  if (ratio >= 0.2) return 'MEDIUM'
-  return 'LOW'
-}
-
-const buildChoroplethData = () => {
-  const grouped = {}
-  mapPoints.value.forEach((point) => {
-    const code = countryCodeFromPoint(point)
-    if (!code) return
-    const item = grouped[code] || { count: 0, country: point.country || code, cities: new Set() }
-    item.count += Number(point.count || 0)
-    if (point.city) item.cities.add(point.city)
-    if (point.country) item.country = point.country
-    grouped[code] = item
-  })
-  const max = Object.values(grouped).reduce((acc, item) => Math.max(acc, item.count), 0)
-  const data = {}
-  Object.entries(grouped).forEach(([code, item]) => {
-    data[code] = {
-      fillKey: choroplethFillKey(item.count, max),
-      count: item.count,
-      country: item.country,
-      cities: [...item.cities].join(', ')
-    }
-  })
-  return data
-}
-
 const fitMapProjection = (element) => {
   const width = Math.max(element.offsetWidth || 720, 1)
   const height = Math.max(element.offsetHeight || 560, 1)
@@ -764,76 +712,12 @@ const fitMapProjection = (element) => {
   return { path, projection }
 }
 
-const locationKey = (point) => {
-  const country = String(point.country || point.countryCode || '').trim().toLowerCase()
-  const city = String(point.city || '').trim().toLowerCase()
-  const region = String(point.region || point.regionName || '').trim().toLowerCase()
-  const cityKey = city || region
-  if (cityKey && country) return `place:${country}:${cityKey}`
-  if (cityKey) return `place:${cityKey}`
-  const latitude = Number(point.lat)
-  const longitude = Number(point.lon)
-  if (Number.isFinite(latitude) && Number.isFinite(longitude)) return `geo:${latitude.toFixed(1)},${longitude.toFixed(1)}`
-  return ''
-}
-
-const buildBubbles = () => {
-  const grouped = new Map()
-  mapPoints.value.forEach((point) => {
-    const latitude = Number(point.lat)
-    const longitude = Number(point.lon)
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
-    const key = locationKey(point)
-    if (!key) return
-    const item = grouped.get(key) || {
-      latitude,
-      longitude,
-      latSum: 0,
-      lonSum: 0,
-      samples: 0,
-      count: 0,
-      country: point.country || '',
-      city: point.city || '',
-      region: point.region || point.regionName || '',
-      ips: new Map()
-    }
-    item.count += Number(point.count) || 0
-    item.latSum += latitude
-    item.lonSum += longitude
-    item.samples += 1
-    item.latitude = item.latSum / item.samples
-    item.longitude = item.lonSum / item.samples
-    if (point.country) item.country = point.country
-    if (point.city) item.city = point.city
-    if (point.region || point.regionName) item.region = point.region || point.regionName
-    const ip = point.ip || key
-    item.ips.set(ip, (item.ips.get(ip) || 0) + (Number(point.count) || 0))
-    grouped.set(key, item)
-  })
-  return [...grouped.values()].map((item) => {
-    const ips = [...item.ips.entries()].sort((a, b) => b[1] - a[1])
-    return {
-      name: item.city || item.region || item.country || ips[0]?.[0] || '',
-      latitude: item.latitude,
-      longitude: item.longitude,
-      radius: Math.min(16, 5 + Math.log(item.count + 1) * 2.4),
-      fillKey: 'HIGH',
-      country: item.country,
-      city: item.city,
-      region: item.region,
-      count: item.count,
-      ips
-    }
-  })
-}
-
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
   if (!el) return
   const Datamap = await ensureDatamaps()
   if (!Datamap) return
-  const choropleth = buildChoroplethData()
   if (mapInstance) {
     el.innerHTML = ''
     mapInstance = null
@@ -847,34 +731,17 @@ const renderMap = async () => {
     height: el.offsetHeight || 560,
     width: el.offsetWidth || 720,
     setProjection: fitMapProjection,
-    fills: CHORO_FILLS,
-    data: choropleth,
+    fills: { defaultFill: '#ECF2F5' },
     geographyConfig: {
       hideAntarctica: true,
-      borderWidth: 1,
-      borderColor: '#FDFDFD',
+      borderWidth: 0.8,
+      borderColor: '#8FA152',
       highlightOnHover: true,
-      highlightFillColor: '#FC8D59',
-      highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
-      highlightBorderWidth: 2,
-      popupOnHover: false,
-      popupTemplate: (geography, data) => {
-        const count = data?.count || 0
-        const extra = data?.cities ? `<br>${data.cities}` : ''
-        return `<div class="hoverinfo"><strong>${data?.country || geography.properties.name}</strong><br>${count}${extra}</div>`
-      }
-    },
-    bubblesConfig: {
-      borderWidth: 1,
-      borderColor: '#fff',
-      fillOpacity: 0.85,
-      highlightOnHover: true,
+      highlightFillColor: '#D7E8E7',
+      highlightBorderColor: '#199C98',
+      highlightBorderWidth: 1,
       popupOnHover: true,
-      popupTemplate: (_geo, data) => {
-        const place = [data.city, data.region, data.country].filter(Boolean).join(' ')
-        const rows = (data.ips || []).map(([ip, count]) => `${ip} × ${count}`).join('<br>')
-        return `<div class="hoverinfo"><strong>${place || data.name}</strong><br>${data.count}<br>${rows}</div>`
-      }
+      popupTemplate: (geography) => `<div class="hoverinfo">${geography.properties.name}</div>`
     }
   })
   const svg = el.querySelector('svg')
@@ -884,22 +751,17 @@ const renderMap = async () => {
     svg.setAttribute('height', '100%')
     svg.setAttribute('viewBox', `0 0 ${el.offsetWidth || 720} ${el.offsetHeight || 560}`)
   }
-  mapInstance.updateChoropleth(choropleth)
-  const bubbles = buildBubbles()
-  if (bubbles.length) mapInstance.bubbles(bubbles)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
 }
 
 const loadDashboard = async () => {
-  const [d, mapData, geoCfg, rules] = await Promise.all([
+  const [d, geoCfg, rules] = await Promise.all([
     agentGet('/dashboard'),
-    agentGet('/map'),
     agentGet('/geo_config'),
     agentGet('/rules')
   ])
   dashboard.value = d
-  mapPoints.value = mapData.points || []
   Object.assign(geo, { state: geoCfg.state || 'off', action: geoCfg.action || 'deny', rules: geoCfg.rules || [] })
   geoRulesText.value = (geo.rules || []).join(',')
   wafRules.value = rules || {}
