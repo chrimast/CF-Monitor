@@ -191,6 +191,8 @@ const env = { DB: makeMemoryDb() }
   assert.equal(/class="form-group dnshub-actions"[\s\S]{0,180}@click="saveGeo"/.test(panel), false)
   assert.match(panel, /lookupASN/)
   assert.match(panel, /toggleAutobanProtection/)
+  assert.ok(panel.includes('wafpanel-autoban-top'))
+  assert.match(panel, /wafpanel-autoban-top[\s\S]*wafpanelProtection[\s\S]*wafpanelPreset[\s\S]*wafpanelManualIp/)
   assert.match(panel, /savePage/)
   assert.match(panel, /blacklist_add/)
   assert.match(panel, /autoban_config/)
@@ -318,6 +320,8 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-geo-codes\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1/)
   assert.match(css, /\.wafpanel-geo-codes-row\s*\{[\s\S]*display:\s*flex/)
   assert.match(css, /\.wafpanel-geo-codes-row \.form-input\s*\{[\s\S]*flex:\s*1/)
+  assert.match(css, /\.wafpanel-autoban-top\s*\{[\s\S]*grid-template-columns:/)
+  assert.match(css, /\.wafpanel-autoban-ip \.form-input\s*\{[\s\S]*flex:\s*1/)
 }
 
 {

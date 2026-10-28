@@ -5689,6 +5689,38 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
+.wafpanel-autoban-top {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: end;
+    margin-bottom: 12px;
+}
+
+.wafpanel-autoban-top .form-group {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+.wafpanel-autoban-presets,
+.wafpanel-autoban-ip-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.wafpanel-autoban-ip .form-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.wafpanel-autoban-presets .btn,
+.wafpanel-autoban-ip-row .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .wafpanel-table {
     overflow-x: auto;
 }
@@ -5834,7 +5866,8 @@ body.admin-workspace .admin-container {
     .dnshub-compact-grid,
     .wafpanel-dash,
     .wafpanel-resource-columns,
-    .wafpanel-node-form {
+    .wafpanel-node-form,
+    .wafpanel-autoban-top {
         grid-template-columns: 1fr;
     }
 

@@ -256,22 +256,22 @@
       <div v-else-if="page === 'autoban'" class="settings-section">
         <div class="section-title">{{ trans.wafpanelAutoban }}</div>
         <p class="dnshub-hint">{{ trans.wafpanelAutobanHint }}</p>
-        <div class="dnshub-compact-grid">
+        <div class="wafpanel-autoban-top">
           <div class="form-group">
             <label class="form-label">{{ trans.wafpanelProtection }}</label>
             <button class="btn" :class="ab.enabled ? 'btn-red' : 'btn-primary'" type="button" @click="toggleAutobanProtection">{{ ab.enabled ? trans.wafpanelDisableProtect : trans.wafpanelEnableProtect }}</button>
           </div>
           <div class="form-group">
             <label class="form-label">{{ trans.wafpanelPreset }}</label>
-            <div style="display:flex;gap:8px">
+            <div class="wafpanel-autoban-presets">
               <button class="btn" type="button" @click="applyAutobanPreset('loose')">{{ trans.wafpanelLoose }}</button>
               <button class="btn" type="button" @click="applyAutobanPreset('standard')">{{ trans.wafpanelStandard }}</button>
               <button class="btn" type="button" @click="applyAutobanPreset('strict')">{{ trans.wafpanelStrict }}</button>
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group wafpanel-autoban-ip">
             <label class="form-label">{{ trans.wafpanelManualIp }}</label>
-            <div style="display:flex;gap:8px">
+            <div class="wafpanel-autoban-ip-row">
               <input v-model="manualIp" class="form-input">
               <button class="btn btn-red" type="button" @click="manualAutoban('ban')">{{ trans.wafpanelBan }}</button>
               <button class="btn" type="button" @click="manualAutoban('unban')">{{ trans.wafpanelUnban }}</button>
