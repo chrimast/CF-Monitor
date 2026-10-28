@@ -195,6 +195,7 @@ const env = { DB: makeMemoryDb() }
   assert.match(panel, /wafpanel-autoban-top[\s\S]*wafpanelProtection[\s\S]*wafpanelPreset/)
   assert.equal(/class="wafpanel-autoban-top"[\s\S]{0,900}wafpanelManualIp/.test(panel), false)
   assert.match(panel, /wafpanelBlocks[\s\S]*wafpanel-temp-ban-ip[\s\S]*wafpanelManualIp[\s\S]*manualAutoban/)
+  assert.match(panel, /r\.message \|\| \(op === 'ban' \? '已封禁' : '已解封'\)/)
   assert.match(i18n, /wafpanelBlocks: 'Temporary ban records'/)
   assert.match(i18n, /wafpanelBlocks: '临时封禁记录'/)
   assert.match(panel, /savePage/)

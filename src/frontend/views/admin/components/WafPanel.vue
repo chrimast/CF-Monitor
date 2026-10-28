@@ -1379,7 +1379,7 @@ const applyAutobanPreset = async (name) => {
 }
 const manualAutoban = async (op) => {
   const r = await agentPost(op === 'ban' ? '/autoban_ban' : '/autoban_unban', { ip: manualIp.value.trim() })
-  toast(r.ok ? (op === 'ban' ? '已封禁' : '已解封') : '操作失败', !r.ok)
+  toast(r.ok ? (r.message || (op === 'ban' ? '已封禁' : '已解封')) : (r.message || r.output || '操作失败'), !r.ok)
   if (r.ok) await loadBans(banPage.value)
 }
 const editPage = async (name) => {
