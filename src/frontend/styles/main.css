@@ -5691,7 +5691,7 @@ body.admin-workspace .admin-container {
 
 .wafpanel-autoban-top {
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 8px 12px;
     align-items: end;
     margin-bottom: 12px;
@@ -5703,20 +5703,24 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-autoban-presets,
-.wafpanel-autoban-ip-row {
+.wafpanel-temp-ban-ip-row {
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
 }
 
-.wafpanel-autoban-ip .form-input {
+.wafpanel-temp-ban-ip {
+    margin: 0 0 12px;
+}
+
+.wafpanel-temp-ban-ip .form-input {
     flex: 1 1 auto;
     min-width: 0;
 }
 
 .wafpanel-autoban-presets .btn,
-.wafpanel-autoban-ip-row .btn {
+.wafpanel-temp-ban-ip-row .btn {
     flex: 0 0 auto;
     white-space: nowrap;
 }

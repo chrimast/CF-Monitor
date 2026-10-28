@@ -220,6 +220,14 @@
 
       <div v-else-if="page === 'bans'" class="settings-section">
         <div class="section-title">{{ trans.wafpanelBlocks }}</div>
+        <div class="form-group wafpanel-temp-ban-ip">
+          <label class="form-label">{{ trans.wafpanelManualIp }}</label>
+          <div class="wafpanel-temp-ban-ip-row">
+            <input v-model="manualIp" class="form-input">
+            <button class="btn btn-red" type="button" @click="manualAutoban('ban')">{{ trans.wafpanelBan }}</button>
+            <button class="btn" type="button" @click="manualAutoban('unban')">{{ trans.wafpanelUnban }}</button>
+          </div>
+        </div>
         <div class="wafpanel-table">
           <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelDuration }}</span><span>{{ trans.wafpanelState }}</span><span></span></div>
           <div v-for="row in bans" :key="row.id || row.ip" class="dnshub-domain-row">
@@ -267,14 +275,6 @@
               <button class="btn" type="button" @click="applyAutobanPreset('loose')">{{ trans.wafpanelLoose }}</button>
               <button class="btn" type="button" @click="applyAutobanPreset('standard')">{{ trans.wafpanelStandard }}</button>
               <button class="btn" type="button" @click="applyAutobanPreset('strict')">{{ trans.wafpanelStrict }}</button>
-            </div>
-          </div>
-          <div class="form-group wafpanel-autoban-ip">
-            <label class="form-label">{{ trans.wafpanelManualIp }}</label>
-            <div class="wafpanel-autoban-ip-row">
-              <input v-model="manualIp" class="form-input">
-              <button class="btn btn-red" type="button" @click="manualAutoban('ban')">{{ trans.wafpanelBan }}</button>
-              <button class="btn" type="button" @click="manualAutoban('unban')">{{ trans.wafpanelUnban }}</button>
             </div>
           </div>
         </div>
@@ -1380,6 +1380,7 @@ const applyAutobanPreset = async (name) => {
 const manualAutoban = async (op) => {
   const r = await agentPost(op === 'ban' ? '/autoban_ban' : '/autoban_unban', { ip: manualIp.value.trim() })
   toast(r.ok ? (op === 'ban' ? '已封禁' : '已解封') : '操作失败', !r.ok)
+  if (r.ok) await loadBans(banPage.value)
 }
 const editPage = async (name) => {
   const d = await agentGet(`/page_get?name=${encodeURIComponent(name)}`)
