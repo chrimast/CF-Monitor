@@ -734,6 +734,7 @@ const buildBubbles = () => {
       samples: 0,
       count: 0,
       country: point.country || key,
+      code: String(point.countryCode || '').trim().toUpperCase(),
       rows: []
     }
     item.count += Number(point.count) || 0
@@ -741,6 +742,7 @@ const buildBubbles = () => {
     item.lonSum += longitude
     item.samples += 1
     if (point.country) item.country = point.country
+    if (point.countryCode) item.code = String(point.countryCode).trim().toUpperCase()
     item.rows.push({
       city: point.city || point.region || '',
       ip: point.ip || '',
@@ -755,9 +757,89 @@ const buildBubbles = () => {
     radius: Math.min(18, 6 + Math.log(item.count + 1) * 2.6),
     fillKey: 'ATTACK',
     country: item.country,
+    code: item.code || '',
     count: item.count,
     rows: item.rows.sort((a, b) => b.count - a.count)
   }))
+}
+
+const separateOverlappingBubbles = (bubbles, projection) => {
+  if (!projection || bubbles.length < 2) return bubbles
+  const gap = 6
+  const maxOffset = 28
+  const nodes = bubbles.map((bubble) => {
+    const xy = projection([bubble.longitude, bubble.latitude]) || [0, 0]
+    return {
+      bubble,
+      originX: xy[0],
+      originY: xy[1],
+      x: xy[0],
+      y: xy[1],
+      r: Number(bubble.radius) || 6
+    }
+  })
+  for (let pass = 0; pass < 8; pass++) {
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i]
+        const b = nodes[j]
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let dist = Math.hypot(dx, dy)
+        const minDist = a.r + b.r + gap
+        if (dist >= minDist) continue
+        if (dist < 0.01) {
+          dx = 1
+          dy = 0
+          dist = 1
+        }
+        const push = (minDist - dist) / 2
+        const ux = dx / dist
+        const uy = dy / dist
+        a.x -= ux * push
+        a.y -= uy * push
+        b.x += ux * push
+        b.y += uy * push
+      }
+    }
+  }
+  nodes.forEach((node) => {
+    let dx = node.x - node.originX
+    let dy = node.y - node.originY
+    const offset = Math.hypot(dx, dy)
+    if (offset > maxOffset) {
+      const scale = maxOffset / offset
+      node.x = node.originX + dx * scale
+      node.y = node.originY + dy * scale
+    }
+    const inverted = projection.invert([node.x, node.y])
+    if (!inverted) return
+    node.bubble.longitude = inverted[0]
+    node.bubble.latitude = inverted[1]
+  })
+  return bubbles
+}
+
+const labelBubbles = (el, bubbles, projection) => {
+  if (!window.d3 || !projection) return
+  const svg = window.d3.select(el).select('svg')
+  svg.selectAll('.wafpanel-bubble-label').remove()
+  svg.selectAll('.wafpanel-bubble-label')
+    .data(bubbles.filter((item) => item.code))
+    .enter()
+    .append('text')
+    .attr('class', 'wafpanel-bubble-label')
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'middle')
+    .attr('x', (item) => {
+      const xy = projection([item.longitude, item.latitude])
+      return xy ? xy[0] : 0
+    })
+    .attr('y', (item) => {
+      const xy = projection([item.longitude, item.latitude])
+      return xy ? xy[1] : 0
+    })
+    .text((item) => item.code)
 }
 
 const renderMap = async () => {
@@ -810,8 +892,10 @@ const renderMap = async () => {
     svg.setAttribute('height', '100%')
     svg.setAttribute('viewBox', `0 0 ${el.offsetWidth || 720} ${el.offsetHeight || 560}`)
   }
-  const bubbles = buildBubbles()
+  const { projection } = fitMapProjection(el)
+  const bubbles = separateOverlappingBubbles(buildBubbles(), projection)
   if (bubbles.length) mapInstance.bubbles(bubbles)
+  labelBubbles(el, bubbles, projection)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
 }

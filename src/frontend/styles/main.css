@@ -5656,6 +5656,14 @@ body.admin-workspace .admin-container {
     line-height: 1.4;
 }
 
+.wafpanel-bubble-label {
+    fill: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    pointer-events: none;
+    text-shadow: 0 0 2px #7a1a1a;
+}
+
 .wafpanel-side {
     min-width: 0;
 }
