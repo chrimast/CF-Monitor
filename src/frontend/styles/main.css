@@ -5725,6 +5725,39 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
+.wafpanel-bans-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    min-width: 0;
+}
+
+.wafpanel-bans-temp,
+.wafpanel-bans-lists {
+    min-width: 0;
+}
+
+.wafpanel-list-switch,
+.wafpanel-list-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    min-width: 0;
+}
+
+.wafpanel-list-add .form-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.wafpanel-list-switch .btn,
+.wafpanel-list-add .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .wafpanel-table {
     overflow-x: auto;
 }
@@ -5871,7 +5904,8 @@ body.admin-workspace .admin-container {
     .wafpanel-dash,
     .wafpanel-resource-columns,
     .wafpanel-node-form,
-    .wafpanel-autoban-top {
+    .wafpanel-autoban-top,
+    .wafpanel-bans-split {
         grid-template-columns: 1fr;
     }
 

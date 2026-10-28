@@ -219,44 +219,50 @@
       </div>
 
       <div v-else-if="page === 'bans'" class="settings-section">
-        <div class="section-title">{{ trans.wafpanelBlocks }}</div>
-        <div class="form-group wafpanel-temp-ban-ip">
-          <label class="form-label">{{ trans.wafpanelManualIp }}</label>
-          <div class="wafpanel-temp-ban-ip-row">
-            <input v-model="manualIp" class="form-input">
-            <button class="btn btn-red" type="button" @click="manualAutoban('ban')">{{ trans.wafpanelBan }}</button>
-            <button class="btn" type="button" @click="manualAutoban('unban')">{{ trans.wafpanelUnban }}</button>
+        <div class="wafpanel-bans-split">
+          <div class="wafpanel-bans-temp">
+            <div class="section-title">{{ trans.wafpanelBlocks }}</div>
+            <div class="form-group wafpanel-temp-ban-ip">
+              <label class="form-label">{{ trans.wafpanelManualIp }}</label>
+              <div class="wafpanel-temp-ban-ip-row">
+                <input v-model="manualIp" class="form-input">
+                <button class="btn btn-red" type="button" @click="manualAutoban('ban')">{{ trans.wafpanelBan }}</button>
+                <button class="btn" type="button" @click="manualAutoban('unban')">{{ trans.wafpanelUnban }}</button>
+              </div>
+            </div>
+            <div class="wafpanel-table">
+              <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelDuration }}</span><span>{{ trans.wafpanelState }}</span><span></span></div>
+              <div v-for="row in bans" :key="row.id || row.ip" class="dnshub-domain-row">
+                <span>{{ row.create_date }}</span>
+                <code>{{ row.ip }}</code>
+                <span>{{ row.blocking_time ? row.blocking_time + 's' : trans.wafpanelPermanent }}</span>
+                <span>{{ row.is_block ? trans.wafpanelBlocking : trans.wafpanelUnbanned }}</span>
+                <button class="btn btn-red" type="button" @click="unblock(row)">{{ trans.wafpanelUnban }}</button>
+              </div>
+            </div>
+            <div v-if="banPages > 1" class="dnshub-actions" style="margin-top:8px">
+              <button class="btn" type="button" :disabled="banPage <= 1" @click="loadBans(banPage - 1)">‹</button>
+              <span class="text-sm">{{ banPage }} / {{ banPages }}</span>
+              <button class="btn" type="button" :disabled="banPage >= banPages" @click="loadBans(banPage + 1)">›</button>
+            </div>
           </div>
-        </div>
-        <div class="wafpanel-table">
-          <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelDuration }}</span><span>{{ trans.wafpanelState }}</span><span></span></div>
-          <div v-for="row in bans" :key="row.id || row.ip" class="dnshub-domain-row">
-            <span>{{ row.create_date }}</span>
-            <code>{{ row.ip }}</code>
-            <span>{{ row.blocking_time ? row.blocking_time + 's' : trans.wafpanelPermanent }}</span>
-            <span>{{ row.is_block ? trans.wafpanelBlocking : trans.wafpanelUnbanned }}</span>
-            <button class="btn btn-red" type="button" @click="unblock(row)">{{ trans.wafpanelUnban }}</button>
-          </div>
-        </div>
-        <div v-if="banPages > 1" class="dnshub-actions" style="margin-top:8px">
-          <button class="btn" type="button" :disabled="banPage <= 1" @click="loadBans(banPage - 1)">‹</button>
-          <span class="text-sm">{{ banPage }} / {{ banPages }}</span>
-          <button class="btn" type="button" :disabled="banPage >= banPages" @click="loadBans(banPage + 1)">›</button>
-        </div>
-        <div class="section-title" style="margin-top:16px">{{ trans.wafpanelBlackWhite }}</div>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button class="btn" type="button" :class="{ 'btn-primary': listType === 'black' }" @click="listType = 'black'">{{ trans.wafpanelBlack }} ({{ (blacklist.ipBlack || []).length }})</button>
-          <button class="btn" type="button" :class="{ 'btn-primary': listType === 'white' }" @click="listType = 'white'">{{ trans.wafpanelWhite }} ({{ (blacklist.ipWhite || []).length }})</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input v-model="newIp" class="form-input" placeholder="IP / CIDR">
-          <button class="btn btn-primary" type="button" @click="addListedIp">{{ trans.wafpanelAdd }}</button>
-        </div>
-        <div class="wafpanel-table">
-          <div v-for="rule in currentList" :key="ipRuleValue(rule)" class="dnshub-domain-row">
-            <code>{{ ipRuleValue(rule) }}</code>
-            <button class="btn" type="button" @click="toggleIpState(rule)">{{ ipRuleState(rule) === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
-            <button class="btn btn-red" type="button" @click="removeListedIp(rule)">{{ trans.delete || '删除' }}</button>
+          <div class="wafpanel-bans-lists">
+            <div class="section-title">{{ trans.wafpanelBlackWhite }}</div>
+            <div class="wafpanel-list-switch">
+              <button class="btn" type="button" :class="{ 'btn-primary': listType === 'black' }" @click="listType = 'black'">{{ trans.wafpanelBlack }} ({{ (blacklist.ipBlack || []).length }})</button>
+              <button class="btn" type="button" :class="{ 'btn-primary': listType === 'white' }" @click="listType = 'white'">{{ trans.wafpanelWhite }} ({{ (blacklist.ipWhite || []).length }})</button>
+            </div>
+            <div class="wafpanel-list-add">
+              <input v-model="newIp" class="form-input" placeholder="IP / CIDR">
+              <button class="btn btn-primary" type="button" @click="addListedIp">{{ trans.wafpanelAdd }}</button>
+            </div>
+            <div class="wafpanel-table">
+              <div v-for="rule in currentList" :key="ipRuleValue(rule)" class="dnshub-domain-row">
+                <code>{{ ipRuleValue(rule) }}</code>
+                <button class="btn" :class="ipRuleState(rule) === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleIpState(rule)">{{ ipRuleState(rule) === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
+                <button class="btn btn-red" type="button" @click="removeListedIp(rule)">{{ trans.delete || '删除' }}</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
