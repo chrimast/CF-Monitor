@@ -5690,16 +5690,29 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-autoban-top {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 8px 12px;
-    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    align-items: center;
     margin-bottom: 12px;
 }
 
 .wafpanel-autoban-top .form-group {
     margin-bottom: 0;
     min-width: 0;
+}
+
+.wafpanel-autoban-protect,
+.wafpanel-autoban-preset {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wafpanel-autoban-protect .form-label,
+.wafpanel-autoban-preset .form-label {
+    margin-bottom: 0;
+    white-space: nowrap;
 }
 
 .wafpanel-autoban-presets,
@@ -5759,19 +5772,32 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-list-row {
-    grid-template-columns: minmax(0, 1.6fr) 72px minmax(72px, 0.25fr) 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.wafpanel-list-ops {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .wafpanel-rule-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px 12px;
-    align-items: end;
+    align-items: center;
 }
 
 .wafpanel-rule-cell {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: 6px;
     min-width: 0;
 }
@@ -5784,9 +5810,22 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
-.wafpanel-rule-cell .btn,
-.wafpanel-rule-save .btn {
-    width: 100%;
+.wafpanel-rule-cell .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.wafpanel-cc-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    gap: 8px 12px;
+    align-items: end;
+    margin-top: 10px;
+}
+
+.wafpanel-cc-row .form-group {
+    margin-bottom: 0;
+    min-width: 0;
 }
 
 .wafpanel-rule-save {
@@ -6017,7 +6056,14 @@ body.admin-workspace .admin-container {
     border-color: #187E87;
 }
 
-.wafpanel-rule-on:hover {
+.wafpanel-preset-on {
+    background: #199C98;
+    color: #fff;
+    border-color: #187E87;
+}
+
+.wafpanel-rule-on:hover,
+.wafpanel-preset-on:hover {
     background: #187E87;
 }
 
@@ -6033,15 +6079,20 @@ body.admin-workspace .admin-container {
     }
 
     .wafpanel-list-row {
-        grid-template-columns: minmax(0, 1.6fr) 72px minmax(88px, 0.4fr) 64px;
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 
     .wafpanel-rule-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .wafpanel-cc-row {
+        grid-template-columns: 1fr;
+    }
+
     .wafpanel-rule-save {
         grid-column: 1 / -1;
+        justify-self: end;
     }
 
     .wafpanel-map {

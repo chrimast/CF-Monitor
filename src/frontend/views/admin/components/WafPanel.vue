@@ -158,6 +158,11 @@
               <span>{{ item.label }}</span>
               <button class="btn" :class="item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
             </div>
+          </div>
+          <div class="wafpanel-cc-row">
+            <div class="form-group"><label class="form-label">CC threshold</label><input v-model.number="ccForm.threshold" class="form-input" type="number"></div>
+            <div class="form-group"><label class="form-label">CC duration</label><input v-model.number="ccForm.duration" class="form-input" type="number"></div>
+            <div class="form-group"><label class="form-label">CC ipBlockTime</label><input v-model.number="ccForm.ipBlockTime" class="form-input" type="number"></div>
             <div class="wafpanel-rule-save">
               <button class="btn btn-primary" type="button" @click="saveCc">{{ trans.wafpanelSaveReload }}</button>
             </div>
@@ -268,8 +273,10 @@
             <div class="wafpanel-table">
               <div v-for="rule in currentList" :key="ipRuleValue(rule)" class="dnshub-domain-row wafpanel-list-row">
                 <code>{{ ipRuleValue(rule) }}</code>
-                <button class="btn" :class="ipRuleState(rule) === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleIpState(rule)">{{ ipRuleState(rule) === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
-                <button class="btn btn-red" type="button" @click="removeListedIp(rule)">{{ trans.delete || '删除' }}</button>
+                <div class="wafpanel-list-ops">
+                  <button class="btn" :class="ipRuleState(rule) === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleIpState(rule)">{{ ipRuleState(rule) === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
+                  <button class="btn btn-red" type="button" @click="removeListedIp(rule)">{{ trans.delete || '删除' }}</button>
+                </div>
               </div>
             </div>
           </div>
@@ -280,23 +287,22 @@
         <div class="section-title">{{ trans.wafpanelAutoban }}</div>
         <p class="dnshub-hint">{{ trans.wafpanelAutobanHint }}</p>
         <div class="wafpanel-autoban-top">
-          <div class="form-group">
+          <div class="form-group wafpanel-autoban-protect">
             <label class="form-label">{{ trans.wafpanelProtection }}</label>
             <button class="btn" :class="ab.enabled ? 'btn-red' : 'btn-primary'" type="button" @click="toggleAutobanProtection">{{ ab.enabled ? trans.wafpanelDisableProtect : trans.wafpanelEnableProtect }}</button>
           </div>
-          <div class="form-group">
+          <div class="form-group wafpanel-autoban-preset">
             <label class="form-label">{{ trans.wafpanelPreset }}</label>
             <div class="wafpanel-autoban-presets">
-              <button class="btn" type="button" @click="applyAutobanPreset('loose')">{{ trans.wafpanelLoose }}</button>
-              <button class="btn" type="button" @click="applyAutobanPreset('standard')">{{ trans.wafpanelStandard }}</button>
-              <button class="btn" type="button" @click="applyAutobanPreset('strict')">{{ trans.wafpanelStrict }}</button>
+              <button class="btn" :class="currentAutobanPreset === 'loose' ? 'wafpanel-preset-on' : ''" type="button" @click="applyAutobanPreset('loose')">{{ trans.wafpanelLoose }}</button>
+              <button class="btn" :class="currentAutobanPreset === 'standard' ? 'wafpanel-preset-on' : ''" type="button" @click="applyAutobanPreset('standard')">{{ trans.wafpanelStandard }}</button>
+              <button class="btn" :class="currentAutobanPreset === 'strict' ? 'wafpanel-preset-on' : ''" type="button" @click="applyAutobanPreset('strict')">{{ trans.wafpanelStrict }}</button>
             </div>
           </div>
         </div>
         <details class="wafpanel-advanced" open>
           <summary>{{ trans.wafpanelAdvanced }}</summary>
           <div class="dnshub-compact-grid" style="margin-top:12px">
-            <label class="form-label"><input type="checkbox" v-model="ab.enabled"> {{ trans.wafpanelEnableProtect }}</label>
             <label class="form-label"><input type="checkbox" v-model="ab.local_ban"> {{ trans.wafpanelLocalFw }}</label>
             <label class="form-label"><input type="checkbox" v-model="ab.waf_blacklist"> {{ trans.wafpanelWriteBlack }}</label>
             <label class="form-label"><input type="checkbox" v-model="ab.cloudflare_ban"> Cloudflare</label>
@@ -562,6 +568,11 @@ const RULE_NAMES = {
 }
 const HIDDEN_RULES = ['cdn', 'defaultUaBlack', 'defaultUrlBlack', 'defaultIpBlack']
 const VISIBLE_RULES = ['waf', 'xss', 'sql', 'cc', 'urlcc', 'attackCount', 'notFoundCount', 'bot', 'geoRestrict', 'strict']
+const AUTOBAN_PRESETS = {
+  loose: { maxretry: 8, findtime: 300, bantime: 1800 },
+  standard: { maxretry: 5, findtime: 600, bantime: 3600 },
+  strict: { maxretry: 3, findtime: 600, bantime: 86400 }
+}
 const wafpanelPages = computed(() => [
   { id: 'dashboard', label: props.trans.wafpanelDashboard },
   { id: 'logs', label: props.trans.wafpanelLogs },
@@ -584,6 +595,14 @@ const abDependency = computed(() => {
 const detectedLogpathsText = computed(() => (detectedLogpaths.value || []).length
   ? `${props.trans.wafpanelDetected}: ${detectedLogpaths.value.join(' / ')}`
   : props.trans.wafpanelDetectedDefault)
+const currentAutobanPreset = computed(() => {
+  const match = Object.entries(AUTOBAN_PRESETS).find(([, preset]) => (
+    Number(ab.maxretry) === preset.maxretry
+    && Number(ab.findtime) === preset.findtime
+    && Number(ab.bantime) === preset.bantime
+  ))
+  return match ? match[0] : ''
+})
 const currentNodeUnreachable = computed(() => !!currentNode.value && currentNode.value.online === false && currentNode.value.status !== 'unknown')
 const ruleList = computed(() => Object.keys(wafRules.value || {})
   .filter((key) => wafRules.value[key] && typeof wafRules.value[key] === 'object' && 'state' in wafRules.value[key])
@@ -1391,8 +1410,7 @@ const toggleAutobanProtection = async () => {
   await restartAutoban()
 }
 const applyAutobanPreset = async (name) => {
-  const map = { loose: { maxretry: 8, findtime: 300, bantime: 1800 }, standard: { maxretry: 5, findtime: 600, bantime: 3600 }, strict: { maxretry: 3, findtime: 600, bantime: 86400 } }
-  Object.assign(ab, map[name] || {})
+  Object.assign(ab, AUTOBAN_PRESETS[name] || {})
   await restartAutoban()
 }
 const manualAutoban = async (op) => {
