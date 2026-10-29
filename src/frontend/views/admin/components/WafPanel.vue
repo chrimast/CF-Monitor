@@ -153,29 +153,32 @@
         </div>
         <div class="settings-section">
           <div class="section-title">{{ trans.wafpanelRules }}</div>
-          <div class="wafpanel-table">
-            <div v-for="item in ruleList" :key="item.key" class="dnshub-domain-row">
+          <div class="wafpanel-rule-grid">
+            <div v-for="item in ruleList" :key="item.key" class="wafpanel-rule-cell">
               <span>{{ item.label }}</span>
               <button class="btn" :class="item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
             </div>
-          </div>
-          <div v-if="ccForm" class="dnshub-compact-grid" style="margin-top:8px">
-            <div class="form-group"><label class="form-label">CC threshold</label><input v-model.number="ccForm.threshold" class="form-input" type="number"></div>
-            <div class="form-group"><label class="form-label">CC duration</label><input v-model.number="ccForm.duration" class="form-input" type="number"></div>
-            <div class="form-group"><label class="form-label">CC ipBlockTime</label><input v-model.number="ccForm.ipBlockTime" class="form-input" type="number"></div>
-            <div class="form-group dnshub-actions"><button class="btn btn-primary" type="button" @click="saveCc">{{ trans.wafpanelSaveReload }}</button></div>
+            <div class="wafpanel-rule-save">
+              <button class="btn btn-primary" type="button" @click="saveCc">{{ trans.wafpanelSaveReload }}</button>
+            </div>
           </div>
         </div>
         <div class="settings-section">
           <div class="section-title">{{ trans.wafpanelRecent }}</div>
-          <div class="wafpanel-table">
-            <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelRule }}</span><span>URI</span><span>{{ trans.wafpanelAction }}</span></div>
+          <div class="wafpanel-table wafpanel-recent-table">
+            <div class="wafpanel-recent-head">
+              <span>{{ trans.wafpanelTime }}</span>
+              <span>IP</span>
+              <span>{{ trans.wafpanelRule }}</span>
+              <span>URL</span>
+              <span>{{ trans.wafpanelAction }}</span>
+            </div>
             <div v-if="!(dashboard.recent || []).length" class="text-muted">暂无记录</div>
-            <div v-for="row in dashboard.recent || []" :key="row.id || (row.ip + row.localtime)" class="dnshub-domain-row">
+            <div v-for="row in dashboard.recent || []" :key="row.id || (row.ip + row.localtime)" class="wafpanel-recent-row">
               <span>{{ row.localtime }}</span>
               <code>{{ row.ip }}</code>
-              <span>{{ row.rule }}</span>
-              <span>{{ row.uri }}</span>
+              <span :title="row.rule">{{ row.rule }}</span>
+              <span :title="row.uri">{{ row.uri }}</span>
               <span>{{ row.is_block ? trans.wafpanelIntercepted : trans.wafpanelLogged }}</span>
             </div>
           </div>
