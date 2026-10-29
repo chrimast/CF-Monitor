@@ -230,9 +230,15 @@
                 <button class="btn" type="button" @click="manualAutoban('unban')">{{ trans.wafpanelUnban }}</button>
               </div>
             </div>
-            <div class="wafpanel-table">
-              <div class="dnshub-domain-head"><span>{{ trans.wafpanelTime }}</span><span>IP</span><span>{{ trans.wafpanelDuration }}</span><span>{{ trans.wafpanelState }}</span><span></span></div>
-              <div v-for="row in bans" :key="row.id || row.ip" class="dnshub-domain-row">
+            <div class="wafpanel-table wafpanel-temp-table">
+              <div class="wafpanel-temp-head">
+                <span>{{ trans.wafpanelTime }}</span>
+                <span>IP</span>
+                <span>{{ trans.wafpanelDuration }}</span>
+                <span>{{ trans.wafpanelState }}</span>
+                <span>{{ trans.wafpanelUnban }}</span>
+              </div>
+              <div v-for="row in bans" :key="row.id || row.ip" class="wafpanel-temp-row">
                 <span>{{ row.create_date }}</span>
                 <code>{{ row.ip }}</code>
                 <span>{{ row.blocking_time ? row.blocking_time + 's' : trans.wafpanelPermanent }}</span>
@@ -551,6 +557,7 @@ const RULE_NAMES = {
   geoRestrict: '地区', allowSpider: '爬虫白名单', ipWhite: 'IP白名单', ipBlack: 'IP黑名单',
   urlWhite: 'URL白名单', urlBlack: 'URL黑名单', uaWhite: 'UA白名单', uaBlack: 'UA黑名单'
 }
+const HIDDEN_RULES = ['cdn', 'defaultUaBlack', 'defaultUrlBlack', 'defaultIpBlack']
 const wafpanelPages = computed(() => [
   { id: 'dashboard', label: props.trans.wafpanelDashboard },
   { id: 'logs', label: props.trans.wafpanelLogs },
@@ -576,6 +583,7 @@ const detectedLogpathsText = computed(() => (detectedLogpaths.value || []).lengt
 const currentNodeUnreachable = computed(() => !!currentNode.value && currentNode.value.online === false && currentNode.value.status !== 'unknown')
 const ruleList = computed(() => Object.keys(wafRules.value || {})
   .filter((key) => wafRules.value[key] && typeof wafRules.value[key] === 'object' && 'state' in wafRules.value[key])
+  .filter((key) => !HIDDEN_RULES.includes(key))
   .map((key) => ({ key, label: RULE_NAMES[key] || key, state: wafRules.value[key].state || 'off' })))
 
 let mapInstance = null

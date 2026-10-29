@@ -5758,6 +5758,49 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
+.wafpanel-temp-table {
+    min-width: 0;
+}
+
+.wafpanel-temp-head,
+.wafpanel-temp-row {
+    display: grid;
+    grid-template-columns: minmax(118px, 1.1fr) minmax(110px, 1fr) 72px 64px 72px;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.wafpanel-temp-head {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.wafpanel-temp-row {
+    font-size: 12px;
+}
+
+.wafpanel-temp-head > *,
+.wafpanel-temp-row > * {
+    min-width: 0;
+}
+
+.wafpanel-temp-row code,
+.wafpanel-temp-row span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wafpanel-temp-row .btn {
+    justify-self: end;
+    white-space: nowrap;
+}
+
 .wafpanel-table {
     overflow-x: auto;
 }

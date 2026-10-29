@@ -198,6 +198,14 @@ const env = { DB: makeMemoryDb() }
   assert.ok(panel.includes('wafpanel-bans-split'))
   assert.ok(panel.includes('wafpanel-bans-temp'))
   assert.ok(panel.includes('wafpanel-bans-lists'))
+  assert.ok(panel.includes('wafpanel-temp-head'))
+  assert.ok(panel.includes('wafpanel-temp-row'))
+  assert.match(panel, /wafpanel-temp-head[\s\S]*wafpanelTime[\s\S]*wafpanelDuration[\s\S]*wafpanelState[\s\S]*wafpanelUnban/)
+  assert.match(panel, /wafpanel-temp-row[\s\S]*unblock\(row\)/)
+  assert.ok(panel.includes('HIDDEN_RULES'))
+  assert.ok(panel.includes('defaultUaBlack'))
+  assert.ok(panel.includes('defaultUrlBlack'))
+  assert.ok(panel.includes('defaultIpBlack'))
   assert.ok(panel.includes("ipRuleState(rule) === 'on' ? 'btn wafpanel-rule-on' : 'btn'"))
   assert.match(panel, /r\.message \|\| \(op === 'ban' \? '已封禁' : '已解封'\)/)
   assert.match(i18n, /wafpanelBlocks: 'Temporary ban records'/)
@@ -331,6 +339,7 @@ const env = { DB: makeMemoryDb() }
   assert.match(css, /\.wafpanel-geo-codes-row \.form-input\s*\{[\s\S]*flex:\s*1/)
   assert.match(css, /\.wafpanel-autoban-top\s*\{[\s\S]*grid-template-columns:/)
   assert.match(css, /\.wafpanel-bans-split\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.5fr\)\s*minmax\(0,\s*1fr\)/)
+  assert.match(css, /\.wafpanel-temp-row\s*\{[\s\S]*grid-template-columns:/)
   assert.match(css, /\.wafpanel-temp-ban-ip \.form-input\s*\{[\s\S]*flex:\s*1/)
 }
 
