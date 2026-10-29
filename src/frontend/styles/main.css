@@ -5728,7 +5728,7 @@ body.admin-workspace .admin-container {
 .wafpanel-bans-split {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-    gap: 16px;
+    gap: 48px;
     align-items: start;
     min-width: 0;
 }
@@ -5756,6 +5756,10 @@ body.admin-workspace .admin-container {
 .wafpanel-list-add .btn {
     flex: 0 0 auto;
     white-space: nowrap;
+}
+
+.wafpanel-list-row {
+    grid-template-columns: minmax(0, 1.6fr) 72px minmax(72px, 0.25fr) 64px;
 }
 
 .wafpanel-temp-table {
@@ -5950,6 +5954,10 @@ body.admin-workspace .admin-container {
     .wafpanel-autoban-top,
     .wafpanel-bans-split {
         grid-template-columns: 1fr;
+    }
+
+    .wafpanel-list-row {
+        grid-template-columns: minmax(0, 1.6fr) 72px minmax(88px, 0.4fr) 64px;
     }
 
     .wafpanel-map {

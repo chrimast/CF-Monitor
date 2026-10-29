@@ -263,7 +263,7 @@
               <button class="btn btn-primary" type="button" @click="addListedIp">{{ trans.wafpanelAdd }}</button>
             </div>
             <div class="wafpanel-table">
-              <div v-for="rule in currentList" :key="ipRuleValue(rule)" class="dnshub-domain-row">
+              <div v-for="rule in currentList" :key="ipRuleValue(rule)" class="dnshub-domain-row wafpanel-list-row">
                 <code>{{ ipRuleValue(rule) }}</code>
                 <button class="btn" :class="ipRuleState(rule) === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleIpState(rule)">{{ ipRuleState(rule) === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
                 <button class="btn btn-red" type="button" @click="removeListedIp(rule)">{{ trans.delete || '删除' }}</button>
@@ -558,6 +558,7 @@ const RULE_NAMES = {
   urlWhite: 'URL白名单', urlBlack: 'URL黑名单', uaWhite: 'UA白名单', uaBlack: 'UA黑名单'
 }
 const HIDDEN_RULES = ['cdn', 'defaultUaBlack', 'defaultUrlBlack', 'defaultIpBlack']
+const VISIBLE_RULES = ['waf', 'xss', 'sql', 'cc', 'urlcc', 'attackCount', 'notFoundCount', 'bot', 'geoRestrict', 'strict']
 const wafpanelPages = computed(() => [
   { id: 'dashboard', label: props.trans.wafpanelDashboard },
   { id: 'logs', label: props.trans.wafpanelLogs },
@@ -583,7 +584,7 @@ const detectedLogpathsText = computed(() => (detectedLogpaths.value || []).lengt
 const currentNodeUnreachable = computed(() => !!currentNode.value && currentNode.value.online === false && currentNode.value.status !== 'unknown')
 const ruleList = computed(() => Object.keys(wafRules.value || {})
   .filter((key) => wafRules.value[key] && typeof wafRules.value[key] === 'object' && 'state' in wafRules.value[key])
-  .filter((key) => !HIDDEN_RULES.includes(key))
+  .filter((key) => VISIBLE_RULES.includes(key) && !HIDDEN_RULES.includes(key))
   .map((key) => ({ key, label: RULE_NAMES[key] || key, state: wafRules.value[key].state || 'off' })))
 
 let mapInstance = null
