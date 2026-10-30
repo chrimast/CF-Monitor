@@ -5664,6 +5664,34 @@ body.admin-workspace .admin-container {
     text-shadow: 0 0 2px #7a1a1a;
 }
 
+.wafpanel-map .datamaps-bubble {
+    fill: #BD0F0F;
+    stroke: #fff;
+    stroke-width: 2px;
+    filter: drop-shadow(0 3px 6px rgba(189, 15, 15, 0.28));
+}
+
+.wafpanel-bubble-pulse {
+    fill: none;
+    stroke: #BD0F0F;
+    stroke-width: 1.5px;
+    pointer-events: none;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: wafpanel-pin-pulse 1.8s ease-out infinite;
+}
+
+@keyframes wafpanel-pin-pulse {
+    0% {
+        opacity: 0.65;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2.6);
+    }
+}
+
 .wafpanel-side {
     min-width: 0;
 }

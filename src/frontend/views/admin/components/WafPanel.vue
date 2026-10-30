@@ -879,6 +879,35 @@ const labelBubbles = (el, bubbles, projection) => {
     .text((item) => item.code)
 }
 
+const styleBubbles = (el) => {
+  if (!window.d3) return
+  const svg = window.d3.select(el).select('svg')
+  const nodes = svg.selectAll('.datamaps-bubble')
+  svg.selectAll('.wafpanel-bubble-pulse').remove()
+  nodes
+    .attr('stroke', '#fff')
+    .attr('stroke-width', 2)
+    .attr('fill', '#BD0F0F')
+  const pulses = []
+  nodes.each(function (d, i) {
+    pulses.push({
+      cx: this.getAttribute('cx'),
+      cy: this.getAttribute('cy'),
+      r: this.getAttribute('r'),
+      delay: `${-((i * 0.17) % 1.8)}s`
+    })
+  })
+  svg.selectAll('.wafpanel-bubble-pulse')
+    .data(pulses)
+    .enter()
+    .insert('circle', '.datamaps-bubble')
+    .attr('class', 'wafpanel-bubble-pulse')
+    .attr('cx', (item) => item.cx)
+    .attr('cy', (item) => item.cy)
+    .attr('r', (item) => item.r)
+    .style('animation-delay', (item) => item.delay)
+}
+
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
@@ -898,7 +927,7 @@ const renderMap = async () => {
     height: el.offsetHeight || 560,
     width: el.offsetWidth || 720,
     setProjection: fitMapProjection,
-    fills: { defaultFill: '#ECF2F5', ATTACK: '#E31A1C' },
+    fills: { defaultFill: '#ECF2F5', ATTACK: '#BD0F0F' },
     geographyConfig: {
       hideAntarctica: true,
       borderWidth: 0.8,
@@ -911,10 +940,13 @@ const renderMap = async () => {
       popupTemplate: (geography) => `<div class="hoverinfo">${geography.properties.name}</div>`
     },
     bubblesConfig: {
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: '#fff',
-      fillOpacity: 0.85,
+      fillOpacity: 1,
       highlightOnHover: true,
+      highlightFillColor: '#BD0F0F',
+      highlightBorderColor: '#fff',
+      highlightBorderWidth: 2,
       popupOnHover: true,
       popupTemplate: (_geo, data) => {
         const rows = (data.rows || []).map((row) => `${row.city || data.country} ${row.ip} × ${row.count}`).join('<br>')
@@ -932,6 +964,7 @@ const renderMap = async () => {
   const { projection } = fitMapProjection(el)
   const bubbles = separateOverlappingBubbles(buildBubbles(), projection)
   if (bubbles.length) mapInstance.bubbles(bubbles)
+  styleBubbles(el)
   labelBubbles(el, bubbles, projection)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
