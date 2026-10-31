@@ -5671,24 +5671,33 @@ body.admin-workspace .admin-container {
     filter: drop-shadow(0 3px 6px rgba(189, 15, 15, 0.28));
 }
 
-.wafpanel-bubble-pulse {
-    fill: none;
-    stroke: #BD0F0F;
-    stroke-width: 1.5px;
+.wafpanel-bubble-pin {
+    position: absolute;
+    box-sizing: border-box;
+    background: transparent;
+    border-radius: 50%;
     pointer-events: none;
-    transform-box: fill-box;
-    transform-origin: center;
+    transform: translate(-50%, -50%);
+}
+
+.wafpanel-bubble-pin::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border: 2px solid rgba(189, 15, 15, 0.45);
+    border-radius: 50%;
     animation: wafpanel-pin-pulse 1.8s ease-out infinite;
+    animation-delay: inherit;
 }
 
 @keyframes wafpanel-pin-pulse {
     0% {
-        opacity: 0.65;
         transform: scale(1);
+        opacity: 0.7;
     }
     100% {
+        transform: scale(4);
         opacity: 0;
-        transform: scale(2.6);
     }
 }
 

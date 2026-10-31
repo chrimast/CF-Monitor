@@ -880,32 +880,33 @@ const labelBubbles = (el, bubbles, projection) => {
 }
 
 const styleBubbles = (el) => {
-  if (!window.d3) return
-  const svg = window.d3.select(el).select('svg')
-  const nodes = svg.selectAll('.datamaps-bubble')
-  svg.selectAll('.wafpanel-bubble-pulse').remove()
-  nodes
-    .attr('stroke', '#fff')
-    .attr('stroke-width', 2)
-    .attr('fill', '#BD0F0F')
-  const pulses = []
-  nodes.each(function (d, i) {
-    pulses.push({
-      cx: this.getAttribute('cx'),
-      cy: this.getAttribute('cy'),
-      r: this.getAttribute('r'),
-      delay: `${-((i * 0.17) % 1.8)}s`
-    })
+  const svg = el.querySelector('svg')
+  el.querySelectorAll('.wafpanel-bubble-pin').forEach((node) => node.remove())
+  if (!svg) return
+  const wrapRect = el.getBoundingClientRect()
+  const nodes = svg.querySelectorAll('circle.datamaps-bubble')
+  nodes.forEach((circle, i) => {
+    const data = circle.__data__ || {}
+    const radius = Number(data.radius) || Number(circle.getAttribute('r')) || 6
+    circle.setAttribute('r', String(radius))
+    circle.setAttribute('fill', '#BD0F0F')
+    circle.setAttribute('stroke', '#fff')
+    circle.setAttribute('stroke-width', '2')
+    const ctm = circle.getScreenCTM()
+    if (!ctm) return
+    const pt = svg.createSVGPoint()
+    pt.x = Number(circle.getAttribute('cx')) || 0
+    pt.y = Number(circle.getAttribute('cy')) || 0
+    const screen = pt.matrixTransform(ctm)
+    const pin = document.createElement('span')
+    pin.className = 'wafpanel-bubble-pin wafpanel-bubble-pulse'
+    pin.style.left = `${screen.x - wrapRect.left}px`
+    pin.style.top = `${screen.y - wrapRect.top}px`
+    pin.style.width = `${radius * 2}px`
+    pin.style.height = `${radius * 2}px`
+    pin.style.animationDelay = `${-((i * 0.17) % 1.8)}s`
+    el.appendChild(pin)
   })
-  svg.selectAll('.wafpanel-bubble-pulse')
-    .data(pulses)
-    .enter()
-    .insert('circle', '.datamaps-bubble')
-    .attr('class', 'wafpanel-bubble-pulse')
-    .attr('cx', (item) => item.cx)
-    .attr('cy', (item) => item.cy)
-    .attr('r', (item) => item.r)
-    .style('animation-delay', (item) => item.delay)
 }
 
 const renderMap = async () => {
@@ -940,6 +941,7 @@ const renderMap = async () => {
       popupTemplate: (geography) => `<div class="hoverinfo">${geography.properties.name}</div>`
     },
     bubblesConfig: {
+      animate: false,
       borderWidth: 2,
       borderColor: '#fff',
       fillOpacity: 1,
