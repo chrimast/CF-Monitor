@@ -158,13 +158,8 @@
               <span>{{ item.label }}</span>
               <button class="btn" :class="item.state === 'on' ? 'btn wafpanel-rule-on' : 'btn'" type="button" @click="toggleRule(item.key, item.state === 'on' ? 'off' : 'on')">{{ item.state === 'on' ? trans.wafpanelEnabled : trans.wafpanelDisabled }}</button>
             </div>
-          </div>
-          <div class="wafpanel-cc-row">
-            <div class="form-group"><label class="form-label">CC threshold</label><input v-model.number="ccForm.threshold" class="form-input" type="number"></div>
-            <div class="form-group"><label class="form-label">CC duration</label><input v-model.number="ccForm.duration" class="form-input" type="number"></div>
-            <div class="form-group"><label class="form-label">CC ipBlockTime</label><input v-model.number="ccForm.ipBlockTime" class="form-input" type="number"></div>
             <div class="wafpanel-rule-save">
-              <button class="btn btn-primary" type="button" @click="saveCc">{{ trans.wafpanelSaveReload }}</button>
+              <button class="btn btn-primary" type="button" @click="reloadNginx">{{ trans.wafpanelSaveReload }}</button>
             </div>
           </div>
         </div>
@@ -302,19 +297,22 @@
         </div>
         <details class="wafpanel-advanced" open>
           <summary>{{ trans.wafpanelAdvanced }}</summary>
-          <div class="dnshub-compact-grid" style="margin-top:12px">
-            <label class="form-label"><input type="checkbox" v-model="ab.local_ban"> {{ trans.wafpanelLocalFw }}</label>
-            <label class="form-label"><input type="checkbox" v-model="ab.waf_blacklist"> {{ trans.wafpanelWriteBlack }}</label>
-            <label class="form-label"><input type="checkbox" v-model="ab.cloudflare_ban"> Cloudflare</label>
-            <div class="form-group"><label class="form-label">maxretry</label><input v-model.number="ab.maxretry" class="form-input" type="number" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">findtime</label><input v-model.number="ab.findtime" class="form-input" type="number" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">bantime</label><input v-model.number="ab.bantime" class="form-input" type="number" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">port</label><input v-model="ab.port" class="form-input" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">banaction</label><select v-model="ab.banaction" class="form-select" :disabled="mainJailLocked"><option>iptables-allports</option><option>iptables-multiport</option><option>firewallcmd-ipset</option><option>ufw</option></select></div>
-            <div class="form-group"><label class="form-label">chain</label><input v-model="ab.chain" class="form-input" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">{{ trans.wafpanelJailName }}</label><input v-model="ab.jail_name" class="form-input" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">{{ trans.wafpanelFilterName }}</label><input v-model="ab.filter_name" class="form-input" :disabled="mainJailLocked"></div>
-            <div class="form-group"><label class="form-label">{{ trans.wafpanelStatusCodes }}</label><input v-model="ab.statusCodesText" class="form-input" :disabled="mainJailLocked"></div>
+          <div class="wafpanel-autoban-advanced" style="margin-top:12px">
+            <div class="wafpanel-autoban-flags">
+              <label class="form-label"><input type="checkbox" v-model="ab.local_ban"> {{ trans.wafpanelLocalFw }}</label>
+              <label class="form-label"><input type="checkbox" v-model="ab.waf_blacklist"> {{ trans.wafpanelWriteBlack }}</label>
+              <label class="form-label"><input type="checkbox" v-model="ab.cloudflare_ban"> Cloudflare</label>
+            </div>
+            <div class="wafpanel-autoban-fields">
+              <div class="form-group"><label class="form-label">maxretry</label><input v-model.number="ab.maxretry" class="form-input" type="number" :disabled="mainJailLocked"></div>
+              <div class="form-group"><label class="form-label">findtime</label><input v-model.number="ab.findtime" class="form-input" type="number" :disabled="mainJailLocked"></div>
+              <div class="form-group"><label class="form-label">bantime</label><input v-model.number="ab.bantime" class="form-input" type="number" :disabled="mainJailLocked"></div>
+              <div class="form-group"><label class="form-label">port</label><input v-model="ab.port" class="form-input" :disabled="mainJailLocked"></div>
+              <div class="form-group"><label class="form-label">banaction</label><select v-model="ab.banaction" class="form-select" :disabled="mainJailLocked"><option>iptables-allports</option><option>iptables-multiport</option><option>firewallcmd-ipset</option><option>ufw</option></select></div>
+              <div class="form-group"><label class="form-label">{{ trans.wafpanelJailName }}</label><input v-model="ab.jail_name" class="form-input" :disabled="mainJailLocked"></div>
+              <div class="form-group"><label class="form-label">{{ trans.wafpanelFilterName }}</label><input v-model="ab.filter_name" class="form-input" :disabled="mainJailLocked"></div>
+              <div class="form-group"><label class="form-label">{{ trans.wafpanelStatusCodes }}</label><input v-model="ab.statusCodesText" class="form-input" :disabled="mainJailLocked"></div>
+            </div>
             <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelLogpaths }}</label>
               <textarea v-model="ab.logpathsText" class="form-input" rows="4"></textarea>
               <p class="dnshub-hint">{{ detectedLogpathsText }}</p>
@@ -377,7 +375,6 @@
                       <option>ufw</option>
                     </select>
                   </div>
-                  <div class="form-group"><label class="form-label">chain</label><input v-model="jailEditor.chain" class="form-input"></div>
                   <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelLogpaths }}</label><textarea v-model="jailEditor.logpathsText" class="form-input" rows="3"></textarea></div>
                   <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelIgnoreIps }}</label><textarea v-model="jailEditor.ignoreIpsText" class="form-input" rows="2"></textarea></div>
                   <div class="form-group" style="grid-column:1/-1"><label class="form-label">journalmatch</label><input v-model="jailEditor.journalmatch" class="form-input"></div>

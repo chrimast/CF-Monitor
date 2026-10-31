@@ -5683,20 +5683,20 @@ body.admin-workspace .admin-container {
 .wafpanel-bubble-pin::after {
     content: "";
     position: absolute;
-    inset: -6px;
-    border: 2px solid rgba(189, 15, 15, 0.45);
+    inset: -3px;
+    border: 1.5px solid rgba(189, 15, 15, 0.4);
     border-radius: 50%;
-    animation: wafpanel-pin-pulse 1.8s ease-out infinite;
+    animation: wafpanel-pin-pulse 2.2s ease-out infinite;
     animation-delay: inherit;
 }
 
 @keyframes wafpanel-pin-pulse {
     0% {
         transform: scale(1);
-        opacity: 0.7;
+        opacity: 0.55;
     }
     100% {
-        transform: scale(4);
+        transform: scale(1.8);
         opacity: 0;
     }
 }
@@ -5826,7 +5826,7 @@ body.admin-workspace .admin-container {
 
 .wafpanel-rule-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 8px 12px;
     align-items: center;
 }
@@ -5852,22 +5852,57 @@ body.admin-workspace .admin-container {
     white-space: nowrap;
 }
 
-.wafpanel-cc-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-    gap: 8px 12px;
-    align-items: end;
-    margin-top: 10px;
+.wafpanel-rule-save {
+    grid-column: 6;
+    justify-self: end;
+    align-self: center;
+    min-width: 0;
 }
 
-.wafpanel-cc-row .form-group {
+.wafpanel-autoban-advanced {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.wafpanel-autoban-flags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    min-width: 0;
+}
+
+.wafpanel-autoban-flags .form-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.wafpanel-autoban-fields {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px 12px;
+    min-width: 0;
+}
+
+.wafpanel-autoban-fields .form-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 0;
     min-width: 0;
 }
 
-.wafpanel-rule-save {
-    justify-self: end;
-    align-self: end;
+.wafpanel-autoban-fields .form-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.wafpanel-autoban-fields .form-input,
+.wafpanel-autoban-fields .form-select {
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -6123,13 +6158,13 @@ body.admin-workspace .admin-container {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .wafpanel-cc-row {
-        grid-template-columns: 1fr;
-    }
-
     .wafpanel-rule-save {
         grid-column: 1 / -1;
         justify-self: end;
+    }
+
+    .wafpanel-autoban-fields {
+        grid-template-columns: 1fr;
     }
 
     .wafpanel-map {
