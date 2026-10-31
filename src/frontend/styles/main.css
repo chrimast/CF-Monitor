@@ -5645,6 +5645,15 @@ body.admin-workspace .admin-container {
     margin: auto;
 }
 
+.wafpanel-map .datamaps-hoverover {
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 16px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
 .wafpanel-map .hoverinfo {
     padding: 6px 8px;
     border-radius: 4px;
@@ -5654,6 +5663,8 @@ body.admin-workspace .admin-container {
     font-size: 12px;
     border: 1px solid #ccc;
     line-height: 1.4;
+    white-space: normal;
+    word-break: break-all;
 }
 
 .wafpanel-map .datamaps-bubble {
@@ -5669,7 +5680,7 @@ body.admin-workspace .admin-container {
     align-items: center;
     justify-content: center;
     background: #BD0F0F;
-    border: 2px solid #fff;
+    border: 1px solid #fff;
     border-radius: 50%;
     color: #fff;
     font-size: 9px;
@@ -5966,7 +5977,7 @@ body.admin-workspace .admin-container {
 
 .wafpanel-resource-row {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(72px, 0.7fr) minmax(72px, 0.7fr) auto;
+    grid-template-columns: minmax(0, 1.8fr) minmax(72px, 0.55fr) 64px auto;
     gap: 8px;
     align-items: center;
     width: 100%;
@@ -5976,7 +5987,32 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-filter-row {
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) auto;
+}
+
+.wafpanel-resource-main {
+    min-width: 0;
+}
+
+.wafpanel-resource-state {
+    max-width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wafpanel-cf-ranges .form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wafpanel-cf-ranges .form-input {
+    height: 213px;
+    min-height: 213px;
+    max-width: 100%;
+    resize: vertical;
+    box-sizing: border-box;
 }
 
 .wafpanel-resource-row > * {
@@ -6144,7 +6180,7 @@ body.admin-workspace .admin-container {
 
 .wafpanel-resource-columns {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, .7fr);
     gap: 12px;
     margin-top: 12px;
 }
@@ -6268,9 +6304,23 @@ body.admin-workspace .admin-container {
         grid-template-columns: 1fr;
     }
 
-    .wafpanel-resource-row,
+    .wafpanel-resource-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .wafpanel-resource-row .wafpanel-resource-state,
+    .wafpanel-resource-row > span:not(.wafpanel-resource-state) {
+        display: none;
+    }
+
     .wafpanel-filter-row {
         grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .wafpanel-cf-ranges .form-input {
+        height: auto;
+        min-height: 120px;
+        max-height: 160px;
     }
 
     .wafpanel-map {

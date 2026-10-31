@@ -332,9 +332,12 @@
                 <div class="wafpanel-cf-opts">
                   <label class="form-label"><input type="checkbox" v-model="ab.cf_real_ip_enabled"> {{ trans.wafpanelRealIp }}</label>
                   <div class="form-group"><label class="form-label">{{ trans.wafpanelRealIpHeader }}</label><input v-model="ab.real_ip_header" class="form-input"></div>
-                  <label class="form-label"><input type="checkbox" v-model="ab.real_ip_recursive"> {{ trans.wafpanelRealIpRecursive }}</label>
                 </div>
-                <div class="form-group"><label class="form-label">{{ trans.wafpanelCfRanges }}</label><textarea v-model="ab.cfRangesText" class="form-input" rows="3"></textarea></div>
+                <div class="form-group wafpanel-cf-ranges">
+                  <label class="form-label"><input type="checkbox" v-model="ab.real_ip_recursive"> {{ trans.wafpanelRealIpRecursive }}</label>
+                  <label class="form-label">{{ trans.wafpanelCfRanges }}</label>
+                  <textarea v-model="ab.cfRangesText" class="form-input" rows="8"></textarea>
+                </div>
               </div>
             </div>
             <div class="dnshub-actions">
@@ -350,9 +353,9 @@
               <button class="btn btn-primary" type="button" @click="editAutobanJail(-1)">{{ trans.wafpanelNewJail }}</button>
               <p class="dnshub-hint">{{ abDependency }}</p>
               <div v-for="(jail, index) in ab.jails" :key="jail.name + index" class="wafpanel-resource-row">
-                <label><input type="checkbox" v-model="jail.enabled"> {{ jail.name }} / {{ jail.filter }}</label>
+                <label class="wafpanel-resource-main" :title="jail.name + ' / ' + jail.filter"><input type="checkbox" v-model="jail.enabled"> {{ jail.name }} / {{ jail.filter }}</label>
                 <span>{{ jail.maxretry }}/{{ jail.findtime }}/{{ jail.bantime }}</span>
-                <span class="text-sm">{{ jailRuntimeText(jail.name) }}</span>
+                <span class="text-sm wafpanel-resource-state">{{ jailRuntimeText(jail.name) }}</span>
                 <div class="wafpanel-resource-ops">
                   <button class="btn" type="button" @click="editAutobanJail(index)">{{ trans.edit || '编辑' }}</button>
                   <button class="btn" type="button" @click="copyAutobanJail(index)">{{ trans.wafpanelCopy }}</button>
@@ -408,7 +411,7 @@
                 <button class="btn btn-primary" type="button" @click="editAutobanFilter('')">{{ trans.wafpanelNewFilter }}</button>
               </div>
               <div v-for="item in panelFilters" :key="item.name" class="wafpanel-resource-row wafpanel-filter-row">
-                <strong>{{ item.name }}</strong>
+                <strong class="wafpanel-resource-main" :title="item.name">{{ item.name }}</strong>
                 <span class="text-muted text-sm">{{ (item.used_by || []).join(', ') || trans.wafpanelUnused }}</span>
                 <div class="wafpanel-resource-ops">
                   <button class="btn" type="button" @click="editAutobanFilter(item.name)">{{ trans.edit || '编辑' }}</button>
@@ -894,6 +897,28 @@ const styleBubbles = (el) => {
   })
 }
 
+const clampMapHover = (el) => {
+  const hover = el.querySelector('.datamaps-hoverover')
+  if (!hover || hover.style.display === 'none') return
+  const pad = 8
+  const maxW = Math.max(160, el.clientWidth - pad * 2)
+  const maxH = Math.max(120, el.clientHeight - pad * 2)
+  hover.style.maxWidth = `${maxW}px`
+  hover.style.maxHeight = `${maxH}px`
+  hover.style.overflowY = 'auto'
+  hover.style.boxSizing = 'border-box'
+  const rect = hover.getBoundingClientRect()
+  const wrap = el.getBoundingClientRect()
+  let left = parseFloat(hover.style.left) || 0
+  let top = parseFloat(hover.style.top) || 0
+  if (left + rect.width > wrap.width - pad) left = Math.max(pad, wrap.width - rect.width - pad)
+  if (left < pad) left = pad
+  if (top + rect.height > wrap.height - pad) top = Math.max(pad, wrap.height - rect.height - pad)
+  if (top < pad) top = pad
+  hover.style.left = `${left}px`
+  hover.style.top = `${top}px`
+}
+
 const renderMap = async () => {
   await nextTick()
   const el = document.getElementById('wafpanel-map')
@@ -933,7 +958,7 @@ const renderMap = async () => {
       highlightOnHover: true,
       highlightFillColor: '#BD0F0F',
       highlightBorderColor: '#fff',
-      highlightBorderWidth: 2,
+      highlightBorderWidth: 1,
       popupOnHover: true,
       popupTemplate: (_geo, data) => {
         const rows = (data.rows || []).map((row) => `${row.city || data.country} ${row.ip} × ${row.count}`).join('<br>')
@@ -952,6 +977,13 @@ const renderMap = async () => {
   const bubbles = separateOverlappingBubbles(buildBubbles(), projection)
   if (bubbles.length) mapInstance.bubbles(bubbles)
   styleBubbles(el)
+  const originalPopup = mapInstance.updatePopup.bind(mapInstance)
+  mapInstance.updatePopup = function (element, data, options) {
+    originalPopup(element, data, options)
+    const clamp = () => clampMapHover(el)
+    if (element && element.on) element.on('mousemove.wafclamp', clamp)
+    requestAnimationFrame(clamp)
+  }
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
 }
@@ -1252,7 +1284,7 @@ const deleteAutobanFilter = (name) => {
 }
 
 const showSystemFilters = () => {
-  systemFiltersOpen.value = true
+  systemFiltersOpen.value = !systemFiltersOpen.value
 }
 
 const testAutobanFilter = async () => {
