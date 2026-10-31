@@ -313,21 +313,31 @@
               <div class="form-group"><label class="form-label">{{ trans.wafpanelFilterName }}</label><input v-model="ab.filter_name" class="form-input" :disabled="mainJailLocked"></div>
               <div class="form-group"><label class="form-label">{{ trans.wafpanelStatusCodes }}</label><input v-model="ab.statusCodesText" class="form-input" :disabled="mainJailLocked"></div>
             </div>
-            <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelLogpaths }}</label>
-              <textarea v-model="ab.logpathsText" class="form-input" rows="4"></textarea>
-              <p class="dnshub-hint">{{ detectedLogpathsText }}</p>
-              <button class="btn" type="button" @click="detectAutobanLogpaths">{{ trans.wafpanelDetectLogs }}</button>
+            <div class="wafpanel-autoban-split">
+              <div class="wafpanel-autoban-logs">
+                <div class="form-group"><label class="form-label">{{ trans.wafpanelLogpaths }}</label>
+                  <textarea v-model="ab.logpathsText" class="form-input" rows="4"></textarea>
+                  <p class="dnshub-hint">{{ detectedLogpathsText }}</p>
+                  <button class="btn" type="button" @click="detectAutobanLogpaths">{{ trans.wafpanelDetectLogs }}</button>
+                </div>
+                <div class="form-group"><label class="form-label">{{ trans.wafpanelIgnoreIps }}</label><textarea v-model="ab.ignoreIpsText" class="form-input" rows="3"></textarea></div>
+                <div class="form-group"><label class="form-label">{{ trans.wafpanelIgnoreRegex }}</label><input v-model="ab.ignore_regex" class="form-input"></div>
+              </div>
+              <div class="wafpanel-autoban-cf">
+                <div class="wafpanel-cf-creds">
+                  <div class="form-group"><label class="form-label">Cloudflare email</label><input v-model="ab.cloudflare_email" class="form-input"></div>
+                  <div class="form-group"><label class="form-label">Cloudflare API</label><input v-model="ab.cloudflare_api_key" class="form-input" type="password"></div>
+                  <div class="form-group"><label class="form-label">Cloudflare note</label><input v-model="ab.cloudflare_note" class="form-input"></div>
+                </div>
+                <div class="wafpanel-cf-opts">
+                  <label class="form-label"><input type="checkbox" v-model="ab.cf_real_ip_enabled"> {{ trans.wafpanelRealIp }}</label>
+                  <div class="form-group"><label class="form-label">{{ trans.wafpanelRealIpHeader }}</label><input v-model="ab.real_ip_header" class="form-input"></div>
+                  <label class="form-label"><input type="checkbox" v-model="ab.real_ip_recursive"> {{ trans.wafpanelRealIpRecursive }}</label>
+                </div>
+                <div class="form-group"><label class="form-label">{{ trans.wafpanelCfRanges }}</label><textarea v-model="ab.cfRangesText" class="form-input" rows="3"></textarea></div>
+              </div>
             </div>
-            <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelIgnoreIps }}</label><textarea v-model="ab.ignoreIpsText" class="form-input" rows="3"></textarea></div>
-            <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelIgnoreRegex }}</label><input v-model="ab.ignore_regex" class="form-input"></div>
-            <div class="form-group"><label class="form-label">Cloudflare email</label><input v-model="ab.cloudflare_email" class="form-input"></div>
-            <div class="form-group"><label class="form-label">Cloudflare API</label><input v-model="ab.cloudflare_api_key" class="form-input" type="password"></div>
-            <div class="form-group"><label class="form-label">Cloudflare note</label><input v-model="ab.cloudflare_note" class="form-input"></div>
-            <label class="form-label"><input type="checkbox" v-model="ab.cf_real_ip_enabled"> {{ trans.wafpanelRealIp }}</label>
-            <div class="form-group"><label class="form-label">{{ trans.wafpanelRealIpHeader }}</label><input v-model="ab.real_ip_header" class="form-input"></div>
-            <label class="form-label"><input type="checkbox" v-model="ab.real_ip_recursive"> {{ trans.wafpanelRealIpRecursive }}</label>
-            <div class="form-group" style="grid-column:1/-1"><label class="form-label">{{ trans.wafpanelCfRanges }}</label><textarea v-model="ab.cfRangesText" class="form-input" rows="3"></textarea></div>
-            <div class="dnshub-actions" style="grid-column:1/-1">
+            <div class="dnshub-actions">
               <span class="text-sm">{{ mainJailGenerated ? trans.wafpanelMainJailOn : trans.wafpanelMainJailOff }}</span>
               <button class="btn" type="button" :disabled="!mainJailGenerated || !mainJailLocked" @click="mainJailLocked = false">{{ trans.wafpanelUnlockMainJail }}</button>
               <button class="btn btn-primary" type="button" :disabled="mainJailLocked" @click="saveMainJail">{{ trans.wafpanelSaveMainJail }}</button>
@@ -339,13 +349,15 @@
               <div class="section-title">{{ trans.wafpanelJails }}</div>
               <button class="btn btn-primary" type="button" @click="editAutobanJail(-1)">{{ trans.wafpanelNewJail }}</button>
               <p class="dnshub-hint">{{ abDependency }}</p>
-              <div v-for="(jail, index) in ab.jails" :key="jail.name + index" class="dnshub-domain-row">
+              <div v-for="(jail, index) in ab.jails" :key="jail.name + index" class="wafpanel-resource-row">
                 <label><input type="checkbox" v-model="jail.enabled"> {{ jail.name }} / {{ jail.filter }}</label>
                 <span>{{ jail.maxretry }}/{{ jail.findtime }}/{{ jail.bantime }}</span>
                 <span class="text-sm">{{ jailRuntimeText(jail.name) }}</span>
-                <button class="btn" type="button" @click="editAutobanJail(index)">{{ trans.edit || '编辑' }}</button>
-                <button class="btn" type="button" @click="copyAutobanJail(index)">{{ trans.wafpanelCopy }}</button>
-                <button class="btn btn-red" type="button" @click="deleteAutobanJail(index)">{{ trans.delete || '删除' }}</button>
+                <div class="wafpanel-resource-ops">
+                  <button class="btn" type="button" @click="editAutobanJail(index)">{{ trans.edit || '编辑' }}</button>
+                  <button class="btn" type="button" @click="copyAutobanJail(index)">{{ trans.wafpanelCopy }}</button>
+                  <button class="btn btn-red" type="button" @click="deleteAutobanJail(index)">{{ trans.delete || '删除' }}</button>
+                </div>
               </div>
               <div v-if="jailEditor" class="settings-section" style="margin-top:8px">
                 <div class="section-title">{{ jailEditorIndex < 0 ? trans.wafpanelNewJail : trans.edit }}</div>
@@ -395,12 +407,14 @@
                 <button class="btn" type="button" @click="showSystemFilters">{{ trans.wafpanelSystemFilters }}</button>
                 <button class="btn btn-primary" type="button" @click="editAutobanFilter('')">{{ trans.wafpanelNewFilter }}</button>
               </div>
-              <div v-for="item in panelFilters" :key="item.name" class="dnshub-domain-row">
+              <div v-for="item in panelFilters" :key="item.name" class="wafpanel-resource-row wafpanel-filter-row">
                 <strong>{{ item.name }}</strong>
                 <span class="text-muted text-sm">{{ (item.used_by || []).join(', ') || trans.wafpanelUnused }}</span>
-                <button class="btn" type="button" @click="editAutobanFilter(item.name)">{{ trans.edit || '编辑' }}</button>
-                <button class="btn" type="button" @click="copyAutobanFilter(item.name)">{{ trans.wafpanelCopy }}</button>
-                <button class="btn btn-red" type="button" @click="deleteAutobanFilter(item.name)">{{ trans.delete || '删除' }}</button>
+                <div class="wafpanel-resource-ops">
+                  <button class="btn" type="button" @click="editAutobanFilter(item.name)">{{ trans.edit || '编辑' }}</button>
+                  <button class="btn" type="button" @click="copyAutobanFilter(item.name)">{{ trans.wafpanelCopy }}</button>
+                  <button class="btn btn-red" type="button" @click="deleteAutobanFilter(item.name)">{{ trans.delete || '删除' }}</button>
+                </div>
               </div>
               <div v-if="filterEditor" class="settings-section" style="margin-top:8px">
                 <div class="section-title">{{ filterEditorOldName ? trans.edit : trans.wafpanelNewFilter }}</div>
@@ -854,28 +868,6 @@ const separateOverlappingBubbles = (bubbles, projection) => {
   return bubbles
 }
 
-const labelBubbles = (el, bubbles, projection) => {
-  if (!window.d3 || !projection) return
-  const svg = window.d3.select(el).select('svg')
-  svg.selectAll('.wafpanel-bubble-label').remove()
-  svg.selectAll('.wafpanel-bubble-label')
-    .data(bubbles.filter((item) => item.code))
-    .enter()
-    .append('text')
-    .attr('class', 'wafpanel-bubble-label')
-    .attr('text-anchor', 'middle')
-    .attr('dominant-baseline', 'middle')
-    .attr('x', (item) => {
-      const xy = projection([item.longitude, item.latitude])
-      return xy ? xy[0] : 0
-    })
-    .attr('y', (item) => {
-      const xy = projection([item.longitude, item.latitude])
-      return xy ? xy[1] : 0
-    })
-    .text((item) => item.code)
-}
-
 const styleBubbles = (el) => {
   const svg = el.querySelector('svg')
   el.querySelectorAll('.wafpanel-bubble-pin').forEach((node) => node.remove())
@@ -886,22 +878,18 @@ const styleBubbles = (el) => {
     const data = circle.__data__ || {}
     const radius = Number(data.radius) || Number(circle.getAttribute('r')) || 6
     circle.setAttribute('r', String(radius))
-    circle.setAttribute('fill', '#BD0F0F')
-    circle.setAttribute('stroke', '#fff')
-    circle.setAttribute('stroke-width', '2')
-    const ctm = circle.getScreenCTM()
-    if (!ctm) return
-    const pt = svg.createSVGPoint()
-    pt.x = Number(circle.getAttribute('cx')) || 0
-    pt.y = Number(circle.getAttribute('cy')) || 0
-    const screen = pt.matrixTransform(ctm)
+    circle.setAttribute('fill', 'transparent')
+    circle.setAttribute('stroke', 'none')
+    const box = circle.getBoundingClientRect()
+    if (!box.width && !box.height) return
     const pin = document.createElement('span')
     pin.className = 'wafpanel-bubble-pin wafpanel-bubble-pulse'
-    pin.style.left = `${screen.x - wrapRect.left}px`
-    pin.style.top = `${screen.y - wrapRect.top}px`
+    pin.style.left = `${box.left + box.width / 2 - wrapRect.left - el.clientLeft}px`
+    pin.style.top = `${box.top + box.height / 2 - wrapRect.top - el.clientTop}px`
     pin.style.width = `${radius * 2}px`
     pin.style.height = `${radius * 2}px`
     pin.style.animationDelay = `${-((i * 0.17) % 1.8)}s`
+    pin.textContent = data.code || ''
     el.appendChild(pin)
   })
 }
@@ -964,7 +952,6 @@ const renderMap = async () => {
   const bubbles = separateOverlappingBubbles(buildBubbles(), projection)
   if (bubbles.length) mapInstance.bubbles(bubbles)
   styleBubbles(el)
-  labelBubbles(el, bubbles, projection)
   window.removeEventListener('resize', handleMapResize)
   window.addEventListener('resize', handleMapResize)
 }
