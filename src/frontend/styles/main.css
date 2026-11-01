@@ -5987,7 +5987,7 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-filter-row {
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
 }
 
 .wafpanel-resource-main {
@@ -6008,8 +6008,8 @@ body.admin-workspace .admin-container {
 }
 
 .wafpanel-cf-ranges .form-input {
-    height: 213px;
-    min-height: 213px;
+    height: 200px;
+    min-height: 200px;
     max-width: 100%;
     resize: vertical;
     box-sizing: border-box;
@@ -6315,6 +6315,10 @@ body.admin-workspace .admin-container {
 
     .wafpanel-filter-row {
         grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .wafpanel-filter-row > span {
+        display: none;
     }
 
     .wafpanel-cf-ranges .form-input {
