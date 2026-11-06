@@ -250,3 +250,46 @@ test('node host runs scheduled jobs and Node SMTP sendMail', async () => {
   assert.match(String(sent[0].mail.subject || sent[0].mail.text || ''), /测试|docker smtp/)
 })
 
+test('node host accepts Agent WSS reports on GET /update', async () => {
+  const { createNodeApp } = await loadRuntime()
+  const app = await createNodeApp({ apiSecret: SECRET, dbPath: ':memory:' })
+  const login = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: 'admin', password: SECRET })
+  }))
+  const loginBody = await login.json()
+  const add = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loginBody.token}`
+    },
+    body: JSON.stringify({ action: 'add', name: 'wss-node' })
+  }))
+  const { id } = await add.json()
+
+  const agentRes = await app.fetch(new Request('http://cf-monitor.test/update', {
+    headers: { Upgrade: 'websocket' }
+  }))
+  assert.equal(agentRes.status, 101)
+  assert.ok(agentRes.webSocket)
+  const acks = []
+  agentRes.webSocket.addEventListener('message', (event) => acks.push(String(event.data)))
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  agentRes.webSocket.send(JSON.stringify({
+    id,
+    secret: SECRET,
+    metrics: { cpu: 77, ram_total: 2048, ram_used: 512, timestamp: Date.now() }
+  }))
+  await new Promise((resolve) => setTimeout(resolve, 80))
+  assert.equal(acks.some((item) => item.includes('"type":"ack"') || item.includes('"type":"hello"')), true)
+
+  const list = await app.fetch(new Request('http://cf-monitor.test/api/servers', {
+    headers: { Authorization: `Bearer ${loginBody.token}` }
+  }))
+  const listBody = await list.json()
+  assert.equal(Number(listBody.servers[0].cpu), 77)
+  agentRes.webSocket.close()
+})
+

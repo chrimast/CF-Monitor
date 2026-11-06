@@ -31,6 +31,10 @@ export class NodeWebSocket {
     for (const handler of handlers) handler(event)
   }
 
+  accept() {
+    this.readyState = 1
+  }
+
   send(data) {
     if (this.readyState !== 1 || !this._peer || this._peer.readyState !== 1) return
     this._peer._emit('message', { data })

@@ -100,7 +100,7 @@ docker compose up -d --build
 
 探针安装命令里的上报地址改成 `http://<主机>:8787`（或你的反代域名），路径仍是 `/update`。用户名默认 `admin`，初始密码等于 `API_SECRET`。
 
-当前 Docker 部署覆盖：登录、添加服务器、探针 HTTP `/update`、服务器列表、SQLite 持久化、实时 WebSocket、反向终端、每分钟定时任务，以及 SMTP（Node 直连，不再依赖 `cloudflare:sockets`）。Agent WSS 上报仍建议用 Cloudflare Worker。
+当前 Docker 部署覆盖：登录、添加服务器、探针 HTTP `/update`、探针 WSS `/update`、服务器列表、SQLite 持久化、实时 WebSocket、反向终端、每分钟定时任务，以及 SMTP（Node 直连，不再依赖 `cloudflare:sockets`）。
 
 未设置 `API_SECRET` 时 Compose 会用占位值 `changeme`，只适合本机试跑，公网部署前必须换成强随机值。
 
