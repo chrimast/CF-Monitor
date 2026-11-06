@@ -481,6 +481,7 @@ function _ensureBatchFlush(env) {
           if (resolve) resolve();
         });
       }, UPDATE_REALTIME_BATCH_WINDOW_MS);
+      flushTimer?.unref?.();
     }
     return flushingPromise;
   }
@@ -499,6 +500,7 @@ function _ensureBatchFlush(env) {
         if (currentResolve) currentResolve();
       });
     }, normalizedDelayMs);
+    flushTimer?.unref?.();
   }));
 
   return flushingPromise;

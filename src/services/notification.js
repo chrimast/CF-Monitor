@@ -815,7 +815,7 @@ async function sendSmtpNotification(settings, context, formattedMsg) {
   }
   try {
     // 动态导入：cloudflare-smtp 依赖 cloudflare:sockets，仅在运行时（Workers）加载
-    const { sendMail } = await import('cloudflare-smtp');
+    const { sendMail } = await import(globalThis.__CF_MONITOR_SMTP_MODULE || 'cloudflare-smtp');
     const subject = `${context.emoji || ''} ${context.event || '通知'}`.trim();
     const text = String(formattedMsg || '').replace(/\*/g, '');
     await withSmtpRetry(() => sendMail(

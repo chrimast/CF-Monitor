@@ -1096,6 +1096,7 @@ export class MetricsBroadcaster {
       this.frontendBroadcastTimer = null;
       this._flushFrontendBroadcastBatch();
     }, AGENT_WSS_FRONTEND_BATCH_WINDOW_MS);
+    this.frontendBroadcastTimer?.unref?.();
   }
 
   _flushFrontendBroadcastBatch() {

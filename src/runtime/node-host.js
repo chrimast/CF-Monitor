@@ -1,18 +1,11 @@
-if (typeof globalThis.WebSocketPair === 'undefined') {
-  globalThis.WebSocketPair = class WebSocketPair {
-    constructor() {
-      throw new Error('WebSocketPair is unavailable in the Docker host')
-    }
-  }
-}
-if (typeof globalThis.WebSocketRequestResponsePair === 'undefined') {
-  globalThis.WebSocketRequestResponsePair = class WebSocketRequestResponsePair {}
-}
+import { installWebSocketGlobals, createMemoryDurableState } from './websocket-pair.js'
+installWebSocketGlobals()
 
 import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { writeUpgradeResponse, bridgeSocketToWebSocket } from './websocket-http.js'
 
 function rewriteSql(sql) {
   return String(sql)
@@ -102,44 +95,22 @@ export function createInMemoryDurableNamespace(factory, env) {
     get(id) {
       const key = id?.name || String(id)
       if (!instances.has(key)) {
-        const state = {
-          waitUntil(promise) {
-            Promise.resolve(promise).catch(() => {})
-          },
-          acceptWebSocket() {},
-          getWebSockets() {
-            return []
-          },
-          setWebSocketAutoResponse() {},
-          storage: {
-            async get() { return null },
-            async put() {}
-          }
-        }
-        const instance = factory(state, env)
+        let instance
+        const state = createMemoryDurableState(() => instance)
+        instance = factory(state, env)
         const originalFetch = instance.fetch.bind(instance)
         instance.fetch = async (request) => {
-          try {
-            let req
-            if (typeof request === 'string') {
-              req = new Request(new URL(request, 'http://do.internal').toString())
-            } else if (request instanceof Request) {
-              const raw = String(request.url || '').replace('http://internal', 'http://do.internal')
-              const url = new URL(raw, 'http://do.internal')
-              req = new Request(url.toString(), request)
-            } else {
-              req = new Request(String(request))
-            }
-            return await originalFetch(req)
-          } catch (error) {
-            if (/WebSocket|Invalid URL/i.test(String(error?.message || error))) {
-              return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'websocket-unavailable' }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-              })
-            }
-            throw error
+          let req
+          if (typeof request === 'string') {
+            req = new Request(new URL(request, 'http://do.internal').toString())
+          } else if (request instanceof Request) {
+            const raw = String(request.url || '').replace('http://internal', 'http://do.internal').replace('https://terminal.internal', 'http://do.internal')
+            const url = new URL(raw, 'http://do.internal')
+            req = new Request(url.toString(), request)
+          } else {
+            req = new Request(String(request))
           }
+          return originalFetch(req)
         }
         instances.set(key, instance)
       }
@@ -264,11 +235,16 @@ export async function createNodeApp(options = {}) {
     DEBUG: options.debug || process.env.DEBUG || '',
     CORS_ALLOWED_ORIGINS: options.cors || process.env.CORS_ALLOWED_ORIGINS || '',
     RUNTIME: 'docker',
+    __CF_MONITOR_SMTP_MODULE: new URL('./node-smtp.js', import.meta.url).href,
     DB,
     ASSETS: createAssetsBinding(options.assetsDir || process.env.ASSETS_DIR || new URL('../../dist', import.meta.url).pathname),
     connectImpl: options.connectImpl || ((addr, opts) => nodeConnect(addr, opts)),
     fetchImpl: options.fetchImpl
   }
+  if (typeof options.smtpSendMail === 'function') {
+    globalThis.__CF_MONITOR_SMTP_SEND_MAIL = options.smtpSendMail
+  }
+  globalThis.__CF_MONITOR_SMTP_MODULE = new URL('./node-smtp.js', import.meta.url).href
 
   const { MetricsBroadcaster } = await import('../durable/MetricsBroadcaster.js')
   const { TerminalHub } = await import('../durable/TerminalHub.js')
@@ -282,7 +258,15 @@ export async function createNodeApp(options = {}) {
   return {
     env,
     async fetch(request, ctx = createWaitUntilContext()) {
-      return worker.fetch(request, env, ctx)
+      const response = await worker.fetch(request, env, ctx)
+      await ctx.flush()
+      return response
+    },
+    async tickScheduled(now = new Date()) {
+      const event = { cron: '*/1 * * * *', scheduledTime: now.getTime() }
+      const ctx = createWaitUntilContext()
+      await worker.scheduled(event, env, ctx)
+      await ctx.flush()
     }
   }
 }
@@ -325,6 +309,11 @@ export async function listen(options = {}) {
         body
       })
       const response = await app.fetch(request)
+      if (response.status === 101 && response.webSocket) {
+        res.statusCode = 500
+        res.end()
+        return
+      }
       res.statusCode = response.status
       response.headers.forEach((value, key) => {
         if (key.toLowerCase() === 'set-cookie') {
@@ -341,7 +330,33 @@ export async function listen(options = {}) {
       res.end(JSON.stringify({ error: error.message || 'Internal Server Error', code: 500 }))
     }
   })
+  server.on('upgrade', async (req, socket, head) => {
+    try {
+      const url = `http://${req.headers.host || `127.0.0.1:${port}`}${req.url}`
+      const headers = new Headers()
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (value == null) continue
+        if (Array.isArray(value)) value.forEach((item) => headers.append(key, item))
+        else headers.set(key, value)
+      }
+      const request = new Request(url, { method: 'GET', headers })
+      const response = await app.fetch(request)
+      if (response.status !== 101 || !response.webSocket) {
+        socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n')
+        socket.destroy()
+        return
+      }
+      writeUpgradeResponse(socket, req.headers['sec-websocket-key'])
+      bridgeSocketToWebSocket(socket, response.webSocket, head)
+    } catch (error) {
+      socket.destroy()
+    }
+  })
   await new Promise((resolve) => server.listen(port, host, resolve))
+  const timer = setInterval(() => {
+    app.tickScheduled().catch((error) => console.error('[cron]', error))
+  }, 60 * 1000)
+  timer.unref?.()
   return { server, app, port, host }
 }
 

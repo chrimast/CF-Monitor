@@ -166,6 +166,7 @@ export class TerminalHub {
         try { socket.close(1000, 'idle timeout'); } catch (_) {}
       }
     }, IDLE_MS);
+    this.idleTimer?.unref?.();
   }
 }
 

@@ -126,3 +126,127 @@ test('node host rejects empty API_SECRET, then login/add/update/list servers per
   assert.equal(againBody.stats.total, 1)
   assert.equal(againBody.servers[0].id, addBody.id)
 })
+
+test('node host upgrades live websocket and broadcasts HTTP updates', async () => {
+  const { createNodeApp } = await loadRuntime()
+  const app = await createNodeApp({ apiSecret: SECRET, dbPath: ':memory:' })
+  const login = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: 'admin', password: SECRET })
+  }))
+  const { token, id } = await (async () => {
+    const loginBody = await login.json()
+    const add = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${loginBody.token}`
+      },
+      body: JSON.stringify({ action: 'add', name: 'ws-node' })
+    }))
+    const addBody = await add.json()
+    return { token: loginBody.token, id: addBody.id }
+  })()
+
+  const pair = new WebSocketPair()
+  const response = await app.fetch(new Request('http://cf-monitor.test/api/ws?subscribe=all', {
+    headers: {
+      Upgrade: 'websocket',
+      Authorization: `Bearer ${token}`
+    },
+    webSocket: pair[0]
+  }))
+  assert.equal(response.status, 101)
+  assert.ok(response.webSocket)
+
+  const messages = []
+  response.webSocket.addEventListener('message', (event) => messages.push(event.data))
+  await app.fetch(new Request('http://cf-monitor.test/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id,
+      secret: SECRET,
+      metrics: { cpu: 41, ram_total: 1024, ram_used: 100, timestamp: Date.now() }
+    })
+  }))
+  await new Promise((resolve) => setTimeout(resolve, 5200))
+  const joined = messages.map(String).join('\n')
+  assert.match(joined, /hello|cpu|41/)
+  response.webSocket.close()
+})
+
+test('node host reverse terminal relays agent data to the browser socket', async () => {
+  const { createNodeApp } = await loadRuntime()
+  const app = await createNodeApp({ apiSecret: SECRET, dbPath: ':memory:' })
+  const login = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: 'admin', password: SECRET })
+  }))
+  const loginBody = await login.json()
+  const add = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loginBody.token}`
+    },
+    body: JSON.stringify({ action: 'add', name: 'term-node' })
+  }))
+  const { id } = await add.json()
+  const toggle = await app.fetch(new Request('http://cf-monitor.test/admin/api/terminal', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loginBody.token}`
+    },
+    body: JSON.stringify({ id, enabled: true })
+  }))
+  assert.equal(toggle.status, 200)
+
+  const agentPair = new WebSocketPair()
+  const agentRes = await app.fetch(new Request(`http://cf-monitor.test/agent/term?id=${id}&secret=${SECRET}`, {
+    headers: { Upgrade: 'websocket' },
+    webSocket: agentPair[0]
+  }))
+  assert.equal(agentRes.status, 101)
+  const browserPair = new WebSocketPair()
+  const browserRes = await app.fetch(new Request(`http://cf-monitor.test/api/term?id=${id}`, {
+    headers: {
+      Upgrade: 'websocket',
+      Authorization: `Bearer ${loginBody.token}`
+    },
+    webSocket: browserPair[0]
+  }))
+  assert.equal(browserRes.status, 101)
+  const browserMessages = []
+  browserRes.webSocket.addEventListener('message', (event) => browserMessages.push(String(event.data)))
+  agentRes.webSocket.send(JSON.stringify({ type: 'data', data: 'uname -a' }))
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(browserMessages.some((item) => item.includes('uname -a')), true)
+  agentRes.webSocket.close()
+  browserRes.webSocket.close()
+})
+
+test('node host runs scheduled jobs and Node SMTP sendMail', async () => {
+  const { createNodeApp } = await loadRuntime()
+  const sent = []
+  const app = await createNodeApp({
+    apiSecret: SECRET,
+    dbPath: ':memory:',
+    smtpSendMail: async (config, mail) => {
+      sent.push({ config, mail })
+    }
+  })
+  assert.equal(typeof app.tickScheduled, 'function')
+  await app.tickScheduled()
+  const { sendNotification } = await import('../src/services/notification.js')
+  await sendNotification({
+    tg_bot_token: 'smtp://user:pass@smtp.example.com:587?from=a@example.com&to=b@example.com&secure=starttls'
+  }, 'docker smtp', { event: '测试', emoji: '📧' })
+  assert.equal(sent.length, 1)
+  assert.equal(sent[0].config.host, 'smtp.example.com')
+  assert.match(String(sent[0].mail.subject || sent[0].mail.text || ''), /测试|docker smtp/)
+})
+
