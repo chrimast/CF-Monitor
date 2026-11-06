@@ -40,3 +40,7 @@ Thumbs.db
 # Cloudflare Workers
 .wrangler/
 dist/
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal

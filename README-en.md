@@ -34,6 +34,7 @@ Security is stricter by design: the Agent only reports metrics one way, does not
 - [Architecture](#architecture)
 - [Version Notes](#version-notes)
 - [Quick Deployment](#quick-deployment)
+- [Option 4: Docker Compose](#option-4-docker-compose-self-hosted-panel)
 - [First Use](#first-use)
 - [Agent Parameters and Security](#agent-parameters-and-security)
 - [Configuration](#configuration)
@@ -165,6 +166,29 @@ Before deploying:
 - Change the admin username and password after the first login.
 
 For long-term use, migrating to Option 1 or Option 2 is recommended.
+
+### Option 4: Docker Compose (self-hosted panel)
+
+The dashboard can also run on a host with Docker. Metrics live in a SQLite volume instead of Cloudflare D1 / Durable Objects. Keep `cf-probe` and the WAF Agent on the machines you monitor; do not put them in this panel container.
+
+```bash
+git clone https://github.com/chrimast/CF-Monitor.git
+cd CF-Monitor
+export API_SECRET='use-a-long-random-value'
+docker compose up -d --build
+```
+
+- Dashboard: `http://<host>:8787`
+- Admin: `http://<host>:8787/admin#/admin`
+- Health: `GET /health` should return `{"ok":true,"runtime":"docker"}`
+- Data: Compose volume `cf-monitor-data` → `/data/cf-monitor.sqlite`
+- Environment: `API_SECRET` (required; Agent secret and initial admin password), `API_USER_NAME` (default `admin`)
+
+Point the Agent install command at `http://<host>:8787` (or your reverse-proxy URL). Reports still go to `/update`. Default username is `admin`; the initial password equals `API_SECRET`.
+
+This Docker MVP covers login, adding servers, HTTP `/update` reports, the server list, and SQLite persistence. Reverse-terminal WebSockets, Agent WSS reporting, and SMTP (`cloudflare:sockets`) still require the Cloudflare Worker runtime.
+
+If `API_SECRET` is unset, Compose falls back to `changeme`. Change it before exposing the panel on a public network.
 
 ## First Use
 

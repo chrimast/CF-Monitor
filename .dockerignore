@@ -1,0 +1,8 @@
+node_modules
+.git
+.wrangler
+dist
+*.sqlite
+*.sqlite-journal
+.env
+.env.*

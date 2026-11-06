@@ -189,8 +189,12 @@ function parseHttpResponse(bytes) {
 
 async function resolveConnect(connectImpl) {
   if (connectImpl) return connectImpl
-  const mod = await import('cloudflare:sockets')
-  return mod.connect
+  try {
+    const mod = await import('cloudflare:sockets')
+    return mod.connect
+  } catch {
+    throw new Error('cloudflare:sockets is unavailable; pass env.connectImpl')
+  }
 }
 
 async function socketHttpRequest(parsed, init, connectImpl) {

@@ -81,6 +81,29 @@ Workers 免费套餐全账号最多 5 条 Cron。当前部署只挂 **1 条**每
 
 长期使用仍建议方式一或方式二。
 
+## 方式四：Docker Compose（自托管面板）
+
+面板也可以跑在本机 Docker 里，数据用 SQLite 卷，不走 Cloudflare D1 / Durable Objects。探针 `cf-probe`、WAF Agent 仍装在被监控机器上，不要塞进这个面板容器。
+
+```bash
+git clone https://github.com/chrimast/CF-Monitor.git
+cd CF-Monitor
+export API_SECRET='换成足够长的随机值'
+docker compose up -d --build
+```
+
+- 面板：`http://<主机>:8787`
+- 后台：`http://<主机>:8787/admin#/admin`
+- 健康检查：`GET /health`，应返回 `{"ok":true,"runtime":"docker"}`
+- 数据：Compose 卷 `cf-monitor-data` → 容器 `/data/cf-monitor.sqlite`
+- 环境变量：`API_SECRET`（必填，探针密钥 + 后台初始密码）、`API_USER_NAME`（默认 `admin`）
+
+探针安装命令里的上报地址改成 `http://<主机>:8787`（或你的反代域名），路径仍是 `/update`。用户名默认 `admin`，初始密码等于 `API_SECRET`。
+
+当前 Docker MVP 覆盖：登录、添加服务器、探针 HTTP `/update` 上报、服务器列表、SQLite 持久化。反向终端实时 WebSocket、Agent WSS 上报、SMTP（`cloudflare:sockets`）仍以 Cloudflare Worker 为准。
+
+未设置 `API_SECRET` 时 Compose 会用占位值 `changeme`，只适合本机试跑，公网部署前必须换成强随机值。
+
 ## 首次使用
 
 1. 打开 `/admin#/admin`
@@ -90,7 +113,7 @@ Workers 免费套餐全账号最多 5 条 Cron。当前部署只挂 **1 条**每
 5. Linux (systemd) 复制的是一行 `curl | sudo sh`，以 root 安装系统服务（`/usr/local/bin/cf-probe`）。反向终端和文件管理以 root 运行。OpenWrt/Alpine/群晖/FreeBSD/macOS/Windows 仍按所选系统安装。
 6. 需要终端时：对该机点 **TERM** 进入工作台；右侧是文件管理。关掉窗口后自动关闭
 
-探针上报地址是 Worker 的 `/update`，例如 `https://cf-monitor.<子域>.workers.dev/update`。
+探针上报地址：Cloudflare 部署用 Worker 的 `/update`，例如 `https://cf-monitor.<子域>.workers.dev/update`；Docker 部署用 `http://<主机>:8787/update`。
 
 ## 本机用 Wrangler 部署（有 Token 时）
 
@@ -112,11 +135,19 @@ printf '%s' "$API_SECRET" | npx wrangler secret put API_SECRET
 
 ## 部署后核对
 
+Cloudflare：
+
 - Worker 名称是 `cf-monitor`，不是 `cf-server-monitor`
 - D1 绑定名是 `DB`，库名是 `cf-monitor-db`
 - `API_SECRET` 已出现在 Worker Secrets
 - `/admin#/admin` 能打开登录页
 - 未登录不能连终端 WebSocket
+
+Docker：
+
+- `GET /health` 返回 `runtime: docker`
+- `API_SECRET` 不是默认 `changeme`
+- 探针 `WORKER_URL` 指向该面板的 `/update`
 
 ## Agent
 

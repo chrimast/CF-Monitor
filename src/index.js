@@ -207,6 +207,10 @@ export default {
       return createOptionsResponse(request, corsAllowedOrigins);
     }
 
+    if (method === 'GET' && path === '/health') {
+      return createSuccessResponse({ ok: true, runtime: env.RUNTIME || 'worker' });
+    }
+
     if (method === 'GET' && path === '/admin/') {
       const target = new URL(request.url);
       const search = target.search;

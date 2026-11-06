@@ -48,6 +48,10 @@ export function clearDashboardLatencyHistoryCache() {
   dashboardLatencyHistoryCache.clear();
 }
 
+export function resetDatabaseInitFlag() {
+  dbInitialized = false;
+}
+
 export async function initDatabase(db) {
   if (dbInitialized) return;
 
