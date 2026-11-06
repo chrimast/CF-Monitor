@@ -515,7 +515,6 @@ const bans = ref([])
 const banPage = ref(1)
 const banPages = ref(1)
 const wafRules = ref({})
-const ccForm = reactive({ state: 'off', threshold: 120, duration: 60, ipBlockTime: 600 })
 const blacklist = ref({ ipBlack: [], ipWhite: [] })
 const listType = ref('black')
 const newIp = ref('')
@@ -1000,7 +999,6 @@ const loadDashboard = async () => {
   Object.assign(geo, { state: geoCfg.state || 'off', action: geoCfg.action || 'deny', rules: geoCfg.rules || [] })
   geoRulesText.value = (geo.rules || []).join(',')
   wafRules.value = rules || {}
-  if (rules?.cc) Object.assign(ccForm, { state: rules.cc.state || 'off', threshold: rules.cc.threshold || 120, duration: rules.cc.duration || 60, ipBlockTime: rules.cc.ipBlockTime || 600 })
   try {
     await renderMap()
   } catch (err) {
@@ -1368,12 +1366,6 @@ const retryCurrentNode = async () => {
 const toggleRule = async (rule, state) => {
   const r = await agentPost('/rule_toggle', { rule, state })
   toast(r.message || '已更新')
-  await loadDashboard()
-}
-
-const saveCc = async () => {
-  const r = await agentPost('/cc_config', { ...ccForm })
-  toast(r.message || '已保存')
   await loadDashboard()
 }
 
