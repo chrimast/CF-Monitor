@@ -293,3 +293,65 @@ test('node host accepts Agent WSS reports on GET /update', async () => {
   agentRes.webSocket.close()
 })
 
+test('node host serves frontend assets, DNSHub accounts, and WAF nodes', async () => {
+  const { createNodeApp } = await loadRuntime()
+  const dir = mkdtempSync(join(tmpdir(), 'cf-monitor-assets-'))
+  const { writeFileSync, mkdirSync } = await import('node:fs')
+  mkdirSync(join(dir, 'static'), { recursive: true })
+  writeFileSync(join(dir, 'dashboard.html'), '<html><title>docker-dashboard</title></html>')
+  writeFileSync(join(dir, 'static', 'app.js'), 'console.log("ok")')
+
+  const app = await createNodeApp({ apiSecret: SECRET, dbPath: ':memory:', assetsDir: dir })
+  const home = await app.fetch(new Request('http://cf-monitor.test/'))
+  assert.equal(home.status, 200)
+  assert.match(await home.text(), /<html>/)
+  const admin = await app.fetch(new Request('http://cf-monitor.test/admin'))
+  assert.equal(admin.status, 200)
+  const asset = await app.fetch(new Request('http://cf-monitor.test/static/app.js'))
+  assert.equal(asset.status, 200)
+  assert.match(asset.headers.get('content-type') || '', /javascript/)
+  assert.equal(await asset.text(), 'console.log("ok")')
+
+  const login = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: 'admin', password: SECRET })
+  }))
+  const { token } = await login.json()
+  const dns = await app.fetch(new Request('http://cf-monitor.test/api/dnshub/accounts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      name: 'cf-account',
+      provider: 'cloudflare',
+      credentials: { email: 'ops@example.com', apiKey: 'k' }
+    })
+  }))
+  assert.equal(dns.status, 201)
+  const dnsBody = await dns.json()
+  assert.equal(dnsBody.success, true)
+  assert.equal(dnsBody.data.name, 'cf-account')
+  assert.equal(dnsBody.data.credentials, undefined)
+
+  const waf = await app.fetch(new Request('http://cf-monitor.test/api/wafpanel/nodes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      name: 'edge-1',
+      url: 'http://203.0.113.10:10087',
+      token: 'agent-token'
+    })
+  }))
+  assert.equal(waf.status, 201)
+  const wafBody = await waf.json()
+  assert.equal(wafBody.success, true)
+  assert.equal(wafBody.data.name, 'edge-1')
+  assert.equal(wafBody.data.token, undefined)
+})
+

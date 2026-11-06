@@ -20,6 +20,10 @@ const PREVIEW_AUTH_COOKIE = 'cfsm_theme_preview_auth';
 
 let filesCache = null;
 
+export function clearFrontendFilesCache() {
+  filesCache = null;
+}
+
 async function loadFrontendFiles(env) {
   if (filesCache) return filesCache;
 

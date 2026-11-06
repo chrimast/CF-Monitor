@@ -503,6 +503,13 @@ export default {
     }
 
     const fullSettings = await loadSettings(env.DB);
+    if (method === 'GET' && path.startsWith('/static/')) {
+      if (!env.ASSETS) {
+        return new Response('Not Found', { status: 404 });
+      }
+      const asset = await env.ASSETS.fetch(request);
+      return applyCors(asset, request, corsAllowedOrigins);
+    }
     const frontendResponse = await serveFrontend(request, env, fullSettings);
     return applyCors(frontendResponse, request, corsAllowedOrigins);
   },

@@ -221,12 +221,13 @@ export async function createNodeApp(options = {}) {
     throw new Error('API_SECRET is required')
   }
   const dbPath = options.dbPath || process.env.CF_MONITOR_DB || '/data/cf-monitor.sqlite'
-  const { resetDatabaseInitFlag } = await import('../database/schema.js')
+  const { resetDatabaseInitFlag, clearDashboardLatencyHistoryCache } = await import('../database/schema.js')
   resetDatabaseInitFlag()
   const { clearAllCaches } = await import('../utils/cache.js')
-  const { clearDashboardLatencyHistoryCache } = await import('../database/schema.js')
+  const { clearFrontendFilesCache } = await import('../handlers/frontend.js')
   clearAllCaches()
   clearDashboardLatencyHistoryCache()
+  clearFrontendFilesCache()
 
   const DB = createSqliteD1(dbPath)
   const env = {
@@ -271,6 +272,19 @@ export async function createNodeApp(options = {}) {
   }
 }
 
+function assetContentType(name) {
+  if (name.endsWith('.js')) return 'application/javascript; charset=utf-8'
+  if (name.endsWith('.css')) return 'text/css; charset=utf-8'
+  if (name.endsWith('.html')) return 'text/html; charset=utf-8'
+  if (name.endsWith('.svg')) return 'image/svg+xml'
+  if (name.endsWith('.png')) return 'image/png'
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg'
+  if (name.endsWith('.webp')) return 'image/webp'
+  if (name.endsWith('.woff2')) return 'font/woff2'
+  if (name.endsWith('.json')) return 'application/json; charset=utf-8'
+  return 'application/octet-stream'
+}
+
 function createAssetsBinding(rootDir) {
   return {
     async fetch(request) {
@@ -278,9 +292,13 @@ function createAssetsBinding(rootDir) {
       const { join } = await import('node:path')
       const url = new URL(request.url)
       const name = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
+      if (!name || name.includes('..')) return new Response('Not Found', { status: 404 })
       try {
         const body = await readFile(join(rootDir, name))
-        return new Response(body, { status: 200 })
+        return new Response(body, {
+          status: 200,
+          headers: { 'Content-Type': assetContentType(name) }
+        })
       } catch {
         return new Response('Not Found', { status: 404 })
       }
