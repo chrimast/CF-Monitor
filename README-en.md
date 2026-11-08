@@ -186,7 +186,7 @@ docker compose up -d --build
 
 Point the Agent install command at `http://<host>:8787` (or your reverse-proxy URL). Reports still go to `/update`. Default username is `admin`; the initial password equals `API_SECRET`.
 
-This Docker adapter covers login, adding servers, HTTP `/update` reports, Agent WSS `/update`, the server list, SQLite persistence, live WebSocket updates, reverse terminal, minute cron jobs, SMTP over Node sockets, static frontend assets, DNSHub accounts, and WAF nodes.
+This Docker adapter covers login, adding servers, HTTP `/update` reports, Agent WSS `/update` while the dashboard is open, the server list, SQLite persistence, live WebSocket updates, reverse terminal, minute cron jobs, SMTP over Node sockets, static frontend assets, DNSHub accounts, and WAF nodes. When nobody is viewing the dashboard, agents keep reporting over HTTP so 24/7 monitoring is unchanged.
 
 If `API_SECRET` is unset, Compose falls back to `changeme`. Change it before exposing the panel on a public network.
 

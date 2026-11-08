@@ -56,6 +56,7 @@ const DISK_IO_COLUMN_TO_FIELD = Object.freeze(Object.fromEntries(
 const AGENT_WSS_MODE_HEADER = 'X-Agent-Wss-Mode';
 const AGENT_WSS_REASON_HEADER = 'X-Agent-Wss-Reason';
 const AGENT_WSS_SCHEDULE_INACTIVE = 'wss_schedule_inactive';
+const AGENT_WSS_IDLE_HTTP = 'wss_idle_http';
 const AGENT_WSS_SCHEDULE_DISABLED = 'wss_disabled';
 let batchQueue = new Map();
 let flushingPromise = null;
@@ -383,10 +384,33 @@ async function getBatchFlushDelayMs(env, now = Date.now()) {
 
 function buildAgentWssStateHeaders(settings = {}, now = Date.now()) {
   const state = getWssReportScheduleState(settings, now);
+  if (state.active && !hasRecentFrontendRealtimeActivity(now)) {
+    return {
+      [AGENT_WSS_MODE_HEADER]: 'inactive',
+      [AGENT_WSS_REASON_HEADER]: AGENT_WSS_IDLE_HTTP
+    };
+  }
   return {
     [AGENT_WSS_MODE_HEADER]: state.mode,
     [AGENT_WSS_REASON_HEADER]: state.reason
   };
+}
+
+function createAgentWssIdleHttpResponse() {
+  return new Response(JSON.stringify({
+    error: 'Agent WSS idle; use HTTP reporting',
+    code: 409,
+    text: AGENT_WSS_IDLE_HTTP,
+    connection_mode: 'http'
+  }), {
+    status: 409,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'application/json',
+      [AGENT_WSS_MODE_HEADER]: 'inactive',
+      [AGENT_WSS_REASON_HEADER]: AGENT_WSS_IDLE_HTTP
+    }
+  });
 }
 
 function createAgentWssScheduleInactiveResponse(settings = {}) {
@@ -599,9 +623,13 @@ export async function handleUpdate(request, env, ctx) {
 
     const clientConfigSchema = normalizeAgentConfigSchemaVersion(request.headers.get(AGENT_CONFIG_SCHEMA_HEADER));
     if (!clientConfigSchema) {
+      const settings = await loadSiteSettings(env.DB);
       return new Response('OK', {
         status: 200,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          ...buildAgentWssStateHeaders(settings)
+        }
       });
     }
 
@@ -715,6 +743,9 @@ export async function handleUpdateWebSocketUpgrade(request, env) {
   const scheduleState = getWssReportScheduleState(settings);
   if (!scheduleState.active) {
     return createAgentWssScheduleInactiveResponse(settings);
+  }
+  if (!hasRecentFrontendRealtimeActivity()) {
+    return createAgentWssIdleHttpResponse();
   }
   return forwardWebSocketUpgrade(request, env, '/update', '[update-ws]');
 }

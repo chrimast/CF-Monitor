@@ -5,6 +5,7 @@ import { getHistoryMetrics, handleUpdateWebSocketUpgrade, handleWebSocketUpgrade
 import { buildAuthCookie, generateToken } from '../src/middleware/auth.js';
 import { buildResourceAlertNotificationPayloads } from '../src/services/notification.js';
 import { clearSiteSettingsCache, DEFAULT_NOTIFICATION_TEMPLATE, normalizeNotificationTemplate, normalizeResourceAlertRules } from '../src/utils/settings.js';
+import { markFrontendRealtimeActive, clearFrontendRealtimeActivity } from '../src/utils/realtimeBroadcastGate.js';
 
 globalThis.WebSocketRequestResponsePair = class WebSocketRequestResponsePair {
   constructor(request, response) {
@@ -167,6 +168,47 @@ test('Agent WSS upgrade rejects disabled state with fast-switch envelope', async
   assert.equal(forwarded, false);
 });
 
+test('Agent WSS upgrade stays on HTTP when no dashboard is watching', async () => {
+  clearSiteSettingsCache();
+  clearFrontendRealtimeActivity();
+  let forwarded = false;
+  const response = await handleUpdateWebSocketUpgrade(
+    makeWebSocketUpgradeRequest('https://example.com/update'),
+    makeWebSocketEnv({
+      wss_report_enabled: 'true'
+    }, () => {
+      forwarded = true;
+    })
+  );
+
+  assert.equal(response.status, 409);
+  assert.equal(response.headers.get('X-Agent-Wss-Mode'), 'inactive');
+  assert.equal(response.headers.get('X-Agent-Wss-Reason'), 'wss_idle_http');
+  const body = await response.json();
+  assert.equal(body.connection_mode, 'http');
+  assert.equal(forwarded, false);
+});
+
+test('Agent WSS upgrade is allowed while the dashboard is watching', async () => {
+  clearSiteSettingsCache();
+  markFrontendRealtimeActive();
+  let forwarded = false;
+  const currentHour = new Date().getUTCHours();
+  const response = await handleUpdateWebSocketUpgrade(
+    makeWebSocketUpgradeRequest('https://example.com/update'),
+    makeWebSocketEnv({
+      wss_report_enabled: 'true',
+      wss_report_hours: [currentHour]
+    }, () => {
+      forwarded = true;
+    })
+  );
+
+  assert.equal(response.status, 101);
+  assert.equal(forwarded, true);
+  clearFrontendRealtimeActivity();
+});
+
 test('private frontend WebSocket accepts query token auth', async () => {
   let forwardedUrl = '';
   const env = makeWebSocketEnv({ is_public: 'false' }, request => {
@@ -206,6 +248,7 @@ test('Agent WSS upgrade follows the configured UTC hour schedule', async () => {
   const currentHour = new Date().getUTCHours();
   let forwarded = false;
   clearSiteSettingsCache();
+  markFrontendRealtimeActive();
   const enabledResponse = await handleUpdateWebSocketUpgrade(
     makeWebSocketUpgradeRequest('https://example.com/update'),
     makeWebSocketEnv({
@@ -238,10 +281,12 @@ test('Agent WSS upgrade follows the configured UTC hour schedule', async () => {
   assert.equal(disabledBody.text, 'wss_schedule_inactive');
   assert.equal(disabledBody.connection_mode, 'http');
   assert.equal(forwarded, false);
+  clearFrontendRealtimeActivity();
 });
 
 test('Durable Object rechecks Agent WSS schedule before accepting a socket', async () => {
   clearSiteSettingsCache();
+  markFrontendRealtimeActive();
   const currentHour = new Date().getUTCHours();
   const broadcaster = makeBroadcaster([], {
     DB: makeSettingsDb({

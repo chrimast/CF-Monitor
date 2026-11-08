@@ -62,6 +62,8 @@ https://cf-monitor.chrimast.workers.dev
 
 Workers 免费套餐全账号最多 5 条 Cron。当前部署只挂 **1 条**每分钟触发器；离线检测、资源告警、到期提醒、优选 IP 的实际执行间隔在后台「设置」里用下拉选择（例如每 5 分钟 / 每 6 小时）。默认：离线/告警每分钟，到期/优选每小时。
 
+探针全天监控走 HTTP `POST /update`，历史图表、离线检测和告警不依赖 WSS。只有打开面板（约 2 分钟内）才允许 Agent WSS，避免 Durable Objects 时长被 24 小时长连接占满。Worker 和 Docker 共用这一逻辑。
+
 未配置 `CF_ACCOUNT_ID` 时，push 不会部署（工作流 `check` 会跳过），避免空跑失败。
 
 ## 方式二：Cloudflare Dashboard 连接 GitHub
@@ -100,7 +102,7 @@ docker compose up -d --build
 
 探针安装命令里的上报地址改成 `http://<主机>:8787`（或你的反代域名），路径仍是 `/update`。用户名默认 `admin`，初始密码等于 `API_SECRET`。
 
-当前 Docker 部署覆盖：登录、添加服务器、探针 HTTP `/update`、探针 WSS `/update`、服务器列表、SQLite 持久化、实时 WebSocket、反向终端、每分钟定时任务、SMTP、静态前端资源、DNSHub 账号和 WAF 节点。
+当前 Docker 部署覆盖：登录、添加服务器、探针 HTTP `/update`、探针 WSS `/update`（仅面板在看时）、服务器列表、SQLite 持久化、实时 WebSocket、反向终端、每分钟定时任务、SMTP、静态前端资源、DNSHub 账号和 WAF 节点。无人看面板时探针自动改 HTTP 上报，全天监控不受影响。
 
 未设置 `API_SECRET` 时 Compose 会用占位值 `changeme`，只适合本机试跑，公网部署前必须换成强随机值。
 

@@ -17,6 +17,7 @@ import { evaluateTrafficAlert } from '../services/notification.js';
 import { ensureServerOptimization } from '../database/indexOptimization.js';
 import { getServerDetail, clearServerDetailCache } from '../utils/cache.js';
 import { getWssReportScheduleState, loadSiteSettings } from '../utils/settings.js';
+import { hasRecentFrontendRealtimeActivity } from '../utils/realtimeBroadcastGate.js';
 import {
   AGENT_CONFIG_MD5_HEADER,
   AGENT_CONFIG_LEGACY_SCHEMA_VERSION,
@@ -57,6 +58,7 @@ const AGENT_REPORT_KIND = 'agent-report';
 const AGENT_WSS_MODE_HEADER = 'X-Agent-Wss-Mode';
 const AGENT_WSS_REASON_HEADER = 'X-Agent-Wss-Reason';
 const AGENT_WSS_SCHEDULE_INACTIVE = 'wss_schedule_inactive';
+const AGENT_WSS_IDLE_HTTP = 'wss_idle_http';
 const AGENT_WSS_SCHEDULE_DISABLED = 'wss_disabled';
 const ALLOWED_AGENT_REPORT_INTERVALS = new Set([30, 60, 120, 180]);
 const RESOURCE_ALERT_STORAGE_KEY = 'resource_alert_windows_v1';
@@ -546,6 +548,23 @@ export class MetricsBroadcaster {
       WS_TRY_AGAIN_LATER,
       AGENT_WSS_SCHEDULE_DISABLED
     );
+  }
+
+  _createAgentWssIdleHttpResponse() {
+    return new Response(JSON.stringify({
+      error: 'Agent WSS idle; use HTTP reporting',
+      code: 409,
+      text: AGENT_WSS_IDLE_HTTP,
+      connection_mode: 'http'
+    }), {
+      status: 409,
+      headers: {
+        'Cache-Control': 'no-store',
+        'Content-Type': 'application/json',
+        [AGENT_WSS_MODE_HEADER]: 'inactive',
+        [AGENT_WSS_REASON_HEADER]: AGENT_WSS_IDLE_HTTP
+      }
+    });
   }
 
   _createAgentWssUnavailableResponse(scheduleState) {
@@ -1431,6 +1450,9 @@ export class MetricsBroadcaster {
     const scheduleState = getWssReportScheduleState(settings);
     if (!scheduleState.active) {
       return this._createAgentWssUnavailableResponse(scheduleState);
+    }
+    if (!hasRecentFrontendRealtimeActivity()) {
+      return this._createAgentWssIdleHttpResponse();
     }
 
     // @ts-ignore - Cloudflare Workers runtime provides WebSocketPair
