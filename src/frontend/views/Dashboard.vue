@@ -48,6 +48,12 @@
               :class="{ active: currentView === 'map' }"
               @click="switchView('map')"
             >◉ {{ trans.map }}</button>
+            <button
+              class="toggle-btn"
+              :class="{ active: currentView === 'latency' }"
+              :aria-pressed="currentView === 'latency'"
+              @click="switchView('latency')"
+            > {{ trans.latencyMonitor }}</button>
           </div>
         </div>
       </div>
@@ -273,6 +279,8 @@
       </div>
     </div>
 
+    <LatencyOverview v-if="currentView === 'latency'" :servers="filteredServers" :sys-config="sysConfig" />
+
     <div id="view-map" class="view-panel" :class="{ active: currentView === 'map' }">
       <div class="map-wrapper">
         <div ref="mapContainer" id="map-container"></div>
@@ -369,6 +377,7 @@ import { useRouter } from 'vue-router'
 import TerminalHeader from '../components/TerminalHeader.vue'
 import ServerBarCard from '../components/ServerBarCard.vue'
 import ServerRingCard from '../components/ServerRingCard.vue'
+import LatencyOverview from '../components/LatencyOverview.vue'
 import Footer from '../components/Footer.vue'
 import OsIcon from '../components/OsIcon.vue'
 import LiveConnectionTimeoutModal from '../components/LiveConnectionTimeoutModal.vue'

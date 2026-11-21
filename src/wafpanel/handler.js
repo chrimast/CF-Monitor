@@ -251,8 +251,16 @@ async function agentRequest(node, method, pathWithQuery, { headers, body, fetchI
   const target = agentApiUrl(node.url, pathWithQuery)
   const parsed = new URL(target)
   const init = { method, headers, body }
-  if (needsSocketTransport(parsed)) return socketHttpRequest(parsed, init, connectImpl)
-  return fetchImpl(target, init)
+  const history = parsed.pathname.endsWith('/agent/api/logs_history')
+  if (history) init.redirect = 'manual'
+  const response = needsSocketTransport(parsed)
+    ? await socketHttpRequest(parsed, init, connectImpl)
+    : await fetchImpl(target, init)
+  // A redirect must never send a history request to the legacy log handler.
+  if (history && response.status >= 300 && response.status < 400) {
+    throw new Error('WAF log history endpoint redirected')
+  }
+  return response
 }
 
 function match(pathname, pattern) {

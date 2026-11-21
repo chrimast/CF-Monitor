@@ -355,3 +355,50 @@ test('node host serves frontend assets, DNSHub accounts, and WAF nodes', async (
   assert.equal(wafBody.data.token, undefined)
 })
 
+test('node host forwards WAF history over its socket adapter and never follows redirects', async () => {
+  const { createNodeApp } = await loadRuntime()
+  const outbound = []
+  const history = { page: 1, limit: 20, pages: 1, total: 0, data: [] }
+  const encoder = new TextEncoder()
+  const app = await createNodeApp({ apiSecret: SECRET, dbPath: ':memory:', connectImpl(addr) {
+    assert.deepEqual(addr, { hostname: '203.0.113.10', port: 10087 })
+    let respond
+    const readable = new ReadableStream({ start(controller) { respond = controller } })
+    const writable = new WritableStream({ write(bytes) {
+      outbound.push(new TextDecoder().decode(bytes))
+      const body = JSON.stringify(history)
+      const reply = outbound.length === 1
+        ? `HTTP/1.1 200 OK\r\nContent-Length: ${body.length}\r\n\r\n${body}`
+        : 'HTTP/1.1 302 Found\r\nLocation: /agent/api/logs\r\nContent-Length: 0\r\n\r\n'
+      respond.enqueue(encoder.encode(reply))
+      respond.close()
+    } })
+    return { readable, writable }
+  } })
+  const login = await app.fetch(new Request('http://cf-monitor.test/admin/api', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: 'admin', password: SECRET })
+  }))
+  const { token } = await login.json()
+  const root = 'http://cf-monitor.test/api/wafpanel/nodes'
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  const created = await app.fetch(new Request(root, {
+    method: 'POST', headers,
+    body: JSON.stringify({ name: 'History', url: 'http://203.0.113.10:10087', token: 'fixture-agent-token' })
+  }))
+  assert.equal(created.status, 201)
+  const { data } = await created.json()
+  const path = `${root}/${data.id}/logs_history?page=1&limit=20`
+  assert.equal((await app.fetch(new Request(path))).status, 401)
+  assert.equal(outbound.length, 0)
+  const response = await app.fetch(new Request(path, { headers }))
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), history)
+  assert.equal((await app.fetch(new Request(path, { headers }))).status, 502)
+  assert.equal(outbound.length, 2)
+  for (const request of outbound) {
+    assert.match(request, /^GET \/agent\/api\/logs_history\?page=1&limit=20 HTTP\/1\.1\r\n/)
+    assert.match(request, /\r\nauthorization: Bearer fixture-agent-token\r\n/i)
+  }
+})
+

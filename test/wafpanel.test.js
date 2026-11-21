@@ -154,6 +154,26 @@ const env = { DB: makeMemoryDb() }
 
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: 'History agent', url: 'https://history.example.com', token: 'history-token'
+  }), env, true))
+  const path = `/api/wafpanel/nodes/${created.body.data.id}/logs_history?page=2&limit=20`
+  const calls = []
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init })
+    if (init.redirect !== 'manual') throw new Error('Redirect could reach legacy logs')
+    return new Response(null, { status: 302, headers: { Location: '/agent/api/logs' } })
+  }
+  const result = await readJson(await handleWafpanelRequest(jsonRequest('GET', path), { ...env, fetchImpl }, true))
+  assert.equal(result.status, 502)
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://history.example.com/agent/api/logs_history?page=2&limit=20')
+  assert.equal(calls[0].init.method, 'GET')
+  assert.equal(calls[0].init.headers.Authorization, 'Bearer history-token')
+  assert.equal(calls[0].init.redirect, 'manual')
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '写操作节点',
     url: 'https://waf-write.example.com',
     token: 'write-token'

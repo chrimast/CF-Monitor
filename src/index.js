@@ -5,6 +5,7 @@ import { handleAdminAPI } from './handlers/admin.js';
 import { handleDnshubRequest, runPreferredIpJobs } from './dnshub/handler.js';
 import { handleWafpanelRequest } from './wafpanel/handler.js';
 import { serveFrontend } from './handlers/frontend.js';
+import { serveMobileTurnstile } from './handlers/mobile-turnstile.js';
 import { handleUpdate, handleWebSocketUpgrade, handleUpdateWebSocketUpgrade } from './handlers/update.js';
 import { handleAgentTerminalUpgrade, handleBrowserTerminalUpgrade, handleToggleTerminal } from './handlers/terminal.js';
 import { handleServerAPI, handleServersAPI } from './handlers/dashboard.js';
@@ -209,6 +210,11 @@ export default {
 
     if (method === 'GET' && path === '/health') {
       return createSuccessResponse({ ok: true, runtime: env.RUNTIME || 'worker' });
+    }
+
+    if (path === '/verify/turnstile') {
+      if (method !== 'GET') return new Response(null, { status: 405, headers: { Allow: 'GET' } });
+      return serveMobileTurnstile(await loadSiteSettings(env.DB));
     }
 
     if (method === 'GET' && path === '/admin/') {
