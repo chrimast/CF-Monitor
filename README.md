@@ -1,5 +1,7 @@
 # CF-Monitor
 
+已整合上游 2.8.7：自动发现建号、D1 批处理、站点/外观备份、多语言及通知语言、TCP/UDP 告警、上报尺寸保护和小组件更新。Docker/SQLite 与 Workers/D1 共用接口。完整提交覆盖、认证差异及本地验证见 [整合记录](docs/upstream-integration-2.8.7.md)。上游后续的 App 口令跳过验证和静态 UA Cookie 放行方案未采用，客户端继续走现有登录与 Turnstile 流程。
+
 基于 [huilang-me/CF-Server-Monitor](https://github.com/huilang-me/CF-Server-Monitor) 的自用分支。
 
 新增：**管理员反向终端**（方案 B）。探针主动连上 Worker，浏览器通过 xterm 使用本机 PTY。不依赖公网 22。

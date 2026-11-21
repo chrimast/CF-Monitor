@@ -35,6 +35,7 @@ export function createSqliteD1(dbPath) {
   const sqlite = new DatabaseSync(dbPath || ':memory:')
   sqlite.exec('PRAGMA journal_mode = WAL')
   sqlite.exec('PRAGMA foreign_keys = ON')
+  const execute = new WeakMap()
 
   return {
     sqlite,
@@ -81,7 +82,30 @@ export function createSqliteD1(dbPath) {
           }
         }
       }
+      execute.set(bound, () => {
+        if (statement._error) throw statement._error
+        const columns = columnNames(statement)
+        if (statement.columns().length) {
+          const results = statement.all(...bound.params).map((row) => (
+            Array.isArray(row) ? rowToObject(columns, row) : row
+          ))
+          return { success: true, results }
+        }
+        const info = statement.run(...bound.params)
+        return { success: true, results: [], meta: { changes: info.changes, last_row_id: info.lastInsertRowid } }
+      })
       return bound
+    },
+    async batch(statements) {
+      sqlite.exec('SAVEPOINT d1_batch')
+      try {
+        const results = statements.map((statement) => execute.get(statement)())
+        sqlite.exec('RELEASE d1_batch')
+        return results
+      } catch (error) {
+        sqlite.exec('ROLLBACK TO d1_batch; RELEASE d1_batch')
+        throw error
+      }
     }
   }
 }

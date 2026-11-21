@@ -6,6 +6,8 @@ import { buildAuthCookie, generateToken } from '../src/middleware/auth.js';
 import { buildResourceAlertNotificationPayloads } from '../src/services/notification.js';
 import { clearSiteSettingsCache, DEFAULT_NOTIFICATION_TEMPLATE, normalizeNotificationTemplate, normalizeResourceAlertRules } from '../src/utils/settings.js';
 import { markFrontendRealtimeActive, clearFrontendRealtimeActivity } from '../src/utils/realtimeBroadcastGate.js';
+import { UPDATE_MAX_REQUEST_BYTES } from '../src/utils/config.js';
+import { HISTORY_INSERT_COLUMNS } from '../src/utils/historyFields.js';
 
 globalThis.WebSocketRequestResponsePair = class WebSocketRequestResponsePair {
   constructor(request, response) {
@@ -454,6 +456,15 @@ test('frontend realtime hint pushes active interval to connected agents', async 
 
 test('WSS agent context uses current report interval from payload', async () => {
   const broadcaster = makeBroadcaster();
+  broadcaster.agentServerDetails.set('server-1', {
+    data: {
+      id: 'server-1',
+      history_partition_id: 42,
+      report_interval: 60,
+      wss_report_interval: 2
+    },
+    time: Date.now()
+  });
   let serialized = null;
   const context = await broadcaster._resolveAgentContext({
     serializeAttachment(value) {
@@ -476,6 +487,157 @@ test('WSS agent context uses current report interval from payload', async () => 
   assert.equal(context.wssReportIntervalMs, 2000);
   assert.equal(serialized.reportIntervalMs, 120000);
   assert.equal(serialized.wssReportIntervalMs, 2000);
+});
+
+test('WSS agent context keeps an authenticated session when server lookup throws', async () => {
+  const closed = [];
+  const broadcaster = makeBroadcaster([], {
+    DB: {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            throw new Error('D1_ERROR');
+          }
+        };
+      }
+    }
+  });
+  let serialized = null;
+
+  const context = await broadcaster._resolveAgentContext({
+    serializeAttachment(value) {
+      serialized = value;
+    },
+    send() {},
+    close(code, reason) {
+      closed.push({ code, reason });
+    }
+  }, {
+    kind: 'agent-report',
+    authenticated: true,
+    serverId: 'degraded-server',
+    historyPartitionId: 12
+  }, {
+    id: 'degraded-server'
+  });
+
+  assert.ok(context);
+  assert.equal(context.historyPartitionId, 12);
+  assert.equal(serialized.historyPartitionId, 12);
+  assert.equal(closed.length, 0);
+});
+
+test('WSS agent context asks the agent to retry when lookup throws before auth', async () => {
+  const sent = [];
+  const closed = [];
+  const broadcaster = makeBroadcaster([], {
+    DB: {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            throw new Error('D1_ERROR');
+          }
+        };
+      }
+    }
+  });
+
+  const context = await broadcaster._resolveAgentContext({
+    serializeAttachment() {},
+    send(message) {
+      sent.push(JSON.parse(message));
+    },
+    close(code, reason) {
+      closed.push({ code, reason });
+    }
+  }, {
+    kind: 'agent-report',
+    authenticated: false,
+    serverId: ''
+  }, {
+    id: 'degraded-server-2'
+  });
+
+  assert.equal(context, null);
+  assert.equal(sent[0].code, 503);
+  assert.equal(closed[0].code, 1013);
+});
+
+test('WSS agent report rejects oversized frames before parsing', async () => {
+  const sent = [];
+  const closed = [];
+  const broadcaster = makeBroadcaster();
+
+  await broadcaster._handleAgentReportMessage({
+    send(message) {
+      sent.push(JSON.parse(message));
+    },
+    close(code, reason) {
+      closed.push({ code, reason });
+    }
+  }, 'x'.repeat(UPDATE_MAX_REQUEST_BYTES + 1), {});
+
+  assert.equal(sent[0].code, 413);
+  assert.equal(sent[0].text, 'payload_too_large');
+  assert.equal(closed[0].code, 1009);
+});
+
+test('WSS agent context closes and clears caches when server no longer exists', async () => {
+  const sent = [];
+  const closed = [];
+  const broadcaster = makeBroadcaster([], {
+    DB: {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return null;
+          }
+        };
+      }
+    }
+  });
+  broadcaster.agentServerDetails.set('deleted-server-test', {
+    data: { id: 'deleted-server-test' },
+    time: Date.now() - 121 * 1000
+  });
+  broadcaster.agentHistoryWrites.set('deleted-server-test', {});
+  broadcaster.latestReportUpdates.set('deleted-server-test', {});
+
+  const context = await broadcaster._resolveAgentContext({
+    serializeAttachment() {
+      throw new Error('attachment should not be serialized for a deleted server');
+    },
+    send(message) {
+      sent.push(JSON.parse(message));
+    },
+    close(code, reason) {
+      closed.push({ code, reason });
+    }
+  }, {
+    kind: 'agent-report',
+    authenticated: true,
+    serverId: 'deleted-server-test'
+  }, {
+    id: 'deleted-server-test'
+  });
+
+  assert.equal(context, null);
+  assert.equal(sent[0].type, 'error');
+  assert.equal(sent[0].code, 404);
+  assert.equal(sent[0].text, 'server_not_found');
+  assert.equal(closed[0].code, 1008);
+  assert.equal(broadcaster.agentServerDetails.has('deleted-server-test'), false);
+  assert.equal(broadcaster.agentHistoryWrites.has('deleted-server-test'), false);
+  assert.equal(broadcaster.latestReportUpdates.has('deleted-server-test'), false);
 });
 
 test('WSS agent config ack is skipped when report omits config state', async () => {
@@ -887,6 +1049,89 @@ test('resource alert batch evaluation returns results per rule', async () => {
   assert.deepEqual(byRule.get('ram-rule').evaluatedServerIds, ['server-1']);
 });
 
+test('resource alert evaluation supports tcp and udp connection counts', async () => {
+  const broadcaster = makeBroadcaster();
+  const now = Date.now();
+  const currentMinute = Math.floor(now / 60_000) * 60_000;
+  const samples = [];
+  for (let index = 4; index >= 0; index--) {
+    const ts = currentMinute - index * 60_000;
+    samples.push({
+      ts,
+      minuteTs: ts,
+      cpu: 10,
+      ram: 10,
+      disk: 10,
+      netIn: 0,
+      netOut: 0,
+      netTotal: 0,
+      tcpConn: 1200,
+      udpConn: 300
+    });
+  }
+  broadcaster.resourceAlertWindows.set('server-1', { samples });
+
+  const result = await broadcaster._evaluateResourceAlertRules([
+    {
+      ruleId: 'tcp-rule',
+      serverIds: ['server-1'],
+      mode: 'average',
+      windowMinutes: 5,
+      thresholds: { tcpConn: 1000 }
+    },
+    {
+      ruleId: 'udp-rule',
+      serverIds: ['server-1'],
+      mode: 'average',
+      windowMinutes: 5,
+      thresholds: { udpConn: 1000 }
+    }
+  ]);
+
+  const byRule = new Map(result.results.map(item => [item.ruleId, item]));
+  assert.equal(byRule.get('tcp-rule').alerts.length, 1);
+  assert.equal(byRule.get('tcp-rule').alerts[0].metrics[0].metric, 'tcpConn');
+  assert.equal(byRule.get('tcp-rule').alerts[0].metrics[0].triggerValue, 1200);
+  assert.equal(byRule.get('udp-rule').alerts.length, 0);
+  assert.deepEqual(byRule.get('udp-rule').evaluatedServerIds, ['server-1']);
+});
+
+test('resource alert evaluation skips nodes without connection count samples', async () => {
+  const broadcaster = makeBroadcaster();
+  const now = Date.now();
+  const currentMinute = Math.floor(now / 60_000) * 60_000;
+  const samples = [];
+  for (let index = 4; index >= 0; index--) {
+    const ts = currentMinute - index * 60_000;
+    samples.push({
+      ts,
+      minuteTs: ts,
+      cpu: 90,
+      ram: 10,
+      disk: 10,
+      netIn: 0,
+      netOut: 0,
+      netTotal: 0,
+      tcpConn: null,
+      udpConn: null
+    });
+  }
+  broadcaster.resourceAlertWindows.set('server-1', { samples });
+
+  const result = await broadcaster._evaluateResourceAlertRules([
+    {
+      ruleId: 'tcp-rule',
+      serverIds: ['server-1'],
+      mode: 'average',
+      windowMinutes: 5,
+      thresholds: { tcpConn: 1000 }
+    }
+  ]);
+
+  assert.equal(result.results[0].alerts.length, 0);
+  assert.deepEqual(result.results[0].evaluatedServerIds, []);
+});
+
 test('resource alert notification payloads group metrics by server and split long batches', () => {
   const alertNodes = [];
   alertNodes.push({
@@ -1141,6 +1386,60 @@ test('WSS history persistence carries pending history aggregates into next D1 wr
       ),
       false
     );
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
+test('WSS history persistence 在探针未上报 IP 时用握手来源 IP 按地址族补位', async () => {
+  const savedRows = [];
+  const db = {
+    prepare() {
+      return {
+        bind(...args) {
+          return {
+            async run() {
+              savedRows.push(args);
+              return { meta: { changes: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const broadcaster = makeBroadcaster([], { DB: db });
+  const originalNow = Date.now;
+  const now = Date.UTC(2026, 0, 1, 0, 0, 0);
+  let attachment = {
+    reportIntervalMs: 60_000,
+    lastD1WriteTs: now - 61_000,
+    clientIp: '2001:db8::1'
+  };
+  const ws = {
+    deserializeAttachment() {
+      return attachment;
+    },
+    serializeAttachment(value) {
+      attachment = value;
+    }
+  };
+
+  try {
+    Date.now = () => now;
+    const result = await broadcaster._persistAgentHistoryIfDue(ws, attachment, {
+      serverId: 'server-1',
+      historyPartitionId: 42,
+      metrics: { cpu: 10, ip_v4: '0', ip_v6: '0' },
+      regionCode: 'US',
+      timestamp: now,
+      agentVersion: 'test',
+      reportIntervalMs: 60_000
+    });
+
+    assert.equal(result.persisted, true);
+    const row = savedRows[0];
+    assert.equal(row[HISTORY_INSERT_COLUMNS.indexOf('ip_v4')], '0');
+    assert.equal(row[HISTORY_INSERT_COLUMNS.indexOf('ip_v6')], '2001:db8::1');
   } finally {
     Date.now = originalNow;
   }

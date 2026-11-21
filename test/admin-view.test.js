@@ -51,7 +51,7 @@ test('admin view navigation pushes history entries so the browser back button re
   const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
   const dns = readFileSync(new URL('../src/frontend/views/admin/components/DnsHubPanel.vue', import.meta.url), 'utf8')
   const waf = readFileSync(new URL('../src/frontend/views/admin/components/WafPanel.vue', import.meta.url), 'utf8')
-  const i18n = readFileSync(new URL('../src/frontend/utils/i18n.js', import.meta.url), 'utf8')
+  const i18n = ['en', 'zh'].map(lang => readFileSync(new URL(`../src/frontend/locales/${lang}.js`, import.meta.url), 'utf8')).join('\n')
 
   assert.match(admin, /router\.push\(\{ path: '\/admin', query \}\)/)
   assert.doesNotMatch(admin, /const syncAdminViewQuery[\s\S]*router\.replace\(\{ path: '\/admin', query \}\)/)

@@ -488,10 +488,6 @@ export default {
         }
 
         if (setTurnstileVerified) {
-          const expires = Math.floor(Date.now() / 1000) + 3600;
-          const cookieData = { expires, verified: true, timestamp: Date.now() };
-          const encryptedData = await encryptTurnstileData(cookieData, env, sys);
-
           const finalHeaders = new Headers(response.headers);
           finalHeaders.set('Access-Control-Allow-Origin', request.headers.get('Origin') || '');
           finalHeaders.set('Access-Control-Allow-Credentials', 'true');
@@ -528,7 +524,12 @@ export default {
     const day = now.getUTCDay();
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();
-    const siteSettings = await loadSiteSettings(env.DB);
+    const rotating = day === 0 && hour === 0 && minute < 5;
+    // During rotation only consider hourly work at minute 0. Offline/alerts always skip this window.
+    if (rotating && minute !== 0 && cron === '*/1 * * * *') return;
+    const siteSettings = await loadSiteSettings(env.DB, {
+      forceRefresh: !rotating && !!env.METRICS_BROADCASTER && minute % 2 === 0
+    });
     const shouldRunOfflineAlert = cronMatches(siteSettings.cron_offline_alert, now);
     const shouldRunHourly = cronMatches(siteSettings.cron_hourly, now);
     
@@ -537,10 +538,10 @@ export default {
         debug('[Cron] 每周日0:00-0:05表轮换期间，跳过离线节点检测');
       } else {
         debug('[Cron] 开始执行离线节点检测');
-        await checkOfflineNodes(env.DB);
+        await checkOfflineNodes(env.DB, { siteSettings });
         debug('[Cron] 离线节点检测完成');
         debug('[Cron] 开始执行资源负载告警检测');
-        await checkResourceAlerts(env);
+        await checkResourceAlerts(env, { siteSettings });
         debug('[Cron] 资源负载告警检测完成');
       }
     }

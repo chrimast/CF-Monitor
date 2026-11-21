@@ -74,6 +74,13 @@ test('global verification independently redeems login and config tokens before p
   assert.ok(proof);
   const authorization = `Bearer ${token}`;
   assert.equal((await request('/api/servers', { headers: { authorization } })).status, 403);
+  assert.equal((await request('/api/servers', {
+    headers: { authorization, 'X-App-Password': secret, 'User-Agent': 'cfsm', Cookie: 'cfsm_ua=cfsm' },
+  })).status, 403);
+  assert.equal((await request('/admin/api', {
+    method: 'POST', headers: { 'X-App-Password': secret, 'User-Agent': 'cfsm', Cookie: 'cfsm_ua=cfsm' },
+    body: JSON.stringify({ action: 'login', username: 'admin', password: secret }),
+  })).status, 403);
   assert.equal((await request('/api/servers', { headers: { 'X-Turnstile-Verified': proof } })).status, 401);
   assert.equal((await request('/api/servers', { headers: { authorization, 'X-Turnstile-Verified': proof } })).status, 200);
   assert.deepEqual([...redeemed], ['fresh-login', 'fresh-global']);

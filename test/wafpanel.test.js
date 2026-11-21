@@ -199,7 +199,7 @@ const env = { DB: makeMemoryDb() }
 {
   const source = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8'))
   const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/WafPanel.vue', import.meta.url), 'utf8'))
-  const i18n = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/utils/i18n.js', import.meta.url), 'utf8'))
+  const i18n = await import('node:fs').then((fs) => ['en', 'zh'].map(lang => fs.readFileSync(new URL(`../src/frontend/locales/${lang}.js`, import.meta.url), 'utf8')).join('\n'))
   assert.match(source, /setActiveTab\('wafpanel'\)/)
   assert.match(source, /WafPanel/)
   assert.match(panel, /wafpanelPages/)
