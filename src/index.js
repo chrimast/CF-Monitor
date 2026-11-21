@@ -14,6 +14,7 @@ import { isValidThemeOptions, loadSettings, loadSiteSettings, loadAppearanceOpti
 import { cronMatches } from './frontend/utils/cron.js';
 import { omitNullLossProbeFields } from './handlers/dashboard.js';
 import { checkAuth, simpleAuthResponse } from './middleware/auth.js';
+import { hasMonitoringAppPassword } from './middleware/app-password.js';
 import { getServerDetail, getMetricsHistoryCache, setMetricsHistoryCache, getCacheDuration } from './utils/cache.js';
 import { AppError, createSuccessResponse, createUnauthorizedResponse, createBadRequestResponse, createNotFoundResponse, createErrorResponse } from './utils/errors.js';
 import { verifyTurnstileToken } from './utils/common.js';
@@ -122,7 +123,7 @@ async function fetchHistoryData(env, request, id, hours, columns, sys = null) {
   }
   const isLoggedIn = await checkAuth(request, env, sys);
   
-  if (sys.is_public !== 'true' && !isLoggedIn) {
+  if (sys.is_public !== 'true' && !isLoggedIn && !hasMonitoringAppPassword(request, env, sys)) {
     return simpleAuthResponse();
   }
   
@@ -145,7 +146,7 @@ async function fetchHistoryData(env, request, id, hours, columns, sys = null) {
     const cachedData = Array.isArray(cached.data)
       ? cached.data.map(omitNullLossProbeFields)
       : cached.data;
-    return createSuccessResponse(cachedData, { 'X-Cache': 'HIT' });
+    return createSuccessResponse(cachedData, { 'X-Cache': 'HIT', 'Cache-Control': 'no-store' });
   }
   
   let data;
@@ -186,7 +187,7 @@ async function fetchHistoryData(env, request, id, hours, columns, sys = null) {
     : data;
   setMetricsHistoryCache(id, clampedHours, columns, sanitizedData, longHistoryPoints);
   
-  return createSuccessResponse(sanitizedData, { 'X-Cache': 'MISS' });
+  return createSuccessResponse(sanitizedData, { 'X-Cache': 'MISS', 'Cache-Control': 'no-store' });
 }
 
 export default {

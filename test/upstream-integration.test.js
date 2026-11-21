@@ -24,7 +24,7 @@ test('upstream import and installers retain fork-owned protected settings and pr
   assert.doesNotMatch(admin, /cfsm-user/);
 });
 
-test('public clients cannot authenticate with shared App password or UA cookie bypass', () => {
+test('shared App password stays out of admin auth and cannot waive global Turnstile', () => {
   const auth = readFileSync(new URL('../src/middleware/auth.js', import.meta.url), 'utf8');
   assert.doesNotMatch(auth, /hasAppPasswordAccess|X-App-Password|UA_COOKIE_NAME|buildUaCookie/);
   const api = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');

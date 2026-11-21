@@ -1,4 +1,5 @@
 import { checkAuth, simpleAuthResponse } from '../middleware/auth.js';
+import { hasMonitoringAppPassword } from '../middleware/app-password.js';
 import { getDashboardLatencyHistory, getLatestMetrics, getLatestMetricsForAllServers } from '../database/schema.js';
 import { getAllServers, getServerDetail } from '../utils/cache.js';
 import { mergeMetricsIntoServer, coerceNumericMetricFields } from '../utils/metrics.js';
@@ -181,7 +182,7 @@ async function getRealtimeStateForServers(env, serverIds) {
 export async function handleServerAPI(request, env, sys) {
   const isLoggedIn = await checkAuth(request, env, sys);
   
-  if (sys.is_public !== 'true' && !isLoggedIn) {
+  if (sys.is_public !== 'true' && !isLoggedIn && !hasMonitoringAppPassword(request, env, sys)) {
     return simpleAuthResponse();
   }
   markFrontendRealtimeActive();
@@ -204,13 +205,15 @@ export async function handleServerAPI(request, env, sys) {
     long_history_points: Number(normalizeLongHistoryPoints(sys.long_history_points))
   };
   
-  return createSuccessResponse(omitNullLossProbeFields(withoutPrivateServerFields(server)));
+  return createSuccessResponse(omitNullLossProbeFields(withoutPrivateServerFields(server)), {
+    'Cache-Control': 'no-store'
+  });
 }
 
 export async function handleServersAPI(request, env, sys) {
   const isLoggedIn = await checkAuth(request, env, sys);
   
-  if (sys.is_public !== 'true' && !isLoggedIn) {
+  if (sys.is_public !== 'true' && !isLoggedIn && !hasMonitoringAppPassword(request, env, sys)) {
     return simpleAuthResponse();
   }
   markFrontendRealtimeActive();
@@ -295,5 +298,5 @@ export async function handleServersAPI(request, env, sys) {
     }
   };
 
-  return createSuccessResponse(data);
+  return createSuccessResponse(data, { 'Cache-Control': 'no-store' });
 }

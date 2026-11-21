@@ -6,3 +6,5 @@ dist
 *.sqlite-journal
 .env
 .env.*
+.dev.vars
+.dev.vars.*

@@ -50,7 +50,7 @@ Every commit in `79679db..1be24f0` is listed here. Merge commits represent the s
 | 612027c | Integrated HTTP/WSS client-IP fallback only when reported public IP absent. |
 | 68c1258 | Integrated stable 2.8.7 code; package/release metadata uses fork identity. |
 | 7f44660 | Excluded static `cfsm_ua` marker cookie, edge-rule allow recipes, related widgets' UA evasion configuration and UI/docs/tests. Static shared values must not become auth or challenge bypass. Existing authenticated Agent UA negotiation from 5ddd42c retained. |
-| 8f86307 | Excluded App shared password setting/header, private/hidden/history/WS read authorization and global Turnstile bypass, related UI/docs/widget headers/tests and 2.8.8 metadata. Existing JWT/Turnstile controls retained. |
+| 8f86307 | Adapted only the `X-App-Password` header contract for scoped REST reads using a runtime secret. Upstream persisted password setting, hidden-node and WS grants, global Turnstile bypass, and 2.8.8 metadata remain excluded. |
 | 1be24f0 | Excluded App-password login Turnstile bypass. Login continues to require its own fresh provider token. |
 
 ## Conflict decisions and preserved contracts
@@ -85,4 +85,10 @@ Execution evidence is saved under `/opt/data/cache/scratch/` for this local inte
 
 ## Client impact
 
-Flutter work remains paused. The integrated server does not accept X-App-Password as authentication and still requires independent fresh Turnstile tokens for login and global verification, as described in the existing native flow. Freeze this branch's final commit for the client contract before resuming client work.
+An optional `APP_PASSWORD` runtime secret grants `X-App-Password` access to visible server list, detail and up to 24 hours of history on private sites. See [API.md](../API.md#e-可选只读-app-口令) for setup and rotation. App-only clients can poll REST. Private monitoring WS retains JWT auth because the existing Durable Object lets clients change subscription scope after the handshake. Global and login Turnstile still validate independently. The Flutter repository is outside this server change.
+
+## App password verification
+
+- TDD feature suite started with 5 failures at private read authorization and 2 passing boundary regressions. Focused run passed 14 tests. `npm run test:all` passed 231 default tests, 6 history-query tests and the standalone Agent config suite.
+- Frontend build, Wrangler dry run and local Docker image build passed. The same smoke probe passed on isolated Wrangler local Workers/D1 and Docker Node 22/SQLite. It checked visible list/detail/history with a real stored sample, hidden denial, wrong and absent credentials, admin/settings/backup boundaries, Agent and terminal denial, public behavior and Turnstile rejection without proof. The existing Docker HTTP host returns 400 for refused WS handshakes while Workers returns 401. Existing admin and public WS handshakes returned 101 on both.
+- Positive Turnstile verification and fresh login-token behavior used a stubbed Siteverify response in focused tests. No live provider challenge or production deployment was performed. Evidence and the smoke probe are in `/opt/data/cache/scratch/cfm-app-password-7205402/`.

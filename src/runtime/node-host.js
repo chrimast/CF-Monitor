@@ -256,6 +256,7 @@ export async function createNodeApp(options = {}) {
   const DB = createSqliteD1(dbPath)
   const env = {
     API_SECRET: apiSecret,
+    APP_PASSWORD: options.appPassword ?? process.env.APP_PASSWORD,
     API_USER_NAME: options.apiUserName || process.env.API_USER_NAME || 'admin',
     DEBUG: options.debug || process.env.DEBUG || '',
     CORS_ALLOWED_ORIGINS: options.cors || process.env.CORS_ALLOWED_ORIGINS || '',

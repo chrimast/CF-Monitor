@@ -128,6 +128,15 @@
 
 浏览器原生 WebSocket 不能自定义 `Authorization` Header。内置前端同域连接走 `cfsm_auth` Cookie，跨域连接才追加 `token=<jwt>` 查询参数。服务端会在转发到 Durable Object 前完成私有站点权限校验；公开站点不要求 JWT。
 
+#### E. 可选只读 App 口令
+
+- 用 `openssl rand -hex 32` 生成独立的 `APP_PASSWORD`（64 个小写十六进制字符）。不要与管理员密码、`API_SECRET` 或 JWT 签名密钥共用。未配置或格式不符时关闭。
+- Docker：通过容器环境注入 `APP_PASSWORD`。Compose 支持从环境或私有 `.env` 读取。轮换或停用后重建容器。
+- Workers：在 Worker 的 Variables and Secrets 中配置 `APP_PASSWORD`，类型选 Secret。轮换时替换该 Secret，停用时移除。`wrangler dev --local` 可通过私有 `.dev.vars` 提供测试值。
+- 仅通过 HTTPS 请求头 `X-App-Password` 发送，避免写入 URL、Cookie、日志或前端静态配置。口令不在面板设置、配置响应或备份中。
+- 私有站点允许读取 `GET /api/servers`、`GET /api/server?id=…`、`GET /api/history/all?id=…&hours=…`。缺少或错误口令时仍需 JWT。公开站点仍可匿名读取。App 口令只能看到非隐藏节点，历史沿用原有时长白名单且最多 24 小时。成功响应标记 `Cache-Control: no-store`。
+- 私有 `/api/ws` 仍要求 JWT。只持 App 口令的客户端可以轮询 REST。管理、写入、终端、Agent、DNSHub、WAF 和登录沿用各自鉴权。启用全局 Turnstile 时，三个 REST 接口仍需有效的 Turnstile 凭证。登录验证与 Cloudflare 边缘规则照常执行。
+
 ### 0.2 Turnstile 人机验证
 
 当 `site_options.turnstile_enabled === 'true'` 时，**所有** **`/api/*`** **与** **`/admin/api`** **公共接口**（除了下方 bypass 列表）都需要先验证 Cloudflare Turnstile Token。
@@ -512,7 +521,7 @@ CORS_ALLOWED_ORIGINS=https://status.example.com,https://admin.example.com
 ## 2. 公开 API（前端/管理端共用）
 
 > ~~以下接口除 `/api/ws` 外，若 `site_options.is_public !== 'true'` 则必须携带 JWT。~~ **2026-07-26 修订**：`/api/servers`、`/api/server`、`/api/history/all` 在私有站点需要 JWT；`/api/config`、`/api/ws`、`/theme` 无论站点是否公开均可访问。**2026-08-19 修订**：私有站点的 `/api/ws` 也需要通过 WebSocket JWT 认证，公开站点仍可匿名连接。
-> 命中 Turnstile 时需带 `X-Turnstile-Token` 或 `X-Turnstile-Verified`。
+> 私有站点的列表、详情和历史也接受[只读 App 口令](#e-可选只读-app-口令)。命中 Turnstile 时仍需带 `X-Turnstile-Token` 或 `X-Turnstile-Verified`。
 
 ### 2.1 `GET /api/config` - 获取站点配置
 
@@ -703,6 +712,7 @@ CORS_ALLOWED_ORIGINS=https://status.example.com,https://admin.example.com
 - Query：
   - `id`（**必填**）：服务器 UUID
 - Headers（按需）：同 `/api/servers`
+- 持 App 口令访问隐藏节点返回 404。
 
 **Response** `200 OK`
 
