@@ -3,6 +3,13 @@ import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import { buildAdminViewQuery, parseAdminViewQuery, sameAdminViewQuery } from '../src/frontend/utils/adminView.js'
 
+test('admin loads the authenticated workspace when rendering install corrections', () => {
+  const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
+  assert.match(admin, /const hasCorrectionValue = \(value\) =>/)
+  assert.match(admin, /if \(hasCorrectionValue\(rxCorrection\.value\)\)/)
+  assert.match(admin, /if \(hasCorrectionValue\(txCorrection\.value\)\)/)
+})
+
 test('parseAdminViewQuery restores tab and DNSHub drill-down from hash query', () => {
   assert.deepEqual(parseAdminViewQuery({}), {
     tab: 'servers',

@@ -1225,6 +1225,7 @@ const networkInterface = ref('')
 const resetDay = ref(1)
 const rxCorrection = ref('')
 const txCorrection = ref('')
+const hasCorrectionValue = (value) => value !== null && value !== undefined && value !== ''
 const autoUpdate = ref(false)
 const copiedCmd = ref(false)
 const showAutoDiscoveryModal = ref(false)
