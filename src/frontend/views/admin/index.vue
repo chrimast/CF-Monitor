@@ -24,21 +24,20 @@
       <div v-if="adminSiteLoading" class="admin-loading-overlay">
         <div class="loading-content">
           <div class="loading-spinner"></div>
-          <div class="loading-text">$ {{ trans.switchingSite }}</div>
+          <div class="loading-text">{{ trans.switchingSite }}</div>
         </div>
       </div>
 
-      <div class="main-panel">
+      <div class="main-panel admin-overview">
         <div class="panel-header">
-          <div class="panel-title">
-            <span class="prompt">$</span> {{ trans.sudoStatus }}
-          </div>
+          <h1 class="panel-title">{{ trans.adminPanel }}</h1>
           <div class="header-actions">
-            <button @click="refreshServers" class="btn" :disabled="adminSiteLoading">↻ {{ trans.refresh }}</button>
+            <button @click="refreshServers" class="btn" :disabled="adminSiteLoading">{{ trans.refresh }}</button>
             <select
               v-if="isMultipleMode"
               v-model.number="selectedApiIndex"
               class="form-select admin-site-select"
+              :aria-label="trans.apiEndpoint"
               :disabled="adminSiteLoading"
               @change="handleAdminApiIndexChange"
             >
@@ -51,7 +50,7 @@
               </option>
             </select>
             <HelpTooltip v-if="isMultipleMode" :text="trans.apiEndpoint" />
-            <button @click="logout" class="btn btn-red">🚪 {{ trans.logout }}</button>
+            <button @click="logout" class="btn">{{ trans.logout }}</button>
           </div>
         </div>
 
@@ -76,42 +75,20 @@
       </div>
 
       <div class="main-panel">
-        <div class="tabs">
+        <div class="tabs" role="tablist" :aria-label="trans.adminPanel" @keydown="focusAdminTab">
           <button
+            v-for="[tab, panel, label] in adminTabs"
+            :key="tab"
+            :id="`admin-tab-${tab}`"
             class="tab-btn"
-            :class="{ active: activeTab === 'servers' }"
-            @click="setActiveTab('servers')"
-          >{{ trans.servers }}</button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'settings' }"
-            @click="setActiveTab('settings')"
-          >{{ trans.settings }}</button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'database' }"
-            @click="setActiveTab('database')"
-          >{{ trans.dbManagement }}</button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'themeStore' }"
-            @click="setActiveTab('themeStore')"
-          >{{ trans.themeStore }}</button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'donation' }"
-            @click="setActiveTab('donation')"
-          >{{ trans.donation }}</button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'dnshub' }"
-            @click="setActiveTab('dnshub')"
-          >{{ trans.dnshub }}</button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'wafpanel' }"
-            @click="setActiveTab('wafpanel')"
-          >{{ trans.wafpanel }}</button>
+            role="tab"
+            type="button"
+            :aria-selected="activeTab === tab"
+            :aria-controls="`tab-${panel}`"
+            :tabindex="activeTab === tab ? 0 : -1"
+            :class="{ active: activeTab === tab }"
+            @click="setActiveTab(tab)"
+          >{{ trans[label] || trans[panel] }}</button>
         </div>
 
         <ServerTable
@@ -156,6 +133,7 @@
           :selected-api-base="selectedApiBase"
           :current-origin="currentOrigin"
           :saving="saving"
+          :dirty="settingsDirty"
           :change-admin-password="changeAdminPassword"
           :test-notification-loading="testNotificationLoading"
           :d1-usage-loading="d1UsageLoading"
@@ -946,6 +924,26 @@ const selectedApiBase = computed(() => apiBases[selectedApiIndex.value] || apiBa
 const currentOrigin = computed(() => window.location.origin)
 const initialView = parseAdminViewQuery(route.query)
 const activeTab = ref(initialView.tab)
+const adminTabs = [
+  ['servers', 'servers', 'adminServerManagement'],
+  ['settings', 'settings', 'adminSiteSettings'],
+  ['database', 'database', 'dbManagement'],
+  ['themeStore', 'theme-store', 'themeStore'],
+  ['donation', 'donation', 'donation'],
+  ['dnshub', 'dnshub', 'dnshub'],
+  ['wafpanel', 'wafpanel', 'wafpanel']
+]
+
+const focusAdminTab = (event) => {
+  const current = adminTabs.findIndex(([tab]) => tab === activeTab.value)
+  const last = adminTabs.length - 1
+  const indices = { Home: 0, End: last, ArrowLeft: current === 0 ? last : current - 1, ArrowRight: current === last ? 0 : current + 1 }
+  if (!Object.hasOwn(indices, event.key)) return
+  event.preventDefault()
+  const [tab] = adminTabs[indices[event.key]]
+  document.getElementById(`admin-tab-${tab}`)?.focus()
+  if (tab !== activeTab.value) setActiveTab(tab)
+}
 
 const syncAdminViewQuery = (next = {}) => {
   const query = buildAdminViewQuery(route.query, { tab: activeTab.value, ...next })
@@ -1225,7 +1223,7 @@ const networkInterface = ref('')
 const resetDay = ref(1)
 const rxCorrection = ref('')
 const txCorrection = ref('')
-const hasCorrectionValue = (value) => value !== null && value !== undefined && value !== ''
+const hasCorrectionValue = (value) => value != null && String(value).trim() !== ''
 const autoUpdate = ref(false)
 const copiedCmd = ref(false)
 const showAutoDiscoveryModal = ref(false)
@@ -1451,6 +1449,9 @@ const loadLatestAgentVersion = async () => {
   }
 }
 
+const savedSettingsSnapshot = ref(null)
+const settingsDirty = computed(() => savedSettingsSnapshot.value !== null && JSON.stringify(settings.value) !== savedSettingsSnapshot.value)
+
 const loadSettings = async () => {
   try {
     const result = await adminApiForSite({ action: 'get_settings' })
@@ -1522,6 +1523,7 @@ const loadSettings = async () => {
         csp_api: settingsData.csp_api || '',
         ua: settingsData.ua || 'cfsm'
       }
+      savedSettingsSnapshot.value = JSON.stringify(settings.value)
       applyMikusThemeOptions(settingsData.theme_options)
       changeAdminPassword.value = !settings.value.password_configured || !String(settings.value.username || '').trim()
       apiSecret.value = data.api_secret || ''
@@ -1739,7 +1741,7 @@ const saveSettings = async () => {
       clearAdminPasswordInputs()
       changeAdminPassword.value = false
       settings.value.jwt_secret = ''
-      loadSettings()
+      await loadSettings()
     } else {
       saveResult.value = { success: false, error: getMessage(result.error) || 'fail' }
     }

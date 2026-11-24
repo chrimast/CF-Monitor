@@ -1,5 +1,5 @@
 <template>
-  <div id="tab-database" class="tab-content" :class="{ active: activeTab === 'database' }">
+  <div id="tab-database" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-database" tabindex="0" :class="{ active: activeTab === 'database' }">
     <div class="settings-section">
       <div class="section-title"><span>▸</span> {{ trans.dbManagement }}</div>
 

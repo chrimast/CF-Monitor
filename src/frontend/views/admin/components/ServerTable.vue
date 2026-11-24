@@ -1,5 +1,5 @@
 ﻿<template>
-  <div id="tab-servers" class="tab-content" :class="{ active: activeTab === 'servers' }">
+  <div id="tab-servers" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-servers" tabindex="0" :class="{ active: activeTab === 'servers' }">
     <div class="alert alert-info alert-stack">
       <div class="alert-line">
         <span>{{ trans.installCommand }}</span>
@@ -10,9 +10,9 @@
     </div>
 
     <div class="toolbar">
-      <input type="text" v-model="newServerName" class="toolbar-input" :placeholder="'> ' + trans.serverName + '...'">
+      <input type="text" v-model="newServerName" class="toolbar-input" :placeholder="trans.serverName" :aria-label="trans.serverName">
       <div class="toolbar-select-wrapper">
-        <select v-model="selectedServerGroup" class="toolbar-select">
+        <select v-model="selectedServerGroup" class="toolbar-select" :aria-label="trans.group">
           <option v-for="group in serverGroupOptions" :key="group.value" :value="group.value">{{ group.label }}</option>
           <option :value="CUSTOM_SERVER_GROUP_VALUE">{{ trans.custom || 'Custom' }}</option>
         </select>
@@ -26,24 +26,53 @@
         <button v-if="newServerGroup" @click="newServerGroup = ''" class="toolbar-select-clear" aria-label="Clear">✕</button>
       </div>
       <button @click="$emit('add-server')" class="btn btn-primary">+ {{ trans.addServer }}</button>
-      <button @click="$emit('auto-discovery-cmd')" class="btn">🤖 {{ trans.autoAdd }}</button>
+      <button @click="$emit('auto-discovery-cmd')" class="btn">{{ trans.autoAdd }}</button>
     </div>
 
     <div class="batch-actions">
-      <button @click="$emit('batch-edit')" class="btn btn-blue" :disabled="selectedServers.length === 0">✏️ {{ trans.batchEdit }}</button>
-      <button @click="$emit('batch-delete')" class="btn btn-red">🗑 {{ trans.batchDelete }}</button>
-      <button @click="$emit('toggle-select-all')" class="btn">☐ {{ trans.toggleAll }}</button>
-      <button @click="$emit('refresh-cache')" class="btn" :disabled="cacheRefreshing">{{ cacheRefreshing ? '⏳' : '🔄' }} {{ trans.refreshCache }}</button>
+      <button v-if="servers.length" @click="$emit('toggle-select-all')" class="btn" :aria-pressed="selectedServers.length === servers.length">{{ trans.selectAll }}</button>
+      <button @click="$emit('refresh-cache')" class="btn" :disabled="cacheRefreshing">{{ trans.refresh }}</button>
+      <button v-if="selectedServers.length" @click="$emit('batch-edit')" class="btn btn-blue">{{ trans.batchEdit }} ({{ selectedServers.length }})</button>
+      <button v-if="selectedServers.length" @click="$emit('batch-delete')" class="btn btn-red">{{ trans.delete }}</button>
+      <button v-if="servers.length" class="btn admin-table-toggle" @click="showFullTable = !showFullTable" :aria-pressed="showFullTable">{{ showFullTable ? trans.compactServerList : trans.fullServerTable }}</button>
     </div>
 
-    <div class="table-wrapper">
-      <table class="terminal-table">
+    <ul v-if="!showFullTable && servers.length" class="admin-server-list" :aria-label="trans.servers">
+      <li v-for="server in servers" :key="server.id" class="admin-server-item">
+        <div class="admin-server-summary">
+          <label class="admin-server-select">
+            <input type="checkbox" :aria-label="server.name" :checked="selectedServers.includes(server.id)" @change="$emit('toggle-server', server.id)">
+          </label>
+          <button class="admin-server-expand" type="button" :aria-expanded="expandedServers.has(server.id)" @click="toggleDetails(server.id)">
+            <span><strong>{{ server.name }}</strong><small>{{ server.server_group || trans.default }}</small></span>
+            <span class="admin-server-status" :class="{ 'is-online': server.is_online }">{{ server.is_online ? trans.online : trans.offline }}</span>
+          </button>
+          <button class="btn btn-blue" @click="$emit('edit', server)" :aria-label="`${trans.edit}: ${server.name}`">{{ trans.edit }}</button>
+        </div>
+        <div v-if="expandedServers.has(server.id)" class="admin-server-details">
+          <dl>
+            <template v-for="[label, value] in serverDetails(server)" :key="label">
+              <dt>{{ label }}</dt><dd>{{ value || '—' }}</dd>
+            </template>
+          </dl>
+          <div class="admin-server-actions">
+            <a class="btn" :href="getServerDetailHref(server)">{{ trans.adminServerDetails }}</a>
+            <button class="btn" @click="$emit('copy-cmd', server.id)">{{ copiedServerId === server.id ? trans.copied : trans.installCommand }}</button>
+            <button class="btn" @click="$emit('open-terminal', server)">{{ trans.openTerminal }}</button>
+            <button class="btn btn-red" @click="$emit('delete', server.id)">{{ trans.delete }}</button>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="table-wrapper admin-server-table-wrap" :class="{ 'admin-compact-active': servers.length && !showFullTable }" tabindex="0" role="region" :aria-label="trans.fullServerTable">
+      <table class="terminal-table" :aria-label="trans.servers">
         <thead>
           <tr>
             <th class="table-center-cell col-width-35">
               <HelpTooltip :text="trans.dragSort" />
             </th>
-            <th class="col-width-30"><input type="checkbox" id="select-all" @change="$emit('select-all', $event)" class="checkbox-accent-green"></th>
+            <th class="col-width-30"><input type="checkbox" id="select-all" :checked="servers.length > 0 && selectedServers.length === servers.length" :aria-label="trans.selectAll" @change="$emit('select-all', $event)" class="checkbox-accent-green"></th>
             <th>{{ trans.hostname.toUpperCase() }}</th>
             <th>IP</th>
             <th>{{ trans.group.toUpperCase() }}</th>
@@ -77,7 +106,7 @@
               @pointerup="handlePointerUp"
               @pointercancel="handlePointerCancel"
             >⋮⋮</td>
-            <td class="table-center-cell"><input type="checkbox" class="server-checkbox" :value="server.id" :checked="selectedServers.includes(server.id)" @change="$emit('toggle-server', server.id)"></td>
+            <td class="table-center-cell"><input type="checkbox" class="server-checkbox" :value="server.id" :aria-label="server.name" :checked="selectedServers.includes(server.id)" @change="$emit('toggle-server', server.id)"></td>
             <td>
               <div class="server-info">
                 <span v-if="server.region && server.region !== 'xx'" class="country-os-icons">
@@ -158,10 +187,10 @@
             <td>
               <div class="action-group">
                 <div class="action-btns">
-                  <button @click="$emit('copy-cmd', server.id)" class="btn btn-icon btn-green" :aria-label="trans.copy">{{ copiedServerId === server.id ? 'OK' : 'CMD' }}</button>
-                  <button @click="$emit('open-terminal', server)" class="btn btn-icon btn-primary" :aria-label="trans.openTerminal">TERM</button>
-                  <button @click="$emit('edit', server)" class="btn btn-icon btn-blue" :aria-label="trans.edit">EDIT</button>
-                  <button @click="$emit('delete', server.id)" class="btn btn-icon btn-red" :aria-label="trans.delete">DEL</button>
+                  <button @click="$emit('copy-cmd', server.id)" class="btn btn-green" :aria-label="trans.copy">{{ copiedServerId === server.id ? trans.copied : trans.installCommand }}</button>
+                  <button @click="$emit('open-terminal', server)" class="btn btn-primary" :aria-label="trans.openTerminal">{{ trans.openTerminal }}</button>
+                  <button @click="$emit('edit', server)" class="btn btn-blue" :aria-label="trans.edit">{{ trans.edit }}</button>
+                  <button @click="$emit('delete', server.id)" class="btn btn-red" :aria-label="trans.delete">{{ trans.delete }}</button>
                 </div>
               </div>
             </td>
@@ -203,6 +232,26 @@ const emit = defineEmits([
   'drag-start', 'drop', 'toggle-server', 'copy-note',
   'copy-spec', 'copy-cmd', 'edit', 'delete', 'open-terminal'
 ])
+
+const showFullTable = ref(false)
+const expandedServers = ref(new Set())
+watch(() => props.selectedApiIndex, () => expandedServers.value.clear())
+
+const toggleDetails = (id) => {
+  if (expandedServers.value.has(id)) expandedServers.value.delete(id)
+  else expandedServers.value.add(id)
+}
+
+const serverDetails = (server) => [
+  ['IP', getServerIpRows(server).map(row => row.address).join(' / ')],
+  [props.trans.tags, splitTags(server.tags).join(', ')],
+  [props.trans.note, server.note],
+  [props.trans.price, formatServerPrice(server)],
+  [props.trans.expirationDate, server.expire_date],
+  [props.trans.autoRenewal, isServerAutoRenewal(server) ? props.trans.enabled : props.trans.disabled],
+  [props.trans.traffic, server.traffic_limit ? formatBytes(server.traffic_limit * 1024 ** 3) : ''],
+  [props.trans.agentVersion, server.agent_version]
+]
 
 const POINTER_DRAG_THRESHOLD = 6
 const CUSTOM_SERVER_GROUP_VALUE = '__custom__'

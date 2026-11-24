@@ -1,5 +1,5 @@
 <template>
-  <div id="tab-donation" class="tab-content" :class="{ active: activeTab === 'donation' }">
+  <div id="tab-donation" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-donation" tabindex="0" :class="{ active: activeTab === 'donation' }">
     <div class="settings-section donation-section">
       <div class="section-title"><span>▸</span> {{ trans.donationTitle }}</div>
 

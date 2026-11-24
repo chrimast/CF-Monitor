@@ -174,6 +174,25 @@ const env = { DB: makeMemoryDb() }
 
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
+    name: 'Block page agent', url: 'https://block-page.example.com', token: 'fixture-token'
+  }), env, true))
+  const path = `/api/wafpanel/nodes/${created.body.data.id}/block_page_activate_v1`
+  const calls = []
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init })
+    return new Response(null, { status: 307, headers: { Location: '/other' } })
+  }
+  const result = await readJson(await handleWafpanelRequest(
+    jsonRequest('POST', path, { name: 'fixture.html' }), { ...env, fetchImpl }, true
+  ))
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://block-page.example.com/agent/api/block_page_activate_v1')
+  assert.equal(calls[0].init.redirect, 'manual')
+  assert.equal(result.status, 502)
+}
+
+{
+  const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '写操作节点',
     url: 'https://waf-write.example.com',
     token: 'write-token'
@@ -200,7 +219,7 @@ const env = { DB: makeMemoryDb() }
   const source = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8'))
   const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/WafPanel.vue', import.meta.url), 'utf8'))
   const i18n = await import('node:fs').then((fs) => ['en', 'zh'].map(lang => fs.readFileSync(new URL(`../src/frontend/locales/${lang}.js`, import.meta.url), 'utf8')).join('\n'))
-  assert.match(source, /setActiveTab\('wafpanel'\)/)
+  assert.ok(source.includes("['wafpanel', 'wafpanel', 'wafpanel']"))
   assert.match(source, /WafPanel/)
   assert.match(panel, /wafpanelPages/)
   assert.match(panel, /toggleLogBan/)
@@ -651,6 +670,17 @@ function delayedPayloadSocket(httpText) {
   assert.ok(panel.includes(':disabled="item.online !== true"'))
 }
 
+{
+  const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/WafPanel.vue', import.meta.url), 'utf8'))
+  const zh = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/locales/zh.js', import.meta.url), 'utf8'))
+  const css = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/styles/main.css', import.meta.url), 'utf8'))
+  assert.match(zh, /wafpanelNodes: '服务器'/)
+  assert.match(zh, /wafpanelChecking: '服务器检测中'/)
+  assert.ok(panel.includes('void probeNodes()'))
+  assert.match(panel, /class="wafpanel-node-status"/)
+  assert.match(css, /\.wafpanel-node-status/)
+  assert.doesNotMatch(panel, /nodeStatusColor\(item\)/)
+}
 {
   const created = await readJson(await handleWafpanelRequest(jsonRequest('POST', '/api/wafpanel/nodes', {
     name: '401 节点',

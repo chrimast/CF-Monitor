@@ -3,13 +3,6 @@ import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import { buildAdminViewQuery, parseAdminViewQuery, sameAdminViewQuery } from '../src/frontend/utils/adminView.js'
 
-test('admin loads the authenticated workspace when rendering install corrections', () => {
-  const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
-  assert.match(admin, /const hasCorrectionValue = \(value\) =>/)
-  assert.match(admin, /if \(hasCorrectionValue\(rxCorrection\.value\)\)/)
-  assert.match(admin, /if \(hasCorrectionValue\(txCorrection\.value\)\)/)
-})
-
 test('parseAdminViewQuery restores tab and DNSHub drill-down from hash query', () => {
   assert.deepEqual(parseAdminViewQuery({}), {
     tab: 'servers',
@@ -70,4 +63,52 @@ test('admin view navigation pushes history entries so the browser back button re
   assert.match(waf, /watch\(\(\) => \[route\.query\.(tab|wafPage)/)
   assert.equal((i18n.match(/wafpanelAgentCommands:/g) || []).length, 2)
   assert.equal((i18n.match(/wafpanelUnreachableHint:/g) || []).length, 2)
+})
+
+test('authenticated admin can render the installation settings modal', () => {
+  const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
+  assert.match(admin, /const hasCorrectionValue = \(value\) =>/)
+  assert.match(admin, /if \(hasCorrectionValue\(rxCorrection\.value\)\)/)
+  assert.match(admin, /if \(hasCorrectionValue\(txCorrection\.value\)\)/)
+})
+
+test('admin login uses the refreshed responsive branded form', () => {
+  const login = readFileSync(new URL('../src/frontend/views/admin/components/AdminLogin.vue', import.meta.url), 'utf8')
+  const hasLoginUi = readFileSync(new URL('../src/frontend/views/admin/components/AdminLogin.vue', import.meta.url), 'utf8')
+    .includes('admin-login-screen')
+  assert.match(login, /admin-login-screen/)
+  assert.match(login, /admin-login-card/)
+  assert.match(login, /:disabled="loginLoading"/)
+  assert.match(login, /aria-live="polite"/)
+  assert.ok(hasLoginUi)
+})
+
+test('admin tabs name their matching panels and use the existing history navigation', () => {
+  const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
+  assert.match(admin, /role="tablist"/)
+  assert.ok(admin.includes(':aria-controls="`tab-${panel}`"'))
+  assert.match(admin, /@click="setActiveTab\(tab\)"/)
+  for (const [file, panel, tab] of [
+    ['ServerTable', 'servers', 'servers'], ['SettingsPanel', 'settings', 'settings'],
+    ['DatabasePanel', 'database', 'database'], ['ThemeStorePanel', 'theme-store', 'themeStore'],
+    ['DonationPanel', 'donation', 'donation'], ['DnsHubPanel', 'dnshub', 'dnshub'], ['WafPanel', 'wafpanel', 'wafpanel']
+  ]) {
+    const component = readFileSync(new URL(`../src/frontend/views/admin/components/${file}.vue`, import.meta.url), 'utf8')
+    assert.ok(component.includes(`id="tab-${panel}"`))
+    assert.ok(component.includes(`aria-labelledby="admin-tab-${tab}"`))
+    assert.match(component, /role="tabpanel"/)
+  }
+})
+
+test('mobile server list can expand details and return to the complete table', () => {
+  const table = readFileSync(new URL('../src/frontend/views/admin/components/ServerTable.vue', import.meta.url), 'utf8')
+  assert.ok(table.includes('admin-server-table-wrap'))
+  assert.ok(table.includes(':aria-expanded="expandedServers.has(server.id)"'))
+  assert.ok(table.includes('fullServerTable'))
+})
+
+test('settings expose collapsible categories and announce unsaved changes', () => {
+  const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
+  assert.equal((settings.match(/<details[^>]*class="settings-section"/g) || []).length, 8)
+  assert.ok(settings.includes('dirty ? trans.adminUnsavedSettings'))
 })

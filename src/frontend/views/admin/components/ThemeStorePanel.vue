@@ -1,5 +1,5 @@
 <template>
-  <div id="tab-theme-store" class="tab-content" :class="{ active: activeTab === 'themeStore' }">
+  <div id="tab-theme-store" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-themeStore" tabindex="0" :class="{ active: activeTab === 'themeStore' }">
     <div class="settings-section">
       <div class="section-title"><span>▸</span> {{ trans.themeStore }}</div>
 

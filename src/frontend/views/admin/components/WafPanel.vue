@@ -1,5 +1,5 @@
 <template>
-  <div id="tab-wafpanel" class="tab-content" :class="{ active: activeTab === 'wafpanel' }">
+  <div id="tab-wafpanel" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-wafpanel" tabindex="0" :class="{ active: activeTab === 'wafpanel' }">
     <p v-if="error" class="text-sm mb-2" style="color: var(--accent-red)">{{ error }}</p>
     <p v-if="notice" class="text-sm mb-2" style="color: var(--accent-green)">{{ notice }}</p>
 
@@ -47,11 +47,10 @@
       <p class="dnshub-hint">{{ trans.wafpanelUrlHint }}</p>
       <div class="dnshub-account-list">
         <div v-if="!nodes.length" class="text-muted">{{ trans.wafpanelNoNodes }}</div>
-        <div v-for="item in nodes" :key="item.id" class="dnshub-account-row">
-          <button class="dnshub-account-name" type="button" @click="openNode(item, 'dashboard')" :disabled="item.online !== true">
-            <strong>{{ item.name }}</strong>
+        <div v-for="item in nodes" :key="item.id" class="dnshub-account-row wafpanel-node-row">
+          <button class="dnshub-account-name wafpanel-node-name" type="button" @click="openNode(item, 'dashboard')" :disabled="item.online !== true">
+            <span class="wafpanel-node-heading"><strong>{{ item.name }}</strong><span class="wafpanel-node-status" :class="nodeStatusClass(item)">{{ nodeStatusText(item) }}</span></span>
             <span class="text-muted text-sm">{{ item.url }}</span>
-            <span class="text-sm" :style="{ color: nodeStatusColor(item) }">{{ nodeStatusText(item) }}</span>
           </button>
           <div class="header-actions">
             <button class="btn" type="button" @click="openNode(item, 'dashboard')" :disabled="item.online !== true">{{ trans.wafpanelDashboard }}</button>
@@ -709,13 +708,18 @@ const nodeStatusText = (item) => {
   if (item.status === 'auth') return props.trans.wafpanelAuthFail
   if (typeof item.message === 'string' && item.message.trim()) return item.message
   if (item.status === 'offline' || item.online === false) return props.trans.wafpanelOffline
-  return props.trans.wafpanelUnknown
+  return loading.value ? props.trans.wafpanelChecking : props.trans.wafpanelUnknown
 }
-const nodeStatusColor = (item) => {
-  if (item.status === 'ok' || item.online === true) return 'var(--accent-green)'
-  if (item.status === 'auth' || item.online === false) return 'var(--accent-red)'
-  return 'var(--text-muted)'
-}
+const nodeStatusClass = (item) => item.status === 'ok' || item.online === true
+  ? 'is-online'
+  : item.status === 'auth' || item.online === false
+    ? 'is-offline'
+    : 'is-unknown'
+const nodeStatusColor = (item) => item.status === 'ok' || item.online === true
+  ? 'var(--accent-green)'
+  : item.status === 'auth' || item.online === false
+    ? 'var(--accent-red)'
+    : 'var(--text-muted)'
 
 const loadScriptOnce = (src, attr) => new Promise((resolve, reject) => {
   const existing = document.querySelector(`script[${attr}]`)
@@ -1533,8 +1537,9 @@ const restoreWafView = async () => {
 const bootstrap = async () => {
   error.value = ''
   try {
-    await loadNodes(true)
+    await loadNodes()
     await restoreWafView()
+    void probeNodes()
   } catch (err) {
     error.value = err.message || String(err)
   }

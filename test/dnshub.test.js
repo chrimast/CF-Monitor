@@ -353,7 +353,7 @@ const env = { DB: makeMemoryDb() };
 
 {
   const html = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8'));
-  assert.match(html, /activeTab === 'dnshub'/);
+  assert.ok(html.includes("['dnshub', 'dnshub', 'dnshub']"));
   assert.match(html, /DnsHubPanel/);
   const panel = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/frontend/views/admin/components/DnsHubPanel.vue', import.meta.url), 'utf8'));
   assert.match(panel, /\/api\/dnshub\/providers/);
