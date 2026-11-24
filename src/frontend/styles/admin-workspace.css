@@ -25,7 +25,7 @@ body.light #admin-content {
 #admin-content .terminal-header-admin {
   background: transparent;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(300px, .8fr) minmax(0, 2.2fr) minmax(300px, 1.2fr);
   min-height: 76px;
   align-items: center;
   gap: 16px;
@@ -45,6 +45,7 @@ body.light #admin-content {
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0;
+  display: block;
   overflow-wrap: anywhere;
 }
 body:not(.light) #admin-content .terminal-title-admin { justify-self: start; padding: 3px 8px; border-radius: 6px; background: #eaf1fa; }
@@ -160,14 +161,30 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
 #admin-content #tab-settings .settings-page { min-width: 0; margin: 0; padding: 16px; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 10px; box-shadow: none; }
 #admin-content #tab-settings .settings-page .section-title { margin-bottom: 16px; color: var(--admin-text); font-size: 1.1rem; }
 #admin-content .settings-save-hint { color: var(--admin-muted); }
-#admin-content .settings-save-hint.is-dirty { color: var(--admin-accent); font-weight: 700; }
+@media (max-width: 1024px) and (min-width: 761px) {
+  #admin-content .terminal-header-admin {
+    grid-template-columns: minmax(140px, .55fr) minmax(380px, 2fr) minmax(260px, 1fr);
+    gap: 10px;
+    padding-inline: 10px;
+  }
+  #admin-content .terminal-header-admin .terminal-title-admin { display: block; }
+  #admin-content .terminal-header-admin .terminal-header-controls { grid-column: 2; grid-row: 1; }
+  #admin-content .admin-header-stats { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media (max-width: 1100px) {
+  #admin-content .terminal-header-admin { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 4px; }
+  #admin-content .terminal-header-admin .terminal-title-admin { display: block; grid-column: 1; grid-row: 1; }
+  #admin-content .terminal-header-admin .terminal-header-controls { grid-column: 1; grid-row: 2; justify-content: flex-start; }
+  #admin-content .admin-header-stats { grid-column: 1; grid-row: 3; }
+}
 
 @media (max-width: 760px) {
-  #admin-content .terminal-header-admin { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 12px 4px; }
-  #admin-content .terminal-header-admin .terminal-title-admin { grid-column: 1; grid-row: 1; font-size: 1.75rem; }
-  #admin-content .admin-header-stats { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #admin-content .terminal-header-admin { grid-template-columns: 1fr; gap: 8px; padding: 12px 4px; }
+  #admin-content .terminal-header-admin .terminal-title-admin { display: block; grid-column: 1; grid-row: 1; font-size: 1.75rem; }
+  #admin-content .terminal-header-admin .terminal-header-controls { grid-column: 1; grid-row: 2; justify-content: flex-start; }
+  #admin-content .admin-header-stats { grid-column: 1; grid-row: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #admin-content .admin-header-stat { justify-content: flex-start; border: 0; border-bottom: 1px solid var(--admin-border); }
-  #admin-content .terminal-header-admin .terminal-header-controls { grid-column: 2; grid-row: 1; flex-wrap: wrap; justify-content: flex-end; }
   #admin-content .admin-workspace-panel .tabs { flex-basis: 100%; overflow: visible; }
   #admin-content :is(.tab-btn, #tab-servers .btn, #tab-settings .btn, .admin-workspace-toolbar-actions .btn) { min-height: 44px; }
   #admin-content #tab-settings.active { grid-template-columns: minmax(0, 1fr); gap: 10px; }
