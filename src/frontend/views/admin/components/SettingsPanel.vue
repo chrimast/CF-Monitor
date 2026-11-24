@@ -1,11 +1,20 @@
 <template>
   <div id="tab-settings" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-settings" tabindex="0" :class="{ active: activeTab === 'settings' }">
-    <nav class="admin-settings-nav" :aria-label="trans.adminSiteSettings || trans.settings">
-      <button v-for="[id, label] in visibleCategories" :key="id" class="btn" type="button" @click="goToCategory(id)">{{ trans[label] || trans.appearance }}</button>
+    <nav class="settings-page-nav" :aria-label="trans.adminSiteSettings || trans.settings">
+      <button
+        v-for="[id, label] in visibleCategories"
+        :key="id"
+        type="button"
+        class="settings-page-link"
+        :class="{ active: selectedSettingsPage === id }"
+        :aria-current="selectedSettingsPage === id ? 'page' : null"
+        @click="goToCategory(id)"
+      >{{ trans[label] || trans.appearance }}</button>
     </nav>
+
     <div class="settings-grid">
-      <details class="settings-section" id="site-settings-appearance" :open="settingsInitiallyOpen" v-if="canEditSiteSettings">
-        <summary class="section-title" tabindex="0">{{ trans.adminSiteAppearance || trans.appearance }}</summary>
+      <section class="settings-section settings-page" id="site-settings-appearance" v-if="selectedSettingsPage === 'appearance' && canEditSiteSettings">
+        <h2 class="section-title">{{ trans.adminSiteAppearance || trans.appearance }}</h2>
 
         <div class="form-row">
           <div class="form-group flex-1">
@@ -132,10 +141,10 @@
             <p v-if="cspErrors.csp_api" class="text-danger text-sm">{{ cspErrors.csp_api }}</p>
           </div>
         </div>
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-theme" :open="settingsInitiallyOpen" v-if="canEditSiteSettings">
-        <summary class="section-title" tabindex="0">{{ trans.adminThemeAppearance || trans.appearance }}</summary>
+      <section class="settings-section settings-page" id="site-settings-theme" v-if="selectedSettingsPage === 'theme' && canEditSiteSettings">
+        <h2 class="section-title">{{ trans.adminThemeAppearance || trans.appearance }}</h2>
 
         <div class="form-row">
           <div class="form-group flex-1">
@@ -164,10 +173,10 @@
           </div>
         </div>
 
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-display" :open="settingsInitiallyOpen">
-        <summary class="section-title" tabindex="0">{{ trans.displayOptions }}</summary>
+      <section class="settings-section settings-page" id="site-settings-display" v-if="selectedSettingsPage === 'display'">
+        <h2 class="section-title">{{ trans.displayOptions }}</h2>
 
         <div class="form-row">
           <div class="form-group flex-1 checkbox-item">
@@ -264,10 +273,10 @@
             </select>
           </div>
         </div>
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-notifications" :open="settingsInitiallyOpen">
-        <summary class="section-title" tabindex="0">{{ trans.notifications }}</summary>
+      <section class="settings-section settings-page" id="site-settings-notifications" v-if="selectedSettingsPage === 'notifications'">
+        <h2 class="section-title">{{ trans.notifications }}</h2>
         <div class="form-row">
           <div class="form-group flex-1">
             <label class="form-label">{{ trans.offlineAlert }}</label>
@@ -643,10 +652,10 @@
             </div>
           </div>
         </div>
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-security" :open="settingsInitiallyOpen">
-        <summary class="section-title" tabindex="0">{{ trans.securitySettings }}</summary>
+      <section class="settings-section settings-page" id="site-settings-security" v-if="selectedSettingsPage === 'security'">
+        <h2 class="section-title">{{ trans.securitySettings }}</h2>
 
         <div class="form-row">
           <div class="form-group flex-1">
@@ -725,10 +734,10 @@
           </div>
         </div>
 
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-cloudflare" :open="settingsInitiallyOpen">
-        <summary class="section-title" tabindex="0">{{ trans.cloudflareSettings }}</summary>
+      <section class="settings-section settings-page" id="site-settings-cloudflare" v-if="selectedSettingsPage === 'cloudflare'">
+        <h2 class="section-title">{{ trans.cloudflareSettings }}</h2>
 
         <div class="form-row">
           <div class="form-group flex-1">
@@ -756,10 +765,10 @@
           </div>
         </div>
 
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-login" :open="settingsInitiallyOpen">
-        <summary class="section-title" tabindex="0">{{ trans.adminLoginSettings }}</summary>
+      <section class="settings-section settings-page" id="site-settings-login" v-if="selectedSettingsPage === 'login'">
+        <h2 class="section-title">{{ trans.adminLoginSettings }}</h2>
 
         <div class="form-group">
           <label class="form-label">{{ trans.username }}</label>
@@ -828,10 +837,10 @@
           </div>
         </div>
 
-      </details>
+      </section>
 
-      <details class="settings-section" id="site-settings-ping" :open="settingsInitiallyOpen">
-        <summary class="section-title" tabindex="0">{{ trans.pingNodes }}</summary>
+      <section class="settings-section settings-page" id="site-settings-ping" v-if="selectedSettingsPage === 'ping'">
+        <h2 class="section-title">{{ trans.pingNodes }}</h2>
 
         <div class="ping-node-grid">
           <div class="ping-node-item">
@@ -871,7 +880,7 @@
             <p v-if="pingNodeErrors[field]" class="text-red text-sm mt-1">{{ pingNodeErrors[field] }}</p>
           </div>
         </div>
-      </details>
+      </section>
     </div>
 
     <div class="settings-save-bar">
@@ -891,7 +900,6 @@ import { LANGUAGES, LANGUAGE_MAP } from '../../../locales'
 import { NOTIFICATION_LANGUAGE_CODES } from '../../../../shared/languages.js'
 
 const languages = LANGUAGES
-const settingsInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 761px)').matches
 const settingsCategories = [
   ['appearance', 'adminSiteAppearance'],
   ['theme', 'adminThemeAppearance'],
@@ -903,13 +911,13 @@ const settingsCategories = [
   ['ping', 'pingNodes']
 ]
 const visibleCategories = computed(() => canEditSiteSettings.value ? settingsCategories : settingsCategories.slice(2))
+const selectedSettingsPage = computed(() => visibleCategories.value.some(([id]) => id === props.activeSettingsPage)
+  ? props.activeSettingsPage
+  : visibleCategories.value[0][0])
 
 const goToCategory = (id) => {
-  const section = document.getElementById(`site-settings-${id}`)
-  if (!section) return
-  section.open = true
-  section.querySelector('summary')?.focus({ preventScroll: true })
-  section.scrollIntoView({ block: 'start' })
+  if (!visibleCategories.value.some(([page]) => page === id)) return
+  emit('settings-page-change', id)
 }
 
 // 通知语言只支持后端已有文案的语种；选项固定显示各语言原生名称，不随界面语言翻译。
@@ -923,6 +931,7 @@ const props = defineProps({
   servers: { type: Array, default: () => [] },
   passwordVisible: { type: Object, required: true },
   activeTab: { type: String, default: 'settings' },
+  activeSettingsPage: { type: String, default: 'appearance' },
   selectedApiBase: { type: String, default: '' },
   currentOrigin: { type: String, default: '' },
   saving: { type: Boolean, default: false },
@@ -936,7 +945,7 @@ const emit = defineEmits([
   'toggle-password', 'toggle-admin-password-change',
   'save-settings', 'upload-bg', 'upload-bg-mobile', 'upload-favicon',
   'send-test-notification', 'query-d1-usage',
-  'alert-message'
+  'alert-message', 'settings-page-change'
 ])
 
 const isLocalHostname = (value) => {

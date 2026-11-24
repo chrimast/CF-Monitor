@@ -11,7 +11,8 @@ test('parseAdminViewQuery restores tab and DNSHub drill-down from hash query', (
     dnsDomain: '',
     dnsDomainId: '',
     wafPage: 'nodes',
-    wafNode: ''
+    wafNode: '',
+    settingsPage: ''
   })
   assert.equal(parseAdminViewQuery({ tab: 'dnshub' }).tab, 'dnshub')
   assert.equal(parseAdminViewQuery({ tab: 'wafpanel' }).tab, 'wafpanel')
@@ -40,6 +41,16 @@ test('buildAdminViewQuery keeps current page in hash query and drops stale DNSHu
     dnsDomain: 'example.com',
     dnsDomainId: 'zone-1'
   }, { tab: 'servers' }), {})
+})
+
+test('settings category route survives refresh and participates in browser back', () => {
+  assert.equal(parseAdminViewQuery({ tab: 'settings' }).settingsPage, 'appearance')
+  assert.equal(parseAdminViewQuery({ tab: 'settings', settingsPage: 'security' }).settingsPage, 'security')
+  assert.equal(parseAdminViewQuery({ tab: 'servers', settingsPage: 'security' }).settingsPage, '')
+  assert.deepEqual(buildAdminViewQuery({ tab: 'settings', settingsPage: 'security', apiIndex: '1' }, { tab: 'settings' }), {
+    tab: 'settings', settingsPage: 'security', apiIndex: '1'
+  })
+  assert.deepEqual(buildAdminViewQuery({ tab: 'settings', settingsPage: 'security' }, { tab: 'servers' }), {})
 })
 
 test('sameAdminViewQuery ignores key order', () => {
@@ -107,8 +118,27 @@ test('mobile server list can expand details and return to the complete table', (
   assert.ok(table.includes('fullServerTable'))
 })
 
-test('settings expose collapsible categories and announce unsaved changes', () => {
+test('admin header centers compact stats and uses a black H1 without a fill', () => {
+  const header = readFileSync(new URL('../src/frontend/components/TerminalHeader.vue', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
+  assert.match(header, /<h1[^>]*terminal-title-admin/)
+  assert.ok(admin.includes(':admin-stats="stats"'))
+  assert.doesNotMatch(admin, /<div class="main-panel admin-overview"/)
+  assert.equal((admin.match(/id="stats-panel"/g) || []).length, 0)
+  assert.equal((admin.match(/@click="logout"/g) || []).length, 1)
+  assert.match(admin, /admin-workspace-toolbar[\s\S]*role="tablist"[\s\S]*admin-workspace-toolbar-actions/)
+  assert.match(styles, /admin-header-stats/)
+  assert.match(styles, /terminal-title-admin[^}]*color:\s*#000/)
+  assert.match(styles, /terminal-header-admin[^}]*background:\s*transparent/)
+  assert.match(styles, /terminal-header-controls[^}]*grid-column:\s*3/)
+})
+
+test('settings use one standalone page per category and retain unsaved-state feedback', () => {
   const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
-  assert.equal((settings.match(/<details[^>]*class="settings-section"/g) || []).length, 8)
+  assert.equal((settings.match(/class="settings-section settings-page"/g) || []).length, 8)
+  assert.doesNotMatch(settings, /<details class="settings-section"/)
+  assert.ok(settings.includes('selectedSettingsPage === id'))
+  assert.ok(settings.includes("emit('settings-page-change', id)"))
   assert.ok(settings.includes('dirty ? trans.adminUnsavedSettings'))
 })

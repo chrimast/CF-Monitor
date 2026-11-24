@@ -20,7 +20,7 @@
     />
 
     <div v-else class="container admin-container" id="admin-content">
-      <TerminalHeader :title="trans.adminPanel" />
+      <TerminalHeader :title="trans.adminPanel" :admin-stats="stats" />
       <div v-if="adminSiteLoading" class="admin-loading-overlay">
         <div class="loading-content">
           <div class="loading-spinner"></div>
@@ -28,67 +28,33 @@
         </div>
       </div>
 
-      <div class="main-panel admin-overview">
-        <div class="panel-header">
-          <h1 class="panel-title">{{ trans.adminPanel }}</h1>
-          <div class="header-actions">
-            <button @click="refreshServers" class="btn" :disabled="adminSiteLoading">{{ trans.refresh }}</button>
-            <select
-              v-if="isMultipleMode"
-              v-model.number="selectedApiIndex"
-              class="form-select admin-site-select"
-              :aria-label="trans.apiEndpoint"
-              :disabled="adminSiteLoading"
-              @change="handleAdminApiIndexChange"
-            >
-              <option
-                v-for="(base, index) in apiBases"
-                :key="index"
-                :value="index"
-              >
-                [{{ index }}] {{ base }}
-              </option>
-            </select>
-            <HelpTooltip v-if="isMultipleMode" :text="trans.apiEndpoint" />
-            <button @click="logout" class="btn">{{ trans.logout }}</button>
+      <div class="main-panel admin-workspace-panel">
+        <div class="admin-workspace-toolbar">
+          <div class="tabs" role="tablist" :aria-label="trans.adminPanel" @keydown="focusAdminTab">
+            <button
+              v-for="[tab, panel, label] in adminTabs"
+              :key="tab"
+              :id="`admin-tab-${tab}`"
+              class="tab-btn"
+              role="tab"
+              type="button"
+              :aria-selected="activeTab === tab"
+              :aria-controls="`tab-${panel}`"
+              :tabindex="activeTab === tab ? 0 : -1"
+              :class="{ active: activeTab === tab }"
+              @click="setActiveTab(tab)"
+            >{{ trans[label] || trans[panel] }}</button>
           </div>
-        </div>
-
-        <div class="stats-grid" id="stats-panel">
-          <div class="stat-card">
-            <div class="stat-main-value" id="stat-total">{{ stats.total }}</div>
-            <div class="stat-label">{{ trans.totalServers }}</div>
+          <div class="admin-workspace-toolbar-actions">
+            <div class="header-actions">
+              <button @click="refreshServers" class="btn" :disabled="adminSiteLoading">{{ trans.refresh }}</button>
+              <select v-if="isMultipleMode" v-model.number="selectedApiIndex" class="form-select admin-site-select" :aria-label="trans.apiEndpoint" :disabled="adminSiteLoading" @change="handleAdminApiIndexChange">
+                <option v-for="(base, index) in apiBases" :key="index" :value="index">[{{ index }}] {{ base }}</option>
+              </select>
+              <HelpTooltip v-if="isMultipleMode" :text="trans.apiEndpoint" />
+              <button @click="logout" class="btn">{{ trans.logout }}</button>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-main-value" id="stat-online">{{ stats.online }}</div>
-            <div class="stat-label">{{ trans.online }}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-main-value" id="stat-offline">{{ stats.offline }}</div>
-            <div class="stat-label">{{ trans.offline }}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-main-value" id="stat-avg-cpu">{{ stats.avg_cpu }}%</div>
-            <div class="stat-label">{{ trans.avgCpu }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="main-panel">
-        <div class="tabs" role="tablist" :aria-label="trans.adminPanel" @keydown="focusAdminTab">
-          <button
-            v-for="[tab, panel, label] in adminTabs"
-            :key="tab"
-            :id="`admin-tab-${tab}`"
-            class="tab-btn"
-            role="tab"
-            type="button"
-            :aria-selected="activeTab === tab"
-            :aria-controls="`tab-${panel}`"
-            :tabindex="activeTab === tab ? 0 : -1"
-            :class="{ active: activeTab === tab }"
-            @click="setActiveTab(tab)"
-          >{{ trans[label] || trans[panel] }}</button>
         </div>
 
         <ServerTable
@@ -130,6 +96,7 @@
           :servers="servers"
           :password-visible="passwordVisible"
           :active-tab="activeTab"
+          :active-settings-page="settingsPage"
           :selected-api-base="selectedApiBase"
           :current-origin="currentOrigin"
           :saving="saving"
@@ -140,6 +107,7 @@
           @toggle-password="togglePassword"
           @toggle-admin-password-change="toggleAdminPasswordChange"
           @save-settings="saveSettings"
+          @settings-page-change="setSettingsPage"
           @upload-bg="uploadBg"
           @upload-bg-mobile="uploadBgMobile"
           @upload-favicon="uploadFavicon"
@@ -924,6 +892,7 @@ const selectedApiBase = computed(() => apiBases[selectedApiIndex.value] || apiBa
 const currentOrigin = computed(() => window.location.origin)
 const initialView = parseAdminViewQuery(route.query)
 const activeTab = ref(initialView.tab)
+const settingsPage = computed(() => parseAdminViewQuery(route.query).settingsPage)
 const adminTabs = [
   ['servers', 'servers', 'adminServerManagement'],
   ['settings', 'settings', 'adminSiteSettings'],
@@ -949,6 +918,10 @@ const syncAdminViewQuery = (next = {}) => {
   const query = buildAdminViewQuery(route.query, { tab: activeTab.value, ...next })
   if (sameAdminViewQuery(query, route.query)) return
   router.push({ path: '/admin', query })
+}
+
+const setSettingsPage = (settingsPage) => {
+  syncAdminViewQuery({ tab: 'settings', settingsPage })
 }
 
 const setActiveTab = (tab) => {

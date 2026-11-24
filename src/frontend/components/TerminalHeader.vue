@@ -1,6 +1,13 @@
 <template>
-  <div class="terminal-header">
-    <div class="terminal-title">{{ title }}</div>
+  <div class="terminal-header" :class="{ 'terminal-header-admin': adminStats }">
+    <h1 v-if="adminStats" class="terminal-title terminal-title-admin">{{ title }}</h1>
+    <div v-else class="terminal-title">{{ title }}</div>
+    <div v-if="adminStats" class="admin-header-stats" id="stats-panel">
+      <div v-for="item in adminStatItems" :key="item.id" class="admin-header-stat">
+        <strong :id="item.id">{{ item.value }}</strong>
+        <span>{{ item.label }}</span>
+      </div>
+    </div>
     <div class="terminal-header-controls">
       <div class="lang-select-wrapper">
         <svg class="lang-select-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -61,12 +68,17 @@ import { useTheme } from '../composables/useTheme'
 import { DEFAULT_SITE_TITLE } from '../utils/constants'
 import { hasConfiguredApiBase } from '../utils/config'
 
-defineProps({
-  title: {
-    type: String,
-    default: DEFAULT_SITE_TITLE
-  }
+const props = defineProps({
+  title: { type: String, default: DEFAULT_SITE_TITLE },
+  adminStats: { type: Object, default: null }
 })
+
+const adminStatItems = computed(() => props.adminStats ? [
+  { id: 'stat-total', value: props.adminStats.total, label: t('totalServers') },
+  { id: 'stat-online', value: props.adminStats.online, label: t('online') },
+  { id: 'stat-offline', value: props.adminStats.offline, label: t('offline') },
+  { id: 'stat-avg-cpu', value: `${props.adminStats.avg_cpu}%`, label: t('avgCpu') }
+] : [])
 
 const { currentTheme, setTheme } = useTheme()
 const currentLang = ref(getLanguage())
