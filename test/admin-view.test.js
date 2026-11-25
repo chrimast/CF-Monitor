@@ -173,16 +173,23 @@ test('mobile notifications keep primary controls in one row and group timing con
   assert.match(styles, /notification-timing-grid \{ grid-template-columns:\s*repeat\(2,/)
 })
 
-test('mobile security checkboxes have no extra bottom margin, database actions use two columns', () => {
-  const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
+test('desktop database uses two section columns while each section keeps its action layout', () => {
   const database = readFileSync(new URL('../src/frontend/views/admin/components/DatabasePanel.vue', import.meta.url), 'utf8')
   const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
-  assert.match(settings, /id="site-settings-security"[\s\S]*security-checkbox-item/)
-  assert.equal((database.match(/class="settings-grid database-action-grid"/g) || []).length, 2)
-  assert.match(styles, /security-checkbox-item[^}]*margin-bottom:\s*0/)
-  assert.match(styles, /database-action-grid[^}]*grid-template-columns:\s*repeat\(2,/)
+  assert.equal((database.match(/class="settings-grid database-action-grid"/g) || []).length, 0)
+  assert.match(database, /admin-tool-page[\s\S]*settings-section[\s\S]*dbManagement[\s\S]*settings-section[\s\S]*exportServers/)
+  assert.match(styles, /#admin-content #tab-database\.active[^}]*grid-template-columns:\s*repeat\(2,/)
+  assert.match(styles, /#admin-content #tab-database \.settings-grid \{ grid-template-columns:\s*1fr;/)
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*#admin-content #tab-database\.active \{ grid-template-columns:\s*1fr;/)
 })
 
+
+test('mobile security checkboxes have no extra bottom margin', () => {
+  const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  assert.match(settings, /id="site-settings-security"[\s\S]*security-checkbox-item/)
+  assert.match(styles, /security-checkbox-item[^}]*margin-bottom:\s*0/)
+})
 
 test('settings use one standalone page per category and retain unsaved-state feedback', () => {
   const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')

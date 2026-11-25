@@ -3,7 +3,7 @@
     <div class="settings-section">
       <div class="section-title"><span>▸</span> {{ trans.dbManagement }}</div>
 
-      <div class="settings-grid database-action-grid">
+      <div class="settings-grid">
         <div class="form-group">
           <button @click="$emit('open-db-modal', 'upgrade')" class="btn btn-primary btn-lg" :disabled="dbLoading">⬆️ {{ trans.upgradeDatabase }}</button>
           <p class="text-muted text-sm mt-2">{{ trans.upgradeDesc }}</p>
@@ -19,7 +19,7 @@
     <div class="settings-section">
       <div class="section-title"><span>▸</span> {{ trans.exportServers }} / {{ trans.importServers }}</div>
 
-      <div class="settings-grid database-action-grid">
+      <div class="settings-grid">
         <div class="form-group">
           <button @click="handleExport" class="btn btn-primary btn-lg" :disabled="dbLoading || exporting">
             {{ exporting ? trans.exporting : '📤 ' + trans.exportServers }}
