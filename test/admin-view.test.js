@@ -164,12 +164,23 @@ test('secondary admin tools use the shared workspace surface and donation is rem
 })
 
 
-test('display options use four desktop columns and three mobile columns for seven controls', () => {
+test('mobile notifications keep primary controls in one row and group timing controls in pairs', () => {
   const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
   const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
-  assert.match(settings, /class="display-option-grid"[\s\S]*cfg_is_public[\s\S]*cfg_show_price[\s\S]*cfg_show_expire[\s\S]*cfg_wss_report_enabled[\s\S]*cfg_show_tf[\s\S]*cfg_show_three_net_details[\s\S]*cfg_auto_discovery/)
-  assert.match(styles, /display-option-grid[^}]*grid-template-columns:\s*repeat\(4,/)
-  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*display-option-grid[^}]*grid-template-columns:\s*repeat\(3,/)
+  assert.match(settings, /notification-primary-grid[\s\S]*offlineAlert[\s\S]*expireReminder[\s\S]*notificationChannel/)
+  assert.match(settings, /id="site-settings-notifications"[\s\S]*notificationTimezone[\s\S]*notificationLanguage[\s\S]*expireNotificationTime[\s\S]*trafficAlertThreshold[\s\S]*cronOfflineAlert[\s\S]*cronHourly/)
+  assert.match(styles, /notification-primary-grid \{ grid-template-columns:\s*repeat\(3,/)
+  assert.match(styles, /notification-timing-grid \{ grid-template-columns:\s*repeat\(2,/)
+})
+
+test('mobile security checkboxes have no extra bottom margin, database actions use two columns', () => {
+  const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
+  const database = readFileSync(new URL('../src/frontend/views/admin/components/DatabasePanel.vue', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  assert.match(settings, /id="site-settings-security"[\s\S]*security-checkbox-item/)
+  assert.equal((database.match(/class="settings-grid database-action-grid"/g) || []).length, 2)
+  assert.match(styles, /security-checkbox-item[^}]*margin-bottom:\s*0/)
+  assert.match(styles, /database-action-grid[^}]*grid-template-columns:\s*repeat\(2,/)
 })
 
 

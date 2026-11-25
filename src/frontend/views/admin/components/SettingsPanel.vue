@@ -275,7 +275,7 @@
 
       <section class="settings-section settings-page" id="site-settings-notifications" v-if="selectedSettingsPage === 'notifications'">
         <h2 class="section-title">{{ trans.notifications }}</h2>
-        <div class="form-row">
+        <div class="notification-primary-grid">
           <div class="form-group flex-1">
             <label class="form-label">{{ trans.offlineAlert }}</label>
             <select v-model="settings.tg_notify" class="form-select">
@@ -476,7 +476,7 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="notification-timing-grid">
           <div class="form-group flex-1">
             <label class="form-label">
               {{ trans.notificationTimezone || 'Notification Timezone' }}
@@ -524,7 +524,7 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="notification-timing-grid">
           <div class="form-group flex-1">
             <label class="form-label">
               {{ trans.cronOfflineAlert }}
@@ -660,13 +660,13 @@
 
         <div class="form-row">
           <div class="form-group flex-1">
-            <div class="checkbox-item">
+            <div class="checkbox-item security-checkbox-item">
               <input type="checkbox" id="cfg_turnstile_enabled" v-model="settings.turnstile_enabled">
               <label><b>{{ trans.enableTurnstile }}</b></label>
             </div>
             </div>
           <div class="form-group flex-1">
-            <div class="checkbox-item">
+            <div class="checkbox-item security-checkbox-item">
               <input type="checkbox" id="cfg_turnstile_login_enabled" v-model="settings.turnstile_login_enabled">
               <label>{{ trans.enableTurnstileLogin }}</label>
               <HelpTooltip :text="trans.turnstileLoginTip" />

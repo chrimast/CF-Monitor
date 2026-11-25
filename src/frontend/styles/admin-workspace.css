@@ -194,10 +194,19 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px 16px;
 }
-#admin-content .display-option-grid .checkbox-item {
-  min-width: 0;
-  margin: 0;
+#admin-content .notification-primary-grid,
+#admin-content .notification-timing-grid,
+#admin-content .database-action-grid {
+  display: grid;
+  gap: 12px;
 }
+#admin-content .notification-primary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#admin-content .notification-timing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#admin-content .database-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#admin-content .notification-primary-grid .form-group,
+#admin-content .notification-timing-grid .form-group,
+#admin-content .database-action-grid .form-group { min-width: 0; margin: 0; }
+#admin-content .security-checkbox-item { margin-bottom: 14px; }
 #admin-content .settings-save-hint { color: var(--admin-muted); }
 #admin-content .settings-save-hint.is-dirty { color: var(--admin-accent); font-weight: 700; }
 
@@ -212,6 +221,10 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
   #admin-content #tab-settings.active { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   #admin-content .display-option-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   #admin-content .display-option-grid .checkbox-item { align-items: flex-start; }
+  #admin-content .notification-timing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #admin-content .notification-primary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #admin-content .security-checkbox-item { margin-bottom: 0; }
+  #admin-content .database-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   #admin-content #tab-settings .settings-save-hint.is-dirty { display: block; }
   #admin-content .settings-page-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #admin-content .settings-page-link { min-width: 0; min-height: 44px; overflow-wrap: anywhere; }
