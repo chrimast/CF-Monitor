@@ -135,11 +135,6 @@
           @alert-message="alertMessage = $event"
         />
 
-        <DonationPanel
-          :trans="trans"
-          :active-tab="activeTab"
-        />
-
         <DnsHubPanel
           :trans="trans"
           :active-tab="activeTab"
@@ -572,7 +567,6 @@ import ServerTable from './components/ServerTable.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import DatabasePanel from './components/DatabasePanel.vue'
 import ThemeStorePanel from './components/ThemeStorePanel.vue'
-import DonationPanel from './components/DonationPanel.vue'
 import DnsHubPanel from './components/DnsHubPanel.vue'
 import WafPanel from './components/WafPanel.vue'
 import EditServerModal from './components/EditServerModal.vue'
@@ -898,7 +892,6 @@ const adminTabs = [
   ['settings', 'settings', 'adminSiteSettings'],
   ['database', 'database', 'dbManagement'],
   ['themeStore', 'theme-store', 'themeStore'],
-  ['donation', 'donation', 'donation'],
   ['dnshub', 'dnshub', 'dnshub'],
   ['wafpanel', 'wafpanel', 'wafpanel']
 ]

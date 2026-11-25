@@ -31,17 +31,17 @@ body.light #admin-content {
   gap: 16px;
   padding: 12px 16px;
   border: 0;
-  border-bottom: 1px solid var(--admin-border);
   border-radius: 0;
   color: var(--admin-muted);
 }
 #admin-content .terminal-header-admin .terminal-title-admin {
+  display: block;
   grid-column: 1;
   grid-row: 1;
   margin: 0;
   color: #000;
   font-family: system-ui, sans-serif;
-  font-size: 2rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0;
@@ -70,7 +70,8 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
   border-right: 1px solid var(--admin-border);
   white-space: nowrap;
 }
-#admin-content .admin-header-stat:last-child { border: 0; }
+#admin-content .admin-header-stat:last-child { border-right: 0; }
+#admin-content .admin-header-stat:last-child span { display: inline-block; border-bottom: 1px solid var(--admin-border); }
 #admin-content .admin-header-stat strong { color: var(--admin-text); font-size: 1.05rem; }
 #admin-content .admin-header-stat span { overflow: hidden; color: var(--admin-muted); font-size: .75rem; text-overflow: ellipsis; }
 #admin-content .terminal-header-admin .terminal-header-controls { grid-column: 3; grid-row: 1; justify-content: flex-end; gap: 8px; }
@@ -80,6 +81,34 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
 #admin-content .admin-workspace-toolbar-actions { max-width: 100%; margin-left: auto; }
 #admin-content .admin-workspace-toolbar-actions .header-actions { flex-wrap: wrap; justify-content: flex-end; }
 #admin-content #tab-settings .settings-save-bar { grid-column: 1 / -1; margin-top: 0; }
+#admin-content .admin-tool-page {
+  display: none;
+  min-width: 0;
+  padding: 0;
+}
+#admin-content .admin-tool-page.active { display: block; }
+#admin-content .admin-tool-page > .settings-section,
+#admin-content .admin-tool-page .wafpanel-workbench > .settings-section,
+#admin-content .admin-tool-page .wafpanel-workbench .settings-section {
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 16px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  box-shadow: none;
+}
+#admin-content .admin-tool-page .section-title { color: var(--admin-text); font-size: 1.1rem; }
+#admin-content .admin-tool-page .settings-grid { gap: 12px; }
+#admin-content .admin-tool-page .header-actions,
+#admin-content .admin-tool-page .wafpanel-toolbar { gap: 6px; }
+#admin-content .admin-tool-page .settings-section { margin-bottom: 12px; }
+#admin-content .admin-tool-page .btn-primary { background: var(--admin-accent); border-color: var(--admin-accent); color: #081b1a; }
+#admin-content .admin-tool-page .btn-red { color: #ffaaa4; }
+#admin-content .admin-tool-page .form-input,
+#admin-content .admin-tool-page .form-select,
+#admin-content .admin-tool-page .form-textarea { border-color: var(--admin-border); }
+
 #admin-content .main-panel,
 #admin-content #tab-settings .settings-section,
 #admin-content .settings-save-bar {
@@ -159,12 +188,13 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
 #admin-content .settings-grid { display: block; min-width: 0; }
 #admin-content #tab-settings .settings-page { min-width: 0; margin: 0; padding: 16px; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 10px; box-shadow: none; }
 #admin-content #tab-settings .settings-page .section-title { margin-bottom: 16px; color: var(--admin-text); font-size: 1.1rem; }
+#admin-content #site-settings-theme textarea.form-textarea { height: 250px; min-height: 250px; }
 #admin-content .settings-save-hint { color: var(--admin-muted); }
 #admin-content .settings-save-hint.is-dirty { color: var(--admin-accent); font-weight: 700; }
 
 @media (max-width: 760px) {
   #admin-content .terminal-header-admin { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 12px 4px; }
-  #admin-content .terminal-header-admin .terminal-title-admin { grid-column: 1; grid-row: 1; font-size: 1.75rem; }
+  #admin-content .terminal-header-admin .terminal-title-admin { display: block; grid-column: 1; grid-row: 1; font-size: 1rem; }
   #admin-content .admin-header-stats { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #admin-content .admin-header-stat { justify-content: flex-start; border: 0; border-bottom: 1px solid var(--admin-border); }
   #admin-content .terminal-header-admin .terminal-header-controls { grid-column: 2; grid-row: 1; flex-wrap: wrap; justify-content: flex-end; }

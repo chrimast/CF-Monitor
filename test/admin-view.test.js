@@ -102,7 +102,7 @@ test('admin tabs name their matching panels and use the existing history navigat
   for (const [file, panel, tab] of [
     ['ServerTable', 'servers', 'servers'], ['SettingsPanel', 'settings', 'settings'],
     ['DatabasePanel', 'database', 'database'], ['ThemeStorePanel', 'theme-store', 'themeStore'],
-    ['DonationPanel', 'donation', 'donation'], ['DnsHubPanel', 'dnshub', 'dnshub'], ['WafPanel', 'wafpanel', 'wafpanel']
+    ['DnsHubPanel', 'dnshub', 'dnshub'], ['WafPanel', 'wafpanel', 'wafpanel']
   ]) {
     const component = readFileSync(new URL(`../src/frontend/views/admin/components/${file}.vue`, import.meta.url), 'utf8')
     assert.ok(component.includes(`id="tab-${panel}"`))
@@ -133,6 +133,36 @@ test('admin header centers compact stats and uses a black H1 without a fill', ()
   assert.match(styles, /terminal-header-admin[^}]*background:\s*transparent/)
   assert.match(styles, /terminal-header-controls[^}]*grid-column:\s*3/)
 })
+
+test('admin header keeps the compact title visible on mobile and clears the header rule', () => {
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  assert.match(styles, /terminal-title-admin[^}]*font-size:\s*1rem/)
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*terminal-title-admin[^}]*display:\s*block/)
+  assert.match(styles, /terminal-header-admin \{[\s\S]*?border:\s*0;/)
+  assert.doesNotMatch(styles.match(/terminal-header-admin \{([^}]*)\}/)[1], /border-bottom/)
+  assert.match(styles, /admin-header-stat:last-child span[^}]*border-bottom:\s*1px/)
+})
+
+test('settings theme textareas use the larger editing surface', () => {
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  assert.match(styles, /#admin-content #site-settings-theme textarea\.form-textarea[^}]*height:\s*250px/)
+  assert.match(styles, /min-height:\s*250px/)
+})
+
+test('secondary admin tools use the shared workspace surface and donation is removed', () => {
+  const admin = readFileSync(new URL('../src/frontend/views/admin/index.vue', import.meta.url), 'utf8')
+  const view = readFileSync(new URL('../src/frontend/utils/adminView.js', import.meta.url), 'utf8')
+  for (const panel of ['DatabasePanel', 'ThemeStorePanel', 'DnsHubPanel', 'WafPanel']) {
+    assert.match(admin, new RegExp(`<${panel}\\b[^>]*:active-tab="activeTab"`))
+  }
+  assert.doesNotMatch(admin, /DonationPanel/)
+  assert.doesNotMatch(view, /'donation'/)
+  for (const file of ['DatabasePanel', 'ThemeStorePanel', 'DnsHubPanel', 'WafPanel']) {
+    const component = readFileSync(new URL(`../src/frontend/views/admin/components/${file}.vue`, import.meta.url), 'utf8')
+    assert.match(component, /admin-tool-page/)
+  }
+})
+
 
 test('settings use one standalone page per category and retain unsaved-state feedback', () => {
   const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')

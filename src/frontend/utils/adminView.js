@@ -1,4 +1,4 @@
-const ADMIN_TABS = ['servers', 'settings', 'database', 'themeStore', 'donation', 'dnshub', 'wafpanel']
+const ADMIN_TABS = ['servers', 'settings', 'database', 'themeStore', 'dnshub', 'wafpanel']
 const DNSHUB_PAGES = ['home', 'domains', 'records']
 const WAFPANEL_PAGES = ['nodes', 'dashboard', 'logs', 'bans', 'autoban', 'pages']
 const SETTINGS_PAGES = ['appearance', 'theme', 'display', 'notifications', 'security', 'cloudflare', 'login', 'ping']

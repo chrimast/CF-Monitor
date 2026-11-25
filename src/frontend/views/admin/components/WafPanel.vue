@@ -1,5 +1,5 @@
 <template>
-  <div id="tab-wafpanel" class="tab-content" role="tabpanel" aria-labelledby="admin-tab-wafpanel" tabindex="0" :class="{ active: activeTab === 'wafpanel' }">
+  <div id="tab-wafpanel" class="tab-content admin-tool-page" role="tabpanel" aria-labelledby="admin-tab-wafpanel" tabindex="0" :class="{ active: activeTab === 'wafpanel' }">
     <p v-if="error" class="text-sm mb-2" style="color: var(--accent-red)">{{ error }}</p>
     <p v-if="notice" class="text-sm mb-2" style="color: var(--accent-green)">{{ notice }}</p>
 
