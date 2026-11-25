@@ -444,6 +444,7 @@ export default {
   resourceAlertNetOut: 'Ambang unggah (Mbps)',
   resourceAlertNetTotal: 'Ambang total jaringan (Mbps)',
   resourceAlertTip: 'Catatan: Karena keterbatasan CF Workers, terlalu banyak aturan dapat menyebabkan notifikasi tertunda atau hilang.',
+  notificationPushApiLabel: 'API Notifikasi',
   telegramToken: 'Telegram / WeChat / Feishu / DingTalk / Bark / Server酱 / WxPusher / Gotify / OneBot',
   chatId: 'Chat ID',
   notificationChannel: 'Saluran Notifikasi',

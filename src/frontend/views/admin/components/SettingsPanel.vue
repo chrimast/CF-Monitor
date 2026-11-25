@@ -178,7 +178,7 @@
       <section class="settings-section settings-page" id="site-settings-display" v-if="selectedSettingsPage === 'display'">
         <h2 class="section-title">{{ trans.displayOptions }}</h2>
 
-        <div class="form-row">
+        <div class="display-option-grid">
           <div class="form-group flex-1 checkbox-item">
             <input type="checkbox" id="cfg_is_public" v-model="settings.is_public">
             <label><b>{{ trans.publicAccess }}</b></label>
@@ -193,25 +193,23 @@
             <input type="checkbox" id="cfg_show_expire" v-model="settings.show_expire">
             <label>{{ trans.showExpire }}</label>
           </div>
-        </div>
 
-        <div class="form-row">
           <div class="form-group flex-1 checkbox-item">
             <input type="checkbox" id="cfg_wss_report_enabled" v-model="settings.wss_report_enabled">
             <label><b>{{ trans.wssReportEnabled }}</b></label>
             <HelpTooltip :text="trans.wssReportTip" />
           </div>
+
           <div class="form-group flex-1 checkbox-item">
             <input type="checkbox" id="cfg_show_tf" v-model="settings.show_tf">
             <label>{{ trans.showTf }}</label>
           </div>
+
           <div class="form-group flex-1 checkbox-item">
             <input type="checkbox" id="cfg_show_three_net_details" v-model="settings.show_three_net_details">
             <label>{{ trans.showThreeNetDetails }}</label>
           </div>
-        </div>
 
-        <div class="form-row">
           <div class="form-group flex-1 checkbox-item">
             <input type="checkbox" id="cfg_auto_discovery" v-model="settings.auto_discovery">
             <label><b>{{ trans.autoDiscovery }}</b></label>
@@ -316,7 +314,10 @@
 
         <div v-if="notificationChannel === 'builtin'" class="form-row">
           <div class="form-group flex-1">
-            <label class="form-label">{{ trans.telegramToken }}</label>
+            <label class="form-label">
+              {{ trans.notificationPushApiLabel }}
+              <HelpTooltip :text="trans.telegramToken" />
+            </label>
             <div class="password-input-wrapper">
               <input type="text" name="tg_bot_token" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" v-model="settings.tg_bot_token" :class="['form-input', { 'secret-input-masked': !passwordVisible.tgBotToken }]" placeholder="Bot Token or Webhook URL">
               <button type="button" class="password-toggle" @click="$emit('toggle-password', 'tgBotToken')">

@@ -445,6 +445,7 @@ export default {
   resourceAlertNetOut: '上行阈值 (Mbps)',
   resourceAlertNetTotal: '总网速阈值 (Mbps)',
   resourceAlertTip: '受CF Workers限制,数量过多可能导致通知延迟或丢失。',
+  notificationPushApiLabel: '消息推送API',
   telegramToken: 'Telegram / 企业微信 / 飞书 / 钉钉 / Bark / Server酱 / WxPusher / Gotify / OneBot',
   chatId: '聊天 ID',
   notificationChannel: '通知渠道',

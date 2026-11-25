@@ -189,6 +189,15 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
 #admin-content #tab-settings .settings-page { min-width: 0; margin: 0; padding: 16px; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 10px; box-shadow: none; }
 #admin-content #tab-settings .settings-page .section-title { margin-bottom: 16px; color: var(--admin-text); font-size: 1.1rem; }
 #admin-content #site-settings-theme textarea.form-textarea { height: 250px; min-height: 250px; }
+#admin-content .display-option-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+#admin-content .display-option-grid .checkbox-item {
+  min-width: 0;
+  margin: 0;
+}
 #admin-content .settings-save-hint { color: var(--admin-muted); }
 #admin-content .settings-save-hint.is-dirty { color: var(--admin-accent); font-weight: 700; }
 
@@ -201,6 +210,8 @@ body:not(.light) #admin-content .terminal-title-admin { justify-self: start; pad
   #admin-content .admin-workspace-panel .tabs { flex-basis: 100%; overflow: visible; }
   #admin-content :is(.tab-btn, #tab-servers .btn, #tab-settings .btn, .admin-workspace-toolbar-actions .btn) { min-height: 44px; }
   #admin-content #tab-settings.active { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  #admin-content .display-option-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  #admin-content .display-option-grid .checkbox-item { align-items: flex-start; }
   #admin-content #tab-settings .settings-save-hint.is-dirty { display: block; }
   #admin-content .settings-page-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #admin-content .settings-page-link { min-width: 0; min-height: 44px; overflow-wrap: anywhere; }

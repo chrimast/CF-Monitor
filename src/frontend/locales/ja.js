@@ -444,6 +444,7 @@ export default {
   resourceAlertNetOut: 'アップロードしきい値 (Mbps)',
   resourceAlertNetTotal: 'ネットワーク合計しきい値 (Mbps)',
   resourceAlertTip: '注意: CF Workers の制限により、ルールが多すぎると通知の遅延や欠落が発生する場合があります。',
+  notificationPushApiLabel: '通知API',
   telegramToken: 'Telegram / WeChat / Feishu / DingTalk / Bark / Server酱 / WxPusher / Gotify / OneBot',
   chatId: 'Chat ID',
   notificationChannel: '通知チャネル',

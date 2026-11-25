@@ -444,6 +444,7 @@ export default {
   resourceAlertNetOut: 'Upload threshold (Mbps)',
   resourceAlertNetTotal: 'Total network threshold (Mbps)',
   resourceAlertTip: 'Note: Due to CF Workers limitations, too many rules may cause notification delays or losses.',
+  notificationPushApiLabel: 'Message Push API',
   telegramToken: 'Telegram / WeChat / Feishu / DingTalk / Bark / Server酱 / WxPusher / Gotify / OneBot',
   chatId: 'Chat ID',
   notificationChannel: 'Notification Channel',

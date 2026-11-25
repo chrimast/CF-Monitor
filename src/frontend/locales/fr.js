@@ -444,6 +444,7 @@ export default {
   resourceAlertNetOut: 'Seuil montant (Mbps)',
   resourceAlertNetTotal: 'Seuil réseau total (Mbps)',
   resourceAlertTip: 'Remarque : en raison des limites de CF Workers, trop de règles peuvent retarder ou perdre des notifications.',
+  notificationPushApiLabel: 'API de notifications',
   telegramToken: 'Telegram / WeChat / Feishu / DingTalk / Bark / Server酱 / WxPusher / Gotify / OneBot',
   chatId: 'Chat ID',
   notificationChannel: 'Canal de notification',

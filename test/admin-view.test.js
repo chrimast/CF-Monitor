@@ -143,10 +143,10 @@ test('admin header keeps the compact title visible on mobile and clears the head
   assert.match(styles, /admin-header-stat:last-child span[^}]*border-bottom:\s*1px/)
 })
 
-test('settings theme textareas use the larger editing surface', () => {
-  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
-  assert.match(styles, /#admin-content #site-settings-theme textarea\.form-textarea[^}]*height:\s*250px/)
-  assert.match(styles, /min-height:\s*250px/)
+test('notification API label names the field and keeps the channel list in tooltip', () => {
+  const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
+  assert.match(settings, /notificationPushApiLabel/)
+  assert.match(settings, /:text="trans\.telegramToken"/)
 })
 
 test('secondary admin tools use the shared workspace surface and donation is removed', () => {
@@ -164,11 +164,21 @@ test('secondary admin tools use the shared workspace surface and donation is rem
 })
 
 
+test('display options use four desktop columns and three mobile columns for seven controls', () => {
+  const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  assert.match(settings, /class="display-option-grid"[\s\S]*cfg_is_public[\s\S]*cfg_show_price[\s\S]*cfg_show_expire[\s\S]*cfg_wss_report_enabled[\s\S]*cfg_show_tf[\s\S]*cfg_show_three_net_details[\s\S]*cfg_auto_discovery/)
+  assert.match(styles, /display-option-grid[^}]*grid-template-columns:\s*repeat\(4,/)
+  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*display-option-grid[^}]*grid-template-columns:\s*repeat\(3,/)
+})
+
+
 test('settings use one standalone page per category and retain unsaved-state feedback', () => {
   const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
   assert.equal((settings.match(/class="settings-section settings-page"/g) || []).length, 8)
   assert.doesNotMatch(settings, /<details class="settings-section"/)
   assert.ok(settings.includes('selectedSettingsPage === id'))
+  assert.match(settings, /notificationChannel === 'builtin'[\s\S]*notificationPushApiLabel[\s\S]*<HelpTooltip :text="trans\.telegramToken" \/>/)
   assert.ok(settings.includes("emit('settings-page-change', id)"))
   assert.ok(settings.includes('dirty ? trans.adminUnsavedSettings'))
 })
