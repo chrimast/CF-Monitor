@@ -12,7 +12,7 @@
         <div :id="titleId" class="modal-title">$ websocket --timeout</div>
       </div>
 
-      <div class="warning-box live-timeout-message">
+      <div class="live-timeout-message">
         <span class="live-timeout-icon" aria-hidden="true">[!]</span>
         <div>
           <strong>{{ trans.liveConnectionTimeoutTitle }}</strong>

@@ -1,6 +1,6 @@
 <template>
   <div id="tab-dnshub" class="tab-content admin-tool-page" role="tabpanel" aria-labelledby="admin-tab-dnshub" tabindex="0" :class="{ active: activeTab === 'dnshub' }">
-    <div v-if="page === 'home'" class="dnshub-home">
+    <div v-if="page === 'home'">
       <p v-if="error" class="text-sm mb-2" style="color: var(--accent-red)">{{ error }}</p>
       <div class="dnshub-split">
         <div class="settings-section">

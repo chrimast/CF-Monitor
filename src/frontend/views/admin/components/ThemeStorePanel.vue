@@ -3,14 +3,6 @@
     <div class="settings-section">
       <div class="section-title"><span>▸</span> {{ trans.themeStore }}</div>
 
-      <div class="warning-box mb-4">
-        <div class="flex-center-gap-sm">
-          <span class="warning-icon text-xl">⚠️</span>
-          <span style="color: var(--accent-yellow); font-weight: 600;">{{ trans.themeStoreWarning }}</span>
-        </div>
-        <p class="text-secondary text-sm mt-2" style="line-height: 1.6;">{{ trans.themeStoreWarningDesc }}</p>
-      </div>
-
       <div class="theme-store-toolbar mb-4">
         <div class="theme-current">
           <span class="theme-current-label">{{ trans.currentTheme }}</span>
@@ -20,10 +12,8 @@
 
       <div class="theme-custom mb-4">
         <div class="theme-custom-header">
-          <div>
-            <div class="theme-custom-title">{{ trans.customThemeUrl }}</div>
-            <div class="theme-custom-desc">{{ trans.customThemeUrlDesc }}</div>
-          </div>
+          <div class="theme-custom-title">{{ trans.customThemeUrl }}</div>
+          <div class="theme-custom-desc">{{ trans.customThemeUrlDesc }}</div>
         </div>
         <div class="theme-custom-form">
           <input
@@ -821,9 +811,6 @@ watch(
 }
 
 .theme-custom-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 10px;
 }
 

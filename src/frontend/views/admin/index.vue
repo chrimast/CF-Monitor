@@ -300,7 +300,7 @@
             </p>
           </div>
 
-          <div v-if="dbResult" :class="dbResult.success ? 'warning-box' : 'danger-box'" class="mb-4">
+          <div v-if="dbResult" :class="dbResult.success ? 'result-box-success' : 'danger-box'" class="mb-4">
             <div class="flex-center-gap-sm">
               <span :style="{ color: dbResult.success ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: '600' }">
                 {{ dbResult.success ? '✅' : '❌' }} {{ getMessage(dbResult.message) || (dbResult.success ? trans.operationSuccess : trans.operationFailed) }}
@@ -333,7 +333,7 @@
           </div>
 
           <div v-if="d1UsageResult.success" class="mb-4">
-            <div class="warning-box mb-4">
+            <div class="result-box-success mb-4">
               {{ getMessage(d1UsageResult.message) || trans.d1UsageQueried }}
             </div>
             <div class="quota-section">
@@ -512,7 +512,7 @@
             <button class="modal-close" @click="saveResult = null">✕</button>
           </div>
 
-          <div v-if="saveResult.success" class="success-box mb-4">
+          <div v-if="saveResult.success" class="mb-4">
             <div class="flex-center-gap-sm">
               <span style="color: var(--accent-green); font-weight: 600;">
                 ✅ {{ saveResult.message || trans.saveSuccess }}

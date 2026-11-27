@@ -164,6 +164,18 @@ test('secondary admin tools use the shared workspace surface and donation is rem
 })
 
 
+test('admin tool cards use the shared surface even inside nested layouts such as DNSHub', () => {
+  const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
+  assert.match(styles, /#admin-content \.admin-tool-page \.settings-section,\s*[^{}]*\{[^}]*border-radius:\s*var\(--admin-radius\)/)
+})
+
+test('theme store no longer shows the third-party warning banner', () => {
+  const panel = readFileSync(new URL('../src/frontend/views/admin/components/ThemeStorePanel.vue', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../src/frontend/styles/main.css', import.meta.url), 'utf8')
+  assert.doesNotMatch(panel, /warning-box|themeStoreWarning/)
+  assert.doesNotMatch(styles, /\.warning-box\b/)
+})
+
 test('mobile notifications keep primary controls in one row and group timing controls in pairs', () => {
   const settings = readFileSync(new URL('../src/frontend/views/admin/components/SettingsPanel.vue', import.meta.url), 'utf8')
   const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
@@ -176,11 +188,10 @@ test('mobile notifications keep primary controls in one row and group timing con
 test('desktop database uses two section columns while each section keeps its action layout', () => {
   const database = readFileSync(new URL('../src/frontend/views/admin/components/DatabasePanel.vue', import.meta.url), 'utf8')
   const styles = readFileSync(new URL('../src/frontend/styles/admin-workspace.css', import.meta.url), 'utf8')
-  assert.equal((database.match(/class="settings-grid database-action-grid"/g) || []).length, 0)
+  assert.equal((database.match(/class="settings-grid"/g) || []).length, 2)
   assert.match(database, /admin-tool-page[\s\S]*settings-section[\s\S]*dbManagement[\s\S]*settings-section[\s\S]*exportServers/)
-  assert.match(styles, /#admin-content #tab-database\.active[^}]*grid-template-columns:\s*repeat\(2,/)
-  assert.match(styles, /#admin-content #tab-database \.settings-grid \{ grid-template-columns:\s*1fr;/)
-  assert.match(styles, /@media \(max-width:\s*760px\)[\s\S]*#admin-content #tab-database\.active \{ grid-template-columns:\s*1fr;/)
+  assert.match(styles, /@media \(width > 760px\) \{\s*#admin-content #tab-database\.active[^}]*grid-template-columns:\s*repeat\(2,/)
+  assert.match(styles, /#admin-content \.settings-grid \{ display: block;/)
 })
 
 

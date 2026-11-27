@@ -2240,19 +2240,6 @@ body::before {
 /* --------------------------------------------------------------------------
    20. Form Components
    -------------------------------------------------------------------------- */
-.settings-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.settings-section {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 16px;
-}
-
 /* 设置页保存栏：吸附在视口底部，长表单滚动时也能随时保存 */
 .settings-save-bar {
     position: sticky;
@@ -2322,57 +2309,6 @@ body::before {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.donation-content {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.donation-copy {
-    width: 100%;
-    max-width: 720px;
-    color: var(--text-primary);
-    font-size: 13px;
-    line-height: 1.8;
-    text-align: center;
-}
-
-.donation-copy p {
-    margin: 0 0 12px;
-}
-
-.donation-copy p:last-child {
-    margin-bottom: 0;
-}
-
-.donation-token {
-    color: var(--accent-yellow);
-    font-weight: 600;
-}
-
-.donation-qr-card {
-    width: min(247px, 100%);
-    padding: 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--bg-primary);
-    text-align: center;
-}
-
-.donation-qr {
-    display: block;
-    width: 215px;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto 10px;
-}
-
-.donation-qr-caption {
-    color: var(--text-secondary);
-    font-size: 12px;
 }
 
 .section-subtitle {
@@ -5030,7 +4966,8 @@ body.mikus-theme .mikus-stats-mascot-img {
     color: var(--accent-red);
 }
 
-.warning-box {
+.result-box-success,
+.live-timeout-message {
     padding: 12px;
     border-radius: 4px;
     background: rgba(46, 160, 67, 0.1);
@@ -5101,10 +5038,6 @@ body.mikus-theme .mikus-stats-mascot-img {
 @media (max-width: 1200px) {
     .charts-container {
         grid-template-columns: 1fr;
-    }
-
-    .settings-grid {
-        gap: 12px;
     }
 }
 
@@ -5332,10 +5265,6 @@ body.mikus-theme .mikus-stats-mascot-img {
         height: 180px !important;
     }
 
-    .settings-grid {
-        grid-template-columns: 1fr;
-    }
-
     .ping-node-grid {
         grid-template-columns: 1fr;
     }
@@ -5351,10 +5280,6 @@ body.mikus-theme .mikus-stats-mascot-img {
     .batch-edit-field {
         grid-template-columns: 1fr;
         gap: 6px;
-    }
-
-    .settings-section {
-        margin-bottom: 12px;
     }
 
     .settings-save-bar {
@@ -5427,9 +5352,6 @@ body.mikus-theme .mikus-stats-mascot-img {
         width: 100%;
     }
 
-    .donation-content {
-        gap: 16px;
-    }
 
     .view-panel {
         min-height: 0;
@@ -5650,11 +5572,6 @@ body.admin-workspace .admin-container {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px;
     align-items: start;
-}
-
-.dnshub-split > .settings-section {
-    min-width: 0;
-    padding: 12px;
 }
 
 .dnshub-split .section-title {

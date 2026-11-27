@@ -46,7 +46,7 @@
       <p class="text-muted text-sm mt-2">{{ trans.importSettingsNote }}</p>
 
       <div v-if="importResult" class="mt-3">
-        <div :class="importResult.success ? 'warning-box' : 'danger-box'" class="mb-2">
+        <div :class="importResult.success ? 'result-box-success' : 'danger-box'" class="mb-2">
           <div class="flex-center-gap-sm">
             <span :style="{ color: importResult.success ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: '600' }">
               {{ importResult.success ? '✅' : '❌' }} {{ trans.importResult }}
